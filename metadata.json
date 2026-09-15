@@ -1,6 +1,0 @@
-{
-  "name": "TourGenius AI: Первый Туристический",
-  "description": "Сборщик реальных новостей туризма с генерацией острой ироничной аналитики и фотореалистичным контентом для сайта и соцсетей.",
-  "requestFramePermissions": [],
-  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
-}
