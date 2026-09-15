@@ -35,7 +35,7 @@ server {
 }
 NGINX
 
-ln -s /etc/nginx/sites-available/boom-kadr /etc/nginx/sites-enabled/boom-kadr
+ln -s /etc/nginx/sites-available/boom-kadr /etc/nginx/sites-enabled/boom-kadr.conf
 
 cat > /etc/systemd/system/boom-kadr-update.service <<'UNIT'
 [Unit]
