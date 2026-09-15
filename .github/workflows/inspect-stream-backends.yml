@@ -1,0 +1,39 @@
+name: Inspect stream backends
+
+on:
+  push:
+    branches: [boom-kadr-deploy]
+    paths:
+      - '.github/workflows/inspect-stream-backends.yml'
+  workflow_dispatch:
+
+jobs:
+  inspect:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - name: Configure SSH
+        env:
+          BOOM_SSH_KEY: ${{ secrets.BOOM_SSH_KEY }}
+        run: |
+          install -d -m 700 ~/.ssh
+          printf '%s\n' "$BOOM_SSH_KEY" > ~/.ssh/boom_kadr
+          chmod 600 ~/.ssh/boom_kadr
+          ssh-keyscan -T 8 -H 217.149.24.242 > ~/.ssh/known_hosts
+      - name: Inspect without changes
+        run: |
+          ssh -i ~/.ssh/boom_kadr -o BatchMode=yes root@217.149.24.242 'bash -s' <<'REMOTE'
+          set -u
+          echo "=== LISTENERS ==="
+          ss -ltnp | grep -E ':(20443|20444)[[:space:]]' || true
+          echo "=== PROCESSES ==="
+          ps -eo pid,comm,args | grep -E '20443|20444|xray|sing-box|haproxy|caddy' | grep -v grep || true
+          echo "=== UNITS ==="
+          systemctl --no-pager --type=service --state=running | grep -Ei 'xray|sing|haproxy|caddy|nginx' || true
+          echo "=== TLS BACKEND HEAD ==="
+          curl -k -sS -D - -o /dev/null --max-time 5 https://127.0.0.1:20443/ || true
+          echo "=== PLAIN BACKEND HEAD ==="
+          curl -sS -D - -o /dev/null --max-time 5 http://127.0.0.1:20444/ || true
+          echo "=== CONF REFERENCES ==="
+          grep -RnsE '20443|20444' /etc/nginx /etc/systemd/system /etc/xray /usr/local/etc 2>/dev/null || true
+          REMOTE
