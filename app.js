@@ -9,7 +9,8 @@
     lesson: null,
     scene: 0,
     teacherMode: false,
-    answered: Object.create(null)
+    answered: Object.create(null),
+    homeTimer: null
   };
 
   year.textContent = new Date().getFullYear();
@@ -35,69 +36,139 @@
   };
 
   function renderHome(scrollTarget) {
-    const cards = lessons.map((lesson) => {
+    clearInterval(state.homeTimer);
+    state.homeTimer = null;
+
+    const timeline = lessons.map((lesson, index) => {
       const ready = lesson.status === "ready";
       const body = `
-        <article class="lesson-card ${escapeHtml(lesson.color)}" data-ready="${ready}">
-          <div class="lesson-meta">
-            <span class="lesson-number">${escapeHtml(lesson.number)}</span>
-            <span class="lesson-status">${ready ? lesson.duration : "готовим"}</span>
+        <article class="timeline-clip ${escapeHtml(lesson.color)}" data-ready="${ready}">
+          <span class="clip-time">00:${String(index * 12).padStart(2, "0")}</span>
+          <span class="clip-number">${escapeHtml(lesson.number)}</span>
+          <div class="clip-copy">
+            <span class="clip-label">${ready ? "Смена открыта" : "В производстве"}</span>
+            <h3>${escapeHtml(lesson.title)}</h3>
+            <p>${escapeHtml(lesson.summary)}</p>
           </div>
-          <h3>${escapeHtml(lesson.title)}</h3>
-          <p>${escapeHtml(lesson.summary)}</p>
-          <div class="lesson-tags">${lesson.tags.map((tag) => `<span class="tag">${escapeHtml(tag)}</span>`).join("")}</div>
-          <div class="lesson-open">
-            <span>${ready ? "Открыть занятие" : "Скоро в курсе"}</span>
-            ${ready ? '<span class="arrow" aria-hidden="true">↗</span>' : ""}
-          </div>
+          <div class="clip-tags">${lesson.tags.map((tag) => `<span>${escapeHtml(tag)}</span>`).join("")}</div>
+          <span class="clip-action">${ready ? "Смотреть →" : "Скоро"}</span>
         </article>`;
       return ready
-        ? `<a href="#/lesson/${encodeURIComponent(lesson.id)}" aria-label="Открыть занятие: ${escapeHtml(lesson.title)}">${body}</a>`
+        ? `<a class="timeline-link" href="#/lesson/${encodeURIComponent(lesson.id)}" aria-label="Открыть занятие: ${escapeHtml(lesson.title)}">${body}</a>`
         : `<div aria-label="Занятие готовится: ${escapeHtml(lesson.title)}">${body}</div>`;
     }).join("");
 
     main.innerHTML = `
-      <section class="hero" aria-labelledby="hero-title">
-        <div class="hero-copy">
-          <p class="eyebrow">Школа изображения, звука и историй</p>
-          <h1 id="hero-title"><span class="boom-word">БУМ!</span><span class="frame-word">КАДР</span></h1>
-          <p class="hero-lead">Здесь не читают лекции о медиа. Здесь берут телефон, микрофон, камеру — и учатся рассказывать так, чтобы хотелось смотреть.</p>
-          <div class="hero-actions">
-            <a class="button button-primary" href="#/lesson/beautiful-frame">Начать с красивого кадра <span aria-hidden="true">→</span></a>
-            <a class="button button-secondary" href="#lessons">Все занятия</a>
-          </div>
+      <section class="studio-entry" aria-labelledby="hero-title">
+        <div class="entry-meta">
+          <span>Школа медиа · 12+</span>
+          <span class="entry-live"><i></i> Съёмочная площадка открыта</span>
+          <span>Москва · Онлайн</span>
         </div>
-        <div class="hero-visual" aria-hidden="true">
-          <img class="boom-hero" src="./assets/boom-mic-hero.webp" alt="" />
-          <img class="camera-hero" src="./assets/camera-hero.webp" alt="" />
-          <div class="take-stamp">Можно<br />снимать</div>
+
+        <div class="production-board">
+          <div class="viewfinder" id="viewfinder">
+            <div class="shot-feed" id="shot-feed" data-shot="general" role="img" aria-label="Подросток бежит по полю, общий план"></div>
+            <div class="viewfinder-shade" aria-hidden="true"></div>
+            <div class="frame-corner corner-tl" aria-hidden="true"></div>
+            <div class="frame-corner corner-tr" aria-hidden="true"></div>
+            <div class="frame-corner corner-bl" aria-hidden="true"></div>
+            <div class="frame-corner corner-br" aria-hidden="true"></div>
+            <div class="thirds-grid" aria-hidden="true"><i></i><i></i><i></i><i></i></div>
+            <div class="focus-mark" aria-hidden="true"><span></span></div>
+            <div class="camera-status">
+              <span class="record-state"><i></i><b id="record-label">STANDBY</b></span>
+              <span id="home-timecode">00:00:00</span>
+              <span>4K · 25P</span>
+            </div>
+            <img class="set-boom" src="./assets/boom-mic-hero.webp" alt="" aria-hidden="true" />
+
+            <div class="viewfinder-copy">
+              <p>Первое задание уже началось</p>
+              <h1 id="hero-title">Не смотри сайт.<br /><em>Сними первый кадр.</em></h1>
+            </div>
+
+            <div class="countdown" id="countdown" aria-live="polite"></div>
+            <button class="rec-trigger" id="rec-trigger" type="button">
+              <span class="rec-button-dot"></span>
+              <span><b>REC</b><small>нажми и войди в кадр</small></span>
+            </button>
+          </div>
+
+          <aside class="camera-console" aria-label="Пульт оператора">
+            <div class="console-brand"><strong>БУМ!</strong><span>КАДР</span></div>
+            <div class="console-copy">
+              <p class="console-kicker">Картинка говорит раньше тебя</p>
+              <h2 id="shot-title">Начни с общего</h2>
+              <p id="shot-copy">Он отвечает на первый вопрос зрителя: где всё происходит?</p>
+            </div>
+            <div class="shot-controls" aria-label="Выбор крупности кадра">
+              <button type="button" data-shot="general" aria-pressed="true"><span>01</span> Общий</button>
+              <button type="button" data-shot="medium" aria-pressed="false"><span>02</span> Средний</button>
+              <button type="button" data-shot="close" aria-pressed="false"><span>03</span> Крупный</button>
+            </div>
+            <a class="console-next" href="#lessons">Перейти к занятиям <span>↓</span></a>
+          </aside>
         </div>
       </section>
-      <div class="ticker" aria-hidden="true">
-        <div class="ticker-track">СМОТРИ → СЛУШАЙ → ПРОБУЙ → СНИМАЙ → МОНТИРУЙ → РАССКАЗЫВАЙ → СМОТРИ → СЛУШАЙ → ПРОБУЙ → СНИМАЙ → МОНТИРУЙ → РАССКАЗЫВАЙ → </div>
+
+      <div class="production-tape" aria-hidden="true">
+        <div>СМОТРИ / СЛУШАЙ / ПРОБУЙ / СНИМАЙ / МОНТИРУЙ / РАССКАЗЫВАЙ / СМОТРИ / СЛУШАЙ / ПРОБУЙ / СНИМАЙ / МОНТИРУЙ / РАССКАЗЫВАЙ /</div>
       </div>
-      <section class="section" id="lessons" aria-labelledby="lessons-title">
-        <div class="section-head">
+
+      <section class="roles-rig" aria-labelledby="roles-title">
+        <header class="rig-header">
           <div>
-            <p class="eyebrow">Курс растёт вместе с группой</p>
-            <h2 id="lessons-title">Не темы.<br />Съёмочные смены.</h2>
+            <p class="eyebrow">Одна площадка — разные глаза</p>
+            <h2 id="roles-title">Кем ты будешь<br />сегодня?</h2>
           </div>
-          <p>Каждое занятие — короткое объяснение, визуальный эксперимент и работа руками. Новые выпуски появляются здесь по мере прохождения курса.</p>
+          <p>На площадке нет главных и второстепенных. Каждый управляет своей частью истории.</p>
+        </header>
+        <div class="role-machine">
+          <div class="role-switches" role="tablist" aria-label="Съёмочные профессии">
+            <button type="button" role="tab" aria-selected="true" data-role="operator" data-word="ВИЖУ" data-copy="Решаю, что попадёт в кадр — и что зритель никогда не увидит."><span>01</span> Оператор</button>
+            <button type="button" role="tab" aria-selected="false" data-role="reporter" data-word="СПРАШИВАЮ" data-copy="Нахожу вопрос, после которого человек перестаёт отвечать шаблоном."><span>02</span> Репортёр</button>
+            <button type="button" role="tab" aria-selected="false" data-role="sound" data-word="СЛЫШУ" data-copy="Ловлю голос, паузу, шум и тот самый БУМ, который делает сцену живой."><span>03</span> Звук</button>
+            <button type="button" role="tab" aria-selected="false" data-role="editor" data-word="СОБИРАЮ" data-copy="Соединяю кадры так, чтобы из кусочков появилась история."><span>04</span> Монтаж</button>
+          </div>
+          <div class="role-output" id="role-output" data-role="operator">
+            <span class="role-code">ROLE_01</span>
+            <strong id="role-word">ВИЖУ</strong>
+            <div class="role-signal" aria-hidden="true"><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i></div>
+            <p id="role-copy">Решаю, что попадёт в кадр — и что зритель никогда не увидит.</p>
+          </div>
         </div>
-        <div class="lessons-grid">${cards}</div>
       </section>
-      <section class="section about-panel" id="about" aria-labelledby="about-title">
-        <div class="about-number" aria-label="10 лет">10</div>
-        <div class="about-copy">
-          <p class="eyebrow">Опыт настоящей редакции</p>
-          <h2 id="about-title">Мы выросли из медиацентра</h2>
-          <p>И стали небольшой продакшн-командой, которая снимает, выпускает эфиры и учит детей работать по-настоящему — без скучной имитации взрослой профессии.</p>
-          <p class="about-note">БУМ.КАДР — новый образовательный проект команды Медиацентра Марфино.</p>
+
+      <section class="cut-room" id="lessons" aria-labelledby="lessons-title">
+        <header class="cut-header">
+          <div>
+            <p class="eyebrow">Курс собирается как фильм</p>
+            <h2 id="lessons-title">Съёмочные<br />смены</h2>
+          </div>
+          <p>Не лекции и не папка с файлами. Каждый выпуск начинается с вопроса, продолжается экспериментом и заканчивается кадром, который сделал ты.</p>
+        </header>
+        <div class="timeline-ruler" aria-hidden="true"><span>00:00</span><span>00:12</span><span>00:24</span><span>00:36</span><span>00:48</span></div>
+        <div class="lesson-timeline">${timeline}</div>
+      </section>
+
+      <section class="production-proof" id="about" aria-labelledby="about-title">
+        <div class="proof-number"><strong>10</strong><span>лет<br />в эфире</span></div>
+        <div class="proof-copy">
+          <p class="eyebrow">Не имитация взрослой профессии</p>
+          <h2 id="about-title">Из медиацентра —<br />в маленький продакшн.</h2>
+          <p>Мы снимаем, выпускаем эфиры и учим детей работать по-настоящему: договариваться, ошибаться, переснимать и отвечать за результат.</p>
+          <div class="proof-strip">
+            <span><b>Камера</b> в руках</span>
+            <span><b>Практика</b> с первого дня</span>
+            <span><b>История</b> важнее кнопок</span>
+          </div>
+          <p class="proof-origin">БУМ.КАДР — образовательный проект команды Медиацентра Марфино.</p>
         </div>
       </section>`;
 
     document.body.classList.remove("teacher-mode");
-    bindHeroMotion();
+    bindHomeInteractions();
     if (scrollTarget) {
       requestAnimationFrame(() => document.querySelector(scrollTarget)?.scrollIntoView({ block: "start" }));
     } else {
@@ -105,23 +176,107 @@
     }
   }
 
-  function bindHeroMotion() {
-    const hero = document.querySelector(".hero");
-    if (!hero || window.matchMedia("(prefers-reduced-motion: reduce)").matches) return;
-    hero.addEventListener("pointermove", (event) => {
-      const rect = hero.getBoundingClientRect();
-      const x = ((event.clientX - rect.left) / rect.width - 0.5) * 28;
-      const y = ((event.clientY - rect.top) / rect.height - 0.5) * 24;
-      hero.style.setProperty("--pointer-x", `${x}px`);
-      hero.style.setProperty("--pointer-y", `${y}px`);
+  function bindHomeInteractions() {
+    const viewfinder = document.querySelector("#viewfinder");
+    const recTrigger = document.querySelector("#rec-trigger");
+    const countdown = document.querySelector("#countdown");
+    const feed = document.querySelector("#shot-feed");
+    const shotTitle = document.querySelector("#shot-title");
+    const shotCopy = document.querySelector("#shot-copy");
+    const recordLabel = document.querySelector("#record-label");
+    const timecode = document.querySelector("#home-timecode");
+    const reducedMotion = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+    const shots = {
+      general: {
+        title: "Начни с общего",
+        copy: "Он отвечает на первый вопрос зрителя: где всё происходит?",
+        alt: "Подросток бежит по полю, общий план"
+      },
+      medium: {
+        title: "Подойди ближе",
+        copy: "Средний план показывает действие. Теперь мы понимаем, что делает герой.",
+        alt: "Подросток бежит по полю, средний план"
+      },
+      close: {
+        title: "Покажи человека",
+        copy: "Крупный план впускает зрителя в эмоцию: дыхание, усилие, взгляд.",
+        alt: "Лицо бегущего подростка, крупный план"
+      }
+    };
+
+    if (viewfinder && !reducedMotion) {
+      viewfinder.addEventListener("pointermove", (event) => {
+        const rect = viewfinder.getBoundingClientRect();
+        const x = ((event.clientX - rect.left) / rect.width) * 100;
+        const y = ((event.clientY - rect.top) / rect.height) * 100;
+        viewfinder.style.setProperty("--focus-x", `${x}%`);
+        viewfinder.style.setProperty("--focus-y", `${y}%`);
+      });
+    }
+
+    recTrigger?.addEventListener("click", () => {
+      if (viewfinder.classList.contains("is-live")) return;
+      recTrigger.disabled = true;
+      viewfinder.classList.add("is-arming");
+      const sequence = ["3", "2", "1", "СНИМАЕМ"];
+      sequence.forEach((value, index) => {
+        window.setTimeout(() => {
+          countdown.textContent = value;
+          if (index === sequence.length - 1) {
+            viewfinder.classList.remove("is-arming");
+            viewfinder.classList.add("is-live");
+            recordLabel.textContent = "REC";
+            recTrigger.querySelector("small").textContent = "камера работает";
+            recTrigger.disabled = false;
+            let seconds = 0;
+            clearInterval(state.homeTimer);
+            state.homeTimer = window.setInterval(() => {
+              seconds += 1;
+              timecode.textContent = `00:00:${String(seconds).padStart(2, "0")}`;
+            }, 1000);
+          }
+        }, reducedMotion ? index * 80 : index * 520);
+      });
     });
-    hero.addEventListener("pointerleave", () => {
-      hero.style.setProperty("--pointer-x", "0px");
-      hero.style.setProperty("--pointer-y", "0px");
+
+    document.querySelectorAll("[data-shot]").forEach((button) => {
+      if (button === feed) return;
+      button.addEventListener("click", () => {
+        const shot = button.dataset.shot;
+        if (!shots[shot]) return;
+        feed.dataset.shot = shot;
+        feed.setAttribute("aria-label", shots[shot].alt);
+        shotTitle.textContent = shots[shot].title;
+        shotCopy.textContent = shots[shot].copy;
+        document.querySelectorAll(".shot-controls [data-shot]").forEach((item) => {
+          item.setAttribute("aria-pressed", String(item === button));
+        });
+        viewfinder.classList.add("is-live");
+        recordLabel.textContent = "REC";
+      });
+    });
+
+    document.querySelectorAll("[data-role]").forEach((button) => {
+      if (!button.matches(".role-switches button")) return;
+      button.addEventListener("click", () => {
+        document.querySelectorAll(".role-switches button").forEach((item) => {
+          item.setAttribute("aria-selected", String(item === button));
+        });
+        const output = document.querySelector("#role-output");
+        output.dataset.role = button.dataset.role;
+        document.querySelector("#role-word").textContent = button.dataset.word;
+        document.querySelector("#role-copy").textContent = button.dataset.copy;
+        output.animate(
+          [{ opacity: 0.25, transform: "translateY(12px)" }, { opacity: 1, transform: "none" }],
+          { duration: reducedMotion ? 1 : 280, easing: "cubic-bezier(.2,.8,.2,1)" }
+        );
+      });
     });
   }
 
   function renderLesson(lessonId) {
+    clearInterval(state.homeTimer);
+    state.homeTimer = null;
     const lesson = lessons.find((item) => item.id === lessonId && item.status === "ready");
     if (!lesson) {
       renderHome();
