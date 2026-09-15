@@ -1,0 +1,40 @@
+name: Inspect BUM.KADR target
+
+on:
+  workflow_dispatch:
+  push:
+    branches:
+      - boom-kadr-deploy
+    paths:
+      - '.github/workflows/inspect-target.yml'
+
+jobs:
+  inspect:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Configure SSH
+        env:
+          BOOM_SSH_KEY: ${{ secrets.BOOM_SSH_KEY }}
+        run: |
+          install -d -m 700 ~/.ssh
+          printf '%s\n' "$BOOM_SSH_KEY" > ~/.ssh/boom_kadr
+          chmod 600 ~/.ssh/boom_kadr
+          ssh-keyscan -T 8 -H 217.149.24.242 > ~/.ssh/known_hosts
+      - name: Inspect server read-only
+        run: |
+          ssh -i ~/.ssh/boom_kadr -o BatchMode=yes root@217.149.24.242 'bash -s' <<'REMOTE'
+          set -e
+          echo "HOSTNAME"
+          hostname
+          echo "DISK"
+          df -h /
+          echo "NGINX"
+          nginx -v 2>&1
+          nginx -t
+          echo "SITES_ENABLED"
+          find /etc/nginx/sites-enabled -maxdepth 1 -mindepth 1 -printf "%f -> %l\n" 2>/dev/null | sort
+          echo "SERVER_NAMES"
+          nginx -T 2>/dev/null | grep -E "^[[:space:]]*(listen|server_name|root)[[:space:]]" | sed -n '1,160p'
+          echo "TARGET_DIR"
+          if [ -e /var/www/boom-kadr ]; then ls -ld /var/www/boom-kadr; else echo "ABSENT"; fi
+          REMOTE
