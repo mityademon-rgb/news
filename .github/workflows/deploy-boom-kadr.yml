@@ -81,7 +81,14 @@ jobs:
           nginx -t
           systemctl reload nginx
 
-          HTTP_CODE="$(curl -sS -D /tmp/boom-kadr-http-headers.txt -o /tmp/boom-kadr-http-check.html -w '%{http_code}' http://217.149.24.234/ -H "Host: $HOST")"
+          HTTP_CODE="000"
+          for attempt in 1 2 3 4 5; do
+            HTTP_CODE="$(curl -sS -D /tmp/boom-kadr-http-headers.txt -o /tmp/boom-kadr-http-check.html -w '%{http_code}' http://127.0.0.1/ -H "Host: $HOST" || true)"
+            if [ "$HTTP_CODE" = "200" ] && grep -q 'БУМ' /tmp/boom-kadr-http-check.html; then
+              break
+            fi
+            sleep 1
+          done
           echo "HTTP pre-certificate check: $HTTP_CODE"
           sed -n '1,12p' /tmp/boom-kadr-http-headers.txt
           test "$HTTP_CODE" = "200"
