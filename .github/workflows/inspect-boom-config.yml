@@ -1,0 +1,38 @@
+name: Inspect BUM.KADR config
+
+on:
+  workflow_dispatch:
+  push:
+    branches:
+      - boom-kadr-deploy
+    paths:
+      - '.github/workflows/inspect-boom-config.yml'
+
+jobs:
+  inspect:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Configure SSH
+        env:
+          BOOM_SSH_KEY: ${{ secrets.BOOM_SSH_KEY }}
+        run: |
+          install -d -m 700 ~/.ssh
+          printf '%s\n' "$BOOM_SSH_KEY" > ~/.ssh/boom_kadr
+          chmod 600 ~/.ssh/boom_kadr
+          ssh-keyscan -T 8 -H 217.149.24.242 > ~/.ssh/known_hosts
+      - name: Inspect only BUM.KADR files
+        run: |
+          ssh -i ~/.ssh/boom_kadr -o BatchMode=yes root@217.149.24.242 'bash -s' <<'REMOTE'
+          set -e
+          echo "NGINX_INCLUDE"
+          grep -R "^[[:space:]]*include" /etc/nginx/nginx.conf /etc/nginx/conf.d 2>/dev/null || true
+          echo "BOOM_AVAILABLE"
+          ls -l /etc/nginx/sites-available/boom-kadr
+          sed -n '1,220p' /etc/nginx/sites-available/boom-kadr
+          echo "BOOM_ENABLED"
+          ls -l /etc/nginx/sites-enabled/boom-kadr.conf
+          echo "LOCAL_HOST_TEST"
+          curl -sS -o /dev/null -w "HTTP %{http_code}\n" -H "Host: boom-kadr.217-149-24-242.nip.io" http://127.0.0.1/
+          echo "INDEX"
+          stat -c "%n %s bytes %y" /var/www/boom-kadr/index.html
+          REMOTE
