@@ -1,0 +1,119 @@
+name: Deploy BOOM.KADR safely
+
+on:
+  push:
+    branches: [boom-kadr-deploy]
+    paths:
+      - 'index.html'
+      - 'styles.css'
+      - 'app.js'
+      - 'lessons.js'
+      - 'assets/**'
+      - '.deploy/boom-kadr-http.conf'
+      - '.deploy/boom-kadr-https.conf'
+      - '.github/workflows/deploy-boom-kadr.yml'
+  workflow_dispatch:
+
+concurrency:
+  group: boom-kadr-production
+  cancel-in-progress: false
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: boom-kadr-deploy
+
+      - name: Configure SSH
+        env:
+          BOOM_SSH_KEY: ${{ secrets.BOOM_SSH_KEY }}
+        run: |
+          install -d -m 700 ~/.ssh
+          printf '%s\n' "$BOOM_SSH_KEY" > ~/.ssh/boom_kadr
+          chmod 600 ~/.ssh/boom_kadr
+          ssh-keyscan -T 8 -H 217.149.24.242 > ~/.ssh/known_hosts
+
+      - name: Package and upload
+        run: |
+          tar -czf /tmp/boom-kadr-site.tgz index.html styles.css app.js lessons.js assets README.txt
+          scp -i ~/.ssh/boom_kadr /tmp/boom-kadr-site.tgz root@217.149.24.242:/tmp/boom-kadr-site.tgz
+          scp -i ~/.ssh/boom_kadr .deploy/boom-kadr-http.conf root@217.149.24.242:/tmp/boom-kadr-http.conf
+          scp -i ~/.ssh/boom_kadr .deploy/boom-kadr-https.conf root@217.149.24.242:/tmp/boom-kadr-https.conf
+
+      - name: Install site and certificate
+        run: |
+          ssh -i ~/.ssh/boom_kadr -o BatchMode=yes root@217.149.24.242 'bash -s' <<'REMOTE'
+          set -Eeuo pipefail
+          HOST='boom-kadr.217-149-24-234.nip.io'
+          CONF='/etc/nginx/conf.d/boom-kadr.conf'
+          STAMP="$(date +%Y%m%d-%H%M%S)"
+          BACKUP="/var/backups/boom-kadr/$STAMP"
+          HAD_CONF=0
+
+          mkdir -p "$BACKUP"
+          if [ -f "$CONF" ]; then
+            cp -a "$CONF" "$BACKUP/boom-kadr.conf"
+            HAD_CONF=1
+          fi
+
+          rollback() {
+            status=$?
+            if [ "$HAD_CONF" -eq 1 ]; then
+              cp -a "$BACKUP/boom-kadr.conf" "$CONF"
+            else
+              rm -f "$CONF"
+            fi
+            nginx -t && systemctl reload nginx || true
+            exit "$status"
+          }
+          trap rollback ERR
+
+          mkdir -p /var/www/boom-kadr
+          tar -xzf /tmp/boom-kadr-site.tgz -C /var/www/boom-kadr
+          chown -R www-data:www-data /var/www/boom-kadr
+          find /var/www/boom-kadr -type d -exec chmod 755 {} +
+          find /var/www/boom-kadr -type f -exec chmod 644 {} +
+
+          install -m 644 /tmp/boom-kadr-http.conf "$CONF"
+          nginx -t
+          systemctl reload nginx
+
+          HTTP_CODE="$(curl -sS -o /tmp/boom-kadr-http-check.html -w '%{http_code}' http://127.0.0.1/ -H "Host: $HOST")"
+          test "$HTTP_CODE" = "200"
+          grep -q 'БУМ' /tmp/boom-kadr-http-check.html
+
+          certbot certonly --webroot -w /var/www/boom-kadr -d "$HOST" \
+            --non-interactive --agree-tos --register-unsafely-without-email \
+            --keep-until-expiring
+
+          install -m 644 /tmp/boom-kadr-https.conf "$CONF"
+          nginx -t
+          systemctl reload nginx
+
+          HTTPS_CODE="$(curl -k -sS --resolve "$HOST:443:217.149.24.234" -o /tmp/boom-kadr-https-check.html -w '%{http_code}' "https://$HOST/")"
+          test "$HTTPS_CODE" = "200"
+          grep -q 'БУМ' /tmp/boom-kadr-https-check.html
+
+          rm -f /tmp/boom-kadr-site.tgz /tmp/boom-kadr-http.conf /tmp/boom-kadr-https.conf
+          trap - ERR
+          echo "BOOM.KADR deployed successfully"
+          REMOTE
+
+      - name: Verify public site and existing sites
+        run: |
+          HOST='boom-kadr.217-149-24-234.nip.io'
+          for attempt in 1 2 3 4 5; do
+            code="$(curl -sS -L -o /tmp/boom-public.html -w '%{http_code}' --max-time 15 "https://$HOST/" || true)"
+            if [ "$code" = "200" ] && grep -q 'БУМ' /tmp/boom-public.html; then
+              break
+            fi
+            sleep 3
+          done
+          test "$code" = "200"
+          grep -q 'БУМ' /tmp/boom-public.html
+          test "$(curl -sS -L -o /dev/null -w '%{http_code}' --max-time 15 https://go.1tourtv.ru/)" = "200"
+          test "$(curl -sS -L -o /dev/null -w '%{http_code}' --max-time 15 https://sale.1tourtv.ru/)" = "200"
+          echo "Public checks passed"
