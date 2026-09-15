@@ -1,0 +1,28 @@
+name: Probe alternate SSH access
+
+on:
+  workflow_dispatch:
+  push:
+    branches:
+      - boom-kadr-deploy
+    paths:
+      - '.github/workflows/probe-alternate-ssh.yml'
+
+jobs:
+  probe:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Configure key
+        env:
+          BOOM_SSH_KEY: ${{ secrets.BOOM_SSH_KEY }}
+        run: |
+          install -d -m 700 ~/.ssh
+          printf '%s\n' "$BOOM_SSH_KEY" > ~/.ssh/boom_kadr
+          chmod 600 ~/.ssh/boom_kadr
+      - name: Read-only SSH probes
+        run: |
+          for host in 72.56.39.33 217.149.24.234; do
+            echo "=== $host ==="
+            ssh-keyscan -T 8 -H "$host" >> ~/.ssh/known_hosts 2>/dev/null || true
+            timeout 12 ssh -i ~/.ssh/boom_kadr -o BatchMode=yes -o ConnectTimeout=8 root@"$host" 'printf "ACCESS_OK "; hostname; whoami' || echo "ACCESS_FAILED"
+          done
