@@ -1,0 +1,33 @@
+name: Inspect TLS routing
+
+on:
+  workflow_dispatch:
+  push:
+    branches:
+      - boom-kadr-deploy
+    paths:
+      - '.github/workflows/inspect-tls-routing.yml'
+
+jobs:
+  inspect:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Configure SSH
+        env:
+          BOOM_SSH_KEY: ${{ secrets.BOOM_SSH_KEY }}
+        run: |
+          install -d -m 700 ~/.ssh
+          printf '%s\n' "$BOOM_SSH_KEY" > ~/.ssh/boom_kadr
+          chmod 600 ~/.ssh/boom_kadr
+          ssh-keyscan -T 8 -H 217.149.24.242 > ~/.ssh/known_hosts
+      - name: Inspect TLS route read-only
+        run: |
+          ssh -i ~/.ssh/boom_kadr -o BatchMode=yes root@217.149.24.242 'bash -s' <<'REMOTE'
+          set -e
+          echo "NGINX_MAIN"
+          sed -n '1,240p' /etc/nginx/nginx.conf
+          echo "MITYADEMON"
+          sed -n '1,260p' /etc/nginx/conf.d/mityademon.conf
+          echo "PROXY_CF"
+          sed -n '1,220p' /etc/nginx/conf.d/proxy-cf.conf
+          REMOTE
