@@ -1,0 +1,35 @@
+name: Inspect active listeners
+
+on:
+  workflow_dispatch:
+  push:
+    branches:
+      - boom-kadr-deploy
+    paths:
+      - '.github/workflows/inspect-active-listeners.yml'
+
+jobs:
+  inspect:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Configure SSH
+        env:
+          BOOM_SSH_KEY: ${{ secrets.BOOM_SSH_KEY }}
+        run: |
+          install -d -m 700 ~/.ssh
+          printf '%s\n' "$BOOM_SSH_KEY" > ~/.ssh/boom_kadr
+          chmod 600 ~/.ssh/boom_kadr
+          ssh-keyscan -T 8 -H 217.149.24.242 > ~/.ssh/known_hosts
+      - name: Inspect active Nginx listeners
+        run: |
+          ssh -i ~/.ssh/boom_kadr -o BatchMode=yes root@217.149.24.242 'bash -s' <<'REMOTE'
+          set -e
+          echo "ACTIVE_FILES"
+          find /etc/nginx/conf.d -maxdepth 1 -type f -name "*.conf" -printf "%f\n" | sort
+          echo "GO_CONFIG"
+          sed -n '1,260p' /etc/nginx/conf.d/1tour-go.conf
+          echo "LISTENERS"
+          ss -ltnp | grep -E ":(80|443|9443)[[:space:]]" || true
+          echo "CERTBOT"
+          certbot --version 2>/dev/null || true
+          REMOTE
