@@ -1,0 +1,27 @@
+name: Probe spare server address
+
+on:
+  workflow_dispatch:
+  push:
+    branches:
+      - boom-kadr-deploy
+    paths:
+      - '.github/workflows/probe-spare-address.yml'
+
+jobs:
+  probe:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Probe 217.149.24.242
+        env:
+          HOST: 217.149.24.242
+        run: |
+          for port in 22 80 443 9443; do
+            if timeout 8 bash -c "cat < /dev/null > /dev/tcp/$HOST/$port" 2>/dev/null; then
+              echo "PORT $port OPEN"
+            else
+              echo "PORT $port CLOSED_OR_TIMEOUT"
+            fi
+          done
+          curl -4 -k -sS -o /dev/null -w 'HTTP %{http_code} REMOTE %{remote_ip}\n' --connect-timeout 8 --max-time 12 http://217.149.24.242/ || true
+          curl -4 -k -sS -o /dev/null -w 'HTTPS %{http_code} REMOTE %{remote_ip}\n' --connect-timeout 8 --max-time 12 https://217.149.24.242/ || true
