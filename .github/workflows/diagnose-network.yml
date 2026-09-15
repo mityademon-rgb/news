@@ -1,0 +1,26 @@
+name: Diagnose BUM.KADR network
+
+on:
+  workflow_dispatch:
+  push:
+    branches:
+      - boom-kadr-deploy
+    paths:
+      - '.github/workflows/diagnose-network.yml'
+
+jobs:
+  probe:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Probe public ports
+        env:
+          HOST: 72.56.65.161
+        run: |
+          for port in 22 80 443 9443; do
+            if timeout 8 bash -c "cat < /dev/null > /dev/tcp/$HOST/$port" 2>/dev/null; then
+              echo "PORT $port OPEN"
+            else
+              echo "PORT $port CLOSED_OR_TIMEOUT"
+            fi
+          done
+          curl -4 -I --connect-timeout 8 --max-time 12 http://72.56.65.161/ || true
