@@ -66,6 +66,11 @@ systemctl reload nginx
 systemctl daemon-reload
 systemctl enable --now boom-kadr-update.timer
 
+# The temporary GitHub Actions key is no longer needed: deployment is pull-based.
+if [ -f /root/.ssh/authorized_keys ]; then
+  sed -i '/boom-kadr-github-actions$/d' /root/.ssh/authorized_keys
+fi
+
 status_code="$(curl -sS -o /dev/null -w '%{http_code}' http://127.0.0.1/index.html)"
 test "$status_code" = "200"
 
