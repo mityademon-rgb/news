@@ -102,7 +102,15 @@ jobs:
           nginx -t
           systemctl reload nginx
 
-          HTTPS_CODE="$(curl -k -sS --resolve "$HOST:443:217.149.24.234" -o /tmp/boom-kadr-https-check.html -w '%{http_code}' "https://$HOST/")"
+          HTTPS_CODE="000"
+          for attempt in 1 2 3 4 5; do
+            HTTPS_CODE="$(curl -k -sS --resolve "$HOST:443:217.149.24.234" -o /tmp/boom-kadr-https-check.html -w '%{http_code}' "https://$HOST/" || true)"
+            if [ "$HTTPS_CODE" = "200" ] && grep -q 'БУМ' /tmp/boom-kadr-https-check.html; then
+              break
+            fi
+            sleep 1
+          done
+          echo "HTTPS local check: $HTTPS_CODE"
           test "$HTTPS_CODE" = "200"
           grep -q 'БУМ' /tmp/boom-kadr-https-check.html
 
