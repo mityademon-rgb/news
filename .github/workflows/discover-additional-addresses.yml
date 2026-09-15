@@ -1,0 +1,23 @@
+name: Discover additional addresses
+
+on:
+  workflow_dispatch:
+  push:
+    branches:
+      - boom-kadr-deploy
+    paths:
+      - '.github/workflows/discover-additional-addresses.yml'
+
+jobs:
+  inspect:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Resolve project hosts
+        run: |
+          hosts="1tourtv.ru www.1tourtv.ru karta.1tourtv.ru cabinet.1tourtv.ru recommend.1tourtv.ru mityademon.com www.mityademon.com"
+          for host in $hosts; do
+            echo "=== $host ==="
+            getent ahostsv4 "$host" | awk '{print $1}' | sort -u || true
+            curl -4 -k -sS -o /dev/null -w 'HTTP %{http_code} REMOTE %{remote_ip}\n' --connect-timeout 6 --max-time 10 "http://$host/" || true
+            curl -4 -k -sS -o /dev/null -w 'HTTPS %{http_code} REMOTE %{remote_ip}\n' --connect-timeout 6 --max-time 10 "https://$host/" || true
+          done
