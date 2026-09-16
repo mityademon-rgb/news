@@ -8,6 +8,7 @@ window.BOOM_LESSONS = [
     duration: "70 мин",
     status: "soon",
     color: "yellow",
+    cover: "./assets/camera-hero.webp",
     tags: ["студия", "команда", "оборудование"]
   },
   {
@@ -19,6 +20,7 @@ window.BOOM_LESSONS = [
     duration: "75 мин",
     status: "ready",
     color: "cyan",
+    cover: "./assets/boom-mic-hero.webp",
     tags: ["интервью", "репортёр", "практика"],
     scenes: [
       {
@@ -94,6 +96,7 @@ window.BOOM_LESSONS = [
     duration: "80 мин",
     status: "ready",
     color: "red",
+    cover: "./assets/runner-mixed.webp",
     tags: ["камера", "фото", "композиция"],
     scenes: [
       {
