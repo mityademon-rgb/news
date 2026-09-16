@@ -41,7 +41,7 @@
     state.sceneTimer = null;
   }
 
-  function renderHome(scrollTarget) {
+  function renderHomeLegacy(scrollTarget) {
     clearSceneTimer();
     clearInterval(state.homeTimer);
     state.homeTimer = null;
@@ -175,7 +175,7 @@
       </section>`;
 
     document.body.classList.remove("teacher-mode");
-    bindHomeInteractions();
+    bindHomeInteractionsLegacy();
     if (scrollTarget) {
       requestAnimationFrame(() => document.querySelector(scrollTarget)?.scrollIntoView({ block: "start" }));
     } else {
@@ -183,7 +183,7 @@
     }
   }
 
-  function bindHomeInteractions() {
+  function bindHomeInteractionsLegacy() {
     const viewfinder = document.querySelector("#viewfinder");
     const recTrigger = document.querySelector("#rec-trigger");
     const countdown = document.querySelector("#countdown");
@@ -279,6 +279,115 @@
         );
       });
     });
+  }
+
+  function renderHome(scrollTarget) {
+    clearSceneTimer();
+    clearInterval(state.homeTimer);
+    state.homeTimer = null;
+
+    const readyLessons = lessons.filter((lesson) => lesson.status === "ready");
+    const latestLesson = readyLessons.at(-1) || lessons[0];
+    const cards = lessons.map((lesson) => {
+      const ready = lesson.status === "ready";
+      const card = `
+        <article class="course-card course-card-${escapeHtml(lesson.color)}" data-ready="${ready}">
+          <div class="course-card-photo">
+            <img src="${escapeHtml(lesson.cover || "./assets/camera-hero.webp")}" alt="" loading="lazy" />
+            <span class="course-card-number">${escapeHtml(lesson.number)}</span>
+            <span class="course-card-status">${ready ? "Можно смотреть" : "Скоро"}</span>
+          </div>
+          <div class="course-card-copy">
+            <p>${escapeHtml(lesson.eyebrow)}</p>
+            <h3>${escapeHtml(lesson.title)}</h3>
+            <div class="course-card-tags">${lesson.tags.slice(0, 3).map((tag) => `<span>${escapeHtml(tag)}</span>`).join("")}</div>
+            <span class="course-card-action">${ready ? "Открыть урок" : "Готовим урок"}<b>${ready ? "→" : "…"}</b></span>
+          </div>
+        </article>`;
+      return ready
+        ? `<a class="course-card-link" href="#/lesson/${encodeURIComponent(lesson.id)}" aria-label="Открыть урок ${escapeHtml(lesson.number)}: ${escapeHtml(lesson.title)}">${card}</a>`
+        : `<div class="course-card-link is-disabled" aria-label="Урок ${escapeHtml(lesson.number)} готовится">${card}</div>`;
+    }).join("");
+
+    const latestLink = latestLesson && latestLesson.status === "ready"
+      ? `#/lesson/${encodeURIComponent(latestLesson.id)}`
+      : "#lessons";
+    const latestTitle = latestLesson ? latestLesson.title : "Первый урок скоро";
+    const latestNumber = latestLesson ? latestLesson.number : "01";
+
+    main.innerHTML = `
+      <section class="title-stage" aria-labelledby="hero-title">
+        <div class="title-stage-copy">
+          <div class="title-badges" aria-label="Детская медиастудия, возраст 12 плюс">
+            <span>Детская медиастудия</span><b>12+</b><i><em></em> Мы в эфире</i>
+          </div>
+          <h1 id="hero-title"><span>БУМ!</span><strong>КАДР</strong></h1>
+          <p class="title-action-line"><b>Смотри.</b><b>Слушай.</b><b>Снимай.</b></p>
+          <div class="title-buttons">
+            <a class="title-primary" href="${latestLink}"><span>Урок ${escapeHtml(latestNumber)}</span>${escapeHtml(latestTitle)} <b>→</b></a>
+            <a class="title-secondary" href="#lessons">Все уроки ↓</a>
+          </div>
+        </div>
+
+        <div class="title-stage-picture" aria-hidden="true">
+          <div class="camera-flash"></div>
+          <img class="title-camera" src="./assets/camera-hero.webp" alt="" />
+          <img class="title-mic" src="./assets/boom-mic-hero.webp" alt="" />
+          <span class="title-sticker sticker-rec"><i></i> REC</span>
+          <span class="title-sticker sticker-take">ДУБЛЬ 1</span>
+          <span class="title-sticker sticker-ready">ГОТОВЫ?</span>
+          <div class="title-frame"><i></i><i></i><i></i><i></i></div>
+        </div>
+      </section>
+
+      <div class="boom-ticker" aria-hidden="true">
+        <div>КАМЕРА · МИКРОФОН · СВЕТ · ИДЕЯ · ИНТЕРВЬЮ · МОНТАЖ · КАМЕРА · МИКРОФОН · СВЕТ · ИДЕЯ · ИНТЕРВЬЮ · МОНТАЖ ·</div>
+      </div>
+
+      <section class="course-library" id="lessons" aria-labelledby="lessons-title">
+        <header class="library-header">
+          <div>
+            <p class="eyebrow">Библиотека будет расти</p>
+            <h2 id="lessons-title">Выбирай<br />урок</h2>
+          </div>
+          <p><strong>${readyLessons.length}</strong> готово · <strong>${lessons.length}</strong> в программе</p>
+        </header>
+        <div class="course-grid">${cards}</div>
+      </section>
+
+      <section class="studio-about" id="about" aria-labelledby="about-title">
+        <div class="about-splash" aria-hidden="true"><span>10</span><b>лет<br />в эфире</b></div>
+        <div class="about-copy">
+          <p class="eyebrow">Медиацентр Марфино</p>
+          <h2 id="about-title">Здесь не играют<br />в телевидение.</h2>
+          <p>Здесь снимают, задают вопросы, ошибаются, переснимают и выпускают настоящие истории.</p>
+          <div class="about-chips">
+            <span>Камера в руках</span><span>Практика сразу</span><span>История важнее кнопок</span>
+          </div>
+        </div>
+      </section>`;
+
+    document.body.classList.remove("teacher-mode");
+    bindTitleInteractions();
+    if (scrollTarget) {
+      requestAnimationFrame(() => document.querySelector(scrollTarget)?.scrollIntoView({ block: "start" }));
+    } else {
+      window.scrollTo({ top: 0, behavior: "instant" });
+    }
+  }
+
+  function bindTitleInteractions() {
+    const stage = document.querySelector(".title-stage-picture");
+    const reducedMotion = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+    if (stage && !reducedMotion) {
+      stage.addEventListener("pointermove", (event) => {
+        const rect = stage.getBoundingClientRect();
+        const x = ((event.clientX - rect.left) / rect.width) * 100;
+        const y = ((event.clientY - rect.top) / rect.height) * 100;
+        stage.style.setProperty("--hero-x", `${(x - 50) / 50}`);
+        stage.style.setProperty("--hero-y", `${(y - 50) / 50}`);
+      });
+    }
   }
 
   function renderLesson(lessonId) {
