@@ -2365,6 +2365,14 @@ img {
 /* Lesson 03 layout corrections */
 .lesson-red { overflow-x: clip; }
 
+.lesson-red .scene-stage {
+  padding-top: 28px;
+}
+
+.lesson-red .scene-magic {
+  min-height: min(630px, calc(100vh - 300px));
+}
+
 .lesson-red .scene,
 .lesson-red .scene-copy,
 .lesson-red .scene-visual,
@@ -2448,6 +2456,10 @@ img {
 }
 
 @media (max-width: 1040px) {
+  .lesson-red .scene-magic {
+    min-height: auto;
+  }
+
   .scene-magic .scene-copy h2,
   .magic-promise .scene-copy h2,
   .magic-big-question .scene-copy h2,
