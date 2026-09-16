@@ -370,6 +370,7 @@
     document.querySelector("#scene-dots").innerHTML = state.lesson.scenes
       .map((_, index) => `<span class="scene-dot ${index === state.scene ? "active" : ""}"></span>`)
       .join("");
+    window.scrollTo({ top: 0, behavior: "instant" });
   }
 
   function sceneTemplate(scene) {
@@ -509,7 +510,12 @@
       stage = `<div class="magic-quiz">${pickButtons}</div><p class="pick-feedback" aria-live="polite"></p>${hint}`;
     }
 
-    return `<article class="scene scene-magic magic-${escapeHtml(layout)}">${copy}<div class="scene-visual magic-stage">${stage}</div></article>`;
+    const layoutClass = layout === "steps"
+      ? "magic-step-screen"
+      : layout === "quiz"
+        ? "magic-quiz-screen"
+        : `magic-${escapeHtml(layout)}`;
+    return `<article class="scene scene-magic ${layoutClass}">${copy}<div class="scene-visual magic-stage">${stage}</div></article>`;
   }
 
   function formatTime(totalSeconds) {
