@@ -2402,10 +2402,11 @@ img {
 .plan-question {
   min-width: 0;
   overflow: hidden;
+  padding: 24px;
 }
 
 .plan-question span {
-  font-size: clamp(30px, 3vw, 44px);
+  font-size: clamp(28px, 2.5vw, 38px);
   line-height: .96;
   letter-spacing: -.04em;
   hyphens: auto;
