@@ -321,7 +321,7 @@
           <div class="title-badges" aria-label="Детская медиастудия, возраст 12 плюс">
             <span>Детская медиастудия</span><b>12+</b><i><em></em> Мы в эфире</i>
           </div>
-          <h1 id="hero-title"><span>БУМ!</span><strong>КАДР</strong></h1>
+          <h1 id="hero-title"><span class="boom-hit" aria-label="БУМ!"><i>Б</i><i>У</i><i>М</i><i>!</i></span><strong>КАДР</strong></h1>
           <p class="title-action-line"><b>Смотри.</b><b>Слушай.</b><b>Снимай.</b></p>
           <div class="title-buttons">
             <a class="title-primary" href="${latestLink}"><span>Урок ${escapeHtml(latestNumber)}</span>${escapeHtml(latestTitle)} <b>→</b></a>
