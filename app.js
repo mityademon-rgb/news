@@ -288,10 +288,12 @@
     state.scene = Number.isInteger(stored) && stored >= 0 && stored < lesson.scenes.length ? stored : 0;
 
     main.innerHTML = `
-      <section class="lesson-shell" aria-label="Занятие ${escapeHtml(lesson.number)}: ${escapeHtml(lesson.title)}">
+      <section class="lesson-shell lesson-${escapeHtml(lesson.color)}" aria-label="Занятие ${escapeHtml(lesson.number)}: ${escapeHtml(lesson.title)}">
         <div class="lesson-toolbar">
           <a class="back-link" href="#/">← Занятия</a>
+          <span class="lesson-code">СМЕНА ${escapeHtml(lesson.number)}</span>
           <div class="progress-wrap">
+            <span class="progress-caption">Монтажная линия</span>
             <div class="progress-track" aria-hidden="true"><div class="progress-bar" id="progress-bar"></div></div>
             <span class="progress-label" id="progress-label"></span>
           </div>
@@ -352,7 +354,7 @@
 
     const progress = ((state.scene + 1) / state.lesson.scenes.length) * 100;
     document.querySelector("#progress-bar").style.width = `${progress}%`;
-    document.querySelector("#progress-label").textContent = `${state.scene + 1} / ${state.lesson.scenes.length}`;
+    document.querySelector("#progress-label").textContent = `КАДР ${String(state.scene + 1).padStart(2, "0")} / ${String(state.lesson.scenes.length).padStart(2, "0")}`;
     document.querySelector("#prev-scene").disabled = state.scene === 0;
     const next = document.querySelector("#next-scene");
     next.textContent = state.scene === state.lesson.scenes.length - 1 ? "К занятиям →" : "Дальше →";
@@ -362,8 +364,20 @@
   }
 
   function sceneTemplate(scene) {
+    const sceneLabels = {
+      cover: "Вход в тему",
+      compare: "Смотрим и сравниваем",
+      rule: "Разбираем приём",
+      practice: "Снимаем сами",
+      choice: "Решение редакции",
+      "choice-image": "Визуальный тест",
+      finish: "Смена закрыта"
+    };
+    const sceneNumber = String(state.scene + 1).padStart(2, "0");
+    const totalScenes = String(state.lesson.scenes.length).padStart(2, "0");
     const copy = `
       <div class="scene-copy">
+        <div class="scene-meta"><span>КАДР ${sceneNumber} / ${totalScenes}</span><span>${escapeHtml(sceneLabels[scene.type] || "Задание")}</span></div>
         <p class="eyebrow">${escapeHtml(scene.kicker || "БУМ.КАДР")}</p>
         <h2>${escapeHtml(scene.title)}</h2>
         ${scene.text ? `<p>${escapeHtml(scene.text)}</p>` : ""}
@@ -372,7 +386,14 @@
       </div>`;
 
     if (scene.type === "cover") {
-      return `<article class="scene">${copy}<div class="finish-mark" aria-hidden="true"><span>REC<br />●</span></div></article>`;
+      return `<article class="scene scene-cover">${copy}<div class="cover-slate" aria-hidden="true">
+        <img src="${escapeHtml(state.lesson.cover || "./assets/camera-hero.webp")}" alt="" />
+        <div class="cover-slate-shade"></div>
+        <span class="cover-rec"><i></i> REC</span>
+        <span class="cover-number">${escapeHtml(state.lesson.number)}</span>
+        <div class="cover-frame"><i></i><i></i><i></i><i></i></div>
+        <div class="cover-caption"><b>БУМ.КАДР</b><span>${escapeHtml(state.lesson.title)}</span></div>
+      </div></article>`;
     }
 
     if (scene.type === "compare") {
