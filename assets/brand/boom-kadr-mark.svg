@@ -1,0 +1,11 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1024" height="1024" viewBox="0 0 1024 1024" role="img" aria-label="Логотип БУМ КАДР — знак Б с восклицательным знаком REC">
+
+<g transform="translate(0 0) scale(1)">
+  <rect x="122" y="126" width="790" height="790" rx="198" fill="#00E5FF" transform="rotate(4 517 521)"/>
+  <rect x="82" y="82" width="800" height="800" rx="198" fill="#F4FF37" stroke="#090B0F" stroke-width="30"/>
+  <path d="M806 220Q806 118 732.0 59.0Q658 0 524 0H112Q101 0 93.0 8.0Q85 16 85 27V673Q85 684 93.0 692.0Q101 700 112 700H700Q711 700 719.0 692.0Q727 684 727 673V533Q727 522 719.0 514.0Q711 506 700 506H345V437H525Q659 437 732.5 379.5Q806 322 806 220ZM490 172Q513 172 524.5 188.0Q536 204 536 223Q536 242 523.5 256.0Q511 270 490 270H345V172Z" fill="#090B0F" transform="translate(174.000 705.000) scale(0.555000 -0.555000)"/>
+  <rect x="686" y="248" width="82" height="300" rx="38" fill="#090B0F"/>
+  <circle cx="727" cy="676" r="54" fill="#FF4B3E" stroke="#090B0F" stroke-width="18"/>
+  <path d="M188 789 H625" stroke="#090B0F" stroke-width="22" stroke-linecap="round"/>
+</g>
+</svg>
