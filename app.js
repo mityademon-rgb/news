@@ -10,7 +10,8 @@
     scene: 0,
     teacherMode: false,
     answered: Object.create(null),
-    homeTimer: null
+    homeTimer: null,
+    sceneTimer: null
   };
 
   year.textContent = new Date().getFullYear();
@@ -22,7 +23,7 @@
     .replaceAll('"', "&quot;")
     .replaceAll("'", "&#039;");
 
-  const teacherNote = (type) => {
+  const teacherNote = (type, customText) => {
     const notes = {
       cover: "Не объясняйте тему заранее. Прочитайте обещание результата и сразу переходите к следующему экрану.",
       compare: "Сначала соберите ответы детей. Нажимайте вариант только после того, как прозвучат их аргументы.",
@@ -32,10 +33,16 @@
       "choice-image": "Дайте десять секунд на молчаливое решение, затем попросите показать ответ одновременно.",
       finish: "В финале каждый называет одно правило, которое применит в следующей съёмке."
     };
-    return `<aside class="teacher-note"><strong>Режиссура занятия.</strong> ${notes[type] || notes.rule}</aside>`;
+    return `<aside class="teacher-note"><strong>Режиссура занятия.</strong> ${escapeHtml(customText || notes[type] || notes.rule)}</aside>`;
   };
 
+  function clearSceneTimer() {
+    if (state.sceneTimer) clearInterval(state.sceneTimer);
+    state.sceneTimer = null;
+  }
+
   function renderHome(scrollTarget) {
+    clearSceneTimer();
     clearInterval(state.homeTimer);
     state.homeTimer = null;
 
@@ -275,6 +282,7 @@
   }
 
   function renderLesson(lessonId) {
+    clearSceneTimer();
     clearInterval(state.homeTimer);
     state.homeTimer = null;
     const lesson = lessons.find((item) => item.id === lessonId && item.status === "ready");
@@ -347,6 +355,7 @@
   }
 
   function drawScene() {
+    clearSceneTimer();
     const scene = state.lesson.scenes[state.scene];
     const target = document.querySelector("#scene-content");
     target.innerHTML = sceneTemplate(scene);
@@ -371,7 +380,8 @@
       practice: "Снимаем сами",
       choice: "Решение редакции",
       "choice-image": "Визуальный тест",
-      finish: "Смена закрыта"
+      finish: "Смена закрыта",
+      magic: "Визуальная история"
     };
     const sceneNumber = String(state.scene + 1).padStart(2, "0");
     const totalScenes = String(state.lesson.scenes.length).padStart(2, "0");
@@ -382,7 +392,7 @@
         <h2>${escapeHtml(scene.title)}</h2>
         ${scene.text ? `<p>${escapeHtml(scene.text)}</p>` : ""}
         ${scene.accent ? `<div class="scene-accent">${escapeHtml(scene.accent)}</div>` : ""}
-        ${teacherNote(scene.type)}
+        ${teacherNote(scene.type, scene.teacher)}
       </div>`;
 
     if (scene.type === "cover") {
@@ -394,6 +404,10 @@
         <div class="cover-frame"><i></i><i></i><i></i><i></i></div>
         <div class="cover-caption"><b>БУМ.КАДР</b><span>${escapeHtml(state.lesson.title)}</span></div>
       </div></article>`;
+    }
+
+    if (scene.type === "magic") {
+      return magicSceneTemplate(scene, copy);
     }
 
     if (scene.type === "compare") {
@@ -442,6 +456,67 @@
     return `<article class="scene">${copy}</article>`;
   }
 
+  function magicSceneTemplate(scene, copy) {
+    const layout = scene.layout || "statement";
+    const image = (extraClass = "") => scene.image
+      ? `<div class="magic-photo ${extraClass}"><img src="${escapeHtml(scene.image)}" alt="${escapeHtml(scene.imageAlt || scene.title)}" />${scene.badge ? `<span class="magic-badge">${escapeHtml(scene.badge)}</span>` : ""}</div>`
+      : "";
+    const hint = scene.nextHint ? `<p class="next-answer-hint"><span>→</span>${escapeHtml(scene.nextHint)}</p>` : "";
+    const pickButtons = (scene.options || []).map((option, index) => `<button type="button" data-pick="${index}"><span>${escapeHtml(option)}</span></button>`).join("");
+    let stage = "";
+
+    if (layout === "promise" || layout === "statement") {
+      stage = `<div class="magic-type-card"><span class="magic-spark">✦</span><strong>${escapeHtml(scene.accent || scene.text || "Смотрите внимательнее")}</strong><i></i><i></i><i></i></div>`;
+    } else if (layout === "image") {
+      stage = image("magic-photo-wide");
+    } else if (layout === "question") {
+      const pictures = scene.images
+        ? `<div class="magic-compare">${scene.images.map((item) => `<figure><img src="${escapeHtml(item.src)}" alt="${escapeHtml(item.label)}" /><figcaption>${escapeHtml(item.label)}</figcaption></figure>`).join("")}</div>`
+        : image("magic-photo-question");
+      stage = `${pictures}<div class="magic-picks">${pickButtons}</div><p class="pick-feedback" aria-live="polite"></p>${hint}`;
+    } else if (layout === "answer-cards") {
+      stage = `<div class="magic-answer-grid">${scene.items.map((item, index) => `<div><span>0${index + 1}</span><strong>${escapeHtml(item[0])}</strong><p>${escapeHtml(item[1])}</p></div>`).join("")}</div>`;
+    } else if (layout === "plans") {
+      stage = `${image("magic-photo-wide")}<div class="magic-label-row">${scene.labels.map((label) => `<span>${escapeHtml(label)}</span>`).join("")}</div>`;
+    } else if (layout === "plan") {
+      stage = `<div class="plan-focus">${image()}<div class="plan-question"><span>${escapeHtml(scene.question)}</span><p>${escapeHtml(scene.text)}</p></div></div>`;
+    } else if (layout === "steps") {
+      stage = `<div class="magic-steps">${scene.items.map((item) => `<div><span>${escapeHtml(item[0])}</span><strong>${escapeHtml(item[1])}</strong></div>`).join("")}</div>`;
+    } else if (layout === "timer") {
+      const seconds = Number(scene.seconds) || 420;
+      stage = `<div class="lesson-timer" data-seconds="${seconds}" data-remaining="${seconds}"><span class="timer-display">${formatTime(seconds)}</span><div class="timer-ring" aria-hidden="true"><i></i></div><div class="timer-actions"><button type="button" data-timer-start>Запустить таймер</button><button type="button" data-timer-reset>Сбросить</button></div></div>`;
+    } else if (layout === "check") {
+      stage = `<div class="magic-checks">${scene.items.map((item) => `<div><span>✓</span><strong>${escapeHtml(item[0])}</strong><p>${escapeHtml(item[1])}</p></div>`).join("")}</div>`;
+    } else if (layout === "big-question") {
+      stage = `${image("magic-photo-question")}<div class="question-mark">?</div>${hint}`;
+    } else if (layout === "grid") {
+      stage = `<div class="magic-photo grid-photo"><img src="${escapeHtml(scene.image)}" alt="${escapeHtml(scene.imageAlt)}" /><div class="composition-grid" aria-hidden="true"><i></i><i></i><i></i><i></i></div><span class="grid-point p1"></span><span class="grid-point p2"></span><span class="grid-point p3"></span><span class="grid-point p4"></span></div>`;
+    } else if (layout === "answer-photo") {
+      stage = `${image("magic-photo-answer")}<ol class="photo-callouts">${scene.items.map((item) => `<li>${escapeHtml(item)}</li>`).join("")}</ol>`;
+    } else if (layout === "gaze") {
+      stage = `<div class="magic-photo gaze-photo"><img src="${escapeHtml(scene.image)}" alt="${escapeHtml(scene.imageAlt)}" /><div class="gaze-air"><span>место для взгляда</span><i>→</i></div></div>`;
+    } else if (layout === "air") {
+      stage = `<div class="air-compare">${scene.images.map((item, index) => `<figure class="${index ? "good" : "bad"}"><img src="${escapeHtml(item.src)}" alt="${escapeHtml(item.label)}" /><figcaption>${escapeHtml(item.label)}</figcaption></figure>`).join("")}</div>`;
+    } else if (layout === "before-after") {
+      stage = `${image("magic-photo-wide")}<div class="before-after-labels"><span>${escapeHtml(scene.labels[0])}</span><span>${escapeHtml(scene.labels[1])}</span></div>`;
+    } else if (layout === "game-intro") {
+      stage = `<div class="game-orbit"><span>1</span><span>2</span><span>3</span><strong>?</strong></div>`;
+    } else if (layout === "shots-question") {
+      stage = `${image("magic-photo-wide")}<div class="shot-word-bank">${scene.options.map((option) => `<span>${escapeHtml(option)}</span>`).join("")}</div>${hint}`;
+    } else if (layout === "shots-answer") {
+      stage = `${image("magic-photo-wide")}<div class="shot-answer-labels">${scene.labels.map((label) => `<span>${escapeHtml(label)}</span>`).join("")}</div>`;
+    } else if (layout === "quiz") {
+      stage = `<div class="magic-quiz">${pickButtons}</div><p class="pick-feedback" aria-live="polite"></p>${hint}`;
+    }
+
+    return `<article class="scene scene-magic magic-${escapeHtml(layout)}">${copy}<div class="scene-visual magic-stage">${stage}</div></article>`;
+  }
+
+  function formatTime(totalSeconds) {
+    const safe = Math.max(0, Number(totalSeconds) || 0);
+    return `${String(Math.floor(safe / 60)).padStart(2, "0")}:${String(safe % 60).padStart(2, "0")}`;
+  }
+
   function bindSceneActions(scene) {
     document.querySelectorAll("[data-answer]").forEach((button) => {
       button.addEventListener("click", () => {
@@ -466,6 +541,61 @@
         if (correct) markAnswered();
       });
     });
+
+    document.querySelectorAll("[data-pick]").forEach((button) => {
+      button.addEventListener("click", () => {
+        document.querySelectorAll("[data-pick]").forEach((item) => item.classList.remove("is-selected"));
+        button.classList.add("is-selected");
+        const feedback = document.querySelector(".pick-feedback");
+        if (feedback) feedback.textContent = "Выбор зафиксирован. Проверяем в следующем кадре →";
+        document.querySelector("#next-scene")?.classList.add("is-ready");
+        showToast("Выбор принят. Ответ — дальше.");
+      });
+    });
+
+    const timer = document.querySelector(".lesson-timer");
+    const timerStart = document.querySelector("[data-timer-start]");
+    const timerReset = document.querySelector("[data-timer-reset]");
+    const updateTimer = () => {
+      if (!timer) return;
+      const remaining = Number(timer.dataset.remaining);
+      timer.querySelector(".timer-display").textContent = formatTime(remaining);
+      timer.style.setProperty("--timer-progress", String(1 - (remaining / Number(timer.dataset.seconds))));
+      timer.classList.toggle("is-urgent", remaining <= 30);
+    };
+    const pauseTimer = () => {
+      clearSceneTimer();
+      timer?.classList.remove("is-running");
+      if (timerStart) timerStart.textContent = "Продолжить";
+    };
+    timerStart?.addEventListener("click", () => {
+      if (state.sceneTimer) {
+        pauseTimer();
+        return;
+      }
+      timer.classList.add("is-running");
+      timerStart.textContent = "Пауза";
+      state.sceneTimer = window.setInterval(() => {
+        const remaining = Math.max(0, Number(timer.dataset.remaining) - 1);
+        timer.dataset.remaining = String(remaining);
+        updateTimer();
+        if (remaining === 0) {
+          pauseTimer();
+          timerStart.textContent = "Время вышло";
+          playBoom();
+          showToast("Стоп! Выбираем лучшие кадры.");
+        }
+      }, 1000);
+    });
+    timerReset?.addEventListener("click", () => {
+      clearSceneTimer();
+      if (!timer) return;
+      timer.dataset.remaining = timer.dataset.seconds;
+      timer.classList.remove("is-running", "is-urgent");
+      timerStart.textContent = "Запустить таймер";
+      updateTimer();
+    });
+    updateTimer();
   }
 
   function markAnswered() {
