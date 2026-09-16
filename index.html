@@ -6,26 +6,27 @@
     <meta name="theme-color" content="#090b0f" />
     <meta
       name="description"
-      content="БУМ.КАДР — интерактивная школа изображения, звука и историй от команды Медиацентра Марфино."
+      content="БУМ.КАДР — интерактивные уроки детской медиастудии Медиацентра Марфино."
     />
     <link
       rel="icon"
       href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 64 64%22><rect width=%2264%22 height=%2264%22 rx=%2214%22 fill=%22%23f4ff37%22/><text x=%2232%22 y=%2244%22 text-anchor=%22middle%22 font-family=%22Arial%22 font-size=%2240%22 font-weight=%22900%22 fill=%22%23090b0f%22>Б!</text></svg>"
     />
-    <title>БУМ.КАДР — школа изображения, звука и историй</title>
-    <link rel="stylesheet" href="./styles.css?v=20260916-5" />
+    <title>БУМ.КАДР — детская медиастудия</title>
+    <link rel="stylesheet" href="./styles.css?v=20260916-6" />
     <link rel="stylesheet" href="./lesson03-kids.css?v=20260916-1" />
   </head>
   <body>
     <a class="skip-link" href="#main">К содержанию</a>
     <div class="noise" aria-hidden="true"></div>
+
     <header class="site-header">
       <a class="brand" href="#/" aria-label="БУМ.КАДР — на главную">
         <span class="brand-boom">БУМ!</span><span class="brand-frame">КАДР</span>
       </a>
       <nav class="top-nav" aria-label="Главное меню">
-        <a href="#lessons">Занятия</a>
-        <a href="#about">О школе</a>
+        <a href="#lessons">Уроки</a>
+        <a href="#about">О студии</a>
       </nav>
       <button class="sound-check" id="sound-check" type="button" aria-label="Проверить звук">
         <span class="rec-dot"></span> Проверить звук
@@ -38,156 +39,12 @@
       <a class="brand brand-small" href="#/">
         <span class="brand-boom">БУМ!</span><span class="brand-frame">КАДР</span>
       </a>
-      <p>Школа изображения, звука и историй.</p>
+      <p>Смотрим. Слушаем. Снимаем.</p>
       <p class="footer-origin">Проект команды Медиацентра Марфино · <span id="year"></span></p>
     </footer>
 
-    <script src="./lessons.js?v=20260916-5"></script>
-    <script>
-      (() => {
-        const lesson = (window.BOOM_LESSONS || []).find((item) => item.id === "beautiful-frame");
-        if (!lesson || !Array.isArray(lesson.scenes)) return;
-
-        const quizStart = lesson.scenes.findIndex((scene) => scene.kicker === "Финальная игра");
-        if (quizStart < 0) return;
-
-        lesson.scenes.splice(
-          quizStart,
-          lesson.scenes.length - quizStart,
-          {
-            type: "magic",
-            layout: "game-intro",
-            kicker: "Финальный БУМ-КВИЗ",
-            title: "Пять вопросов. Вся студия против камеры.",
-            accent: "Отвечаем вместе. Спорить можно. Правильный ответ — на следующем кадре.",
-            teacher: "Не превращайте это в контрольную. Пусть дети показывают А/Б/В/Г пальцами, кричат вариант или голосуют командами."
-          },
-          {
-            type: "magic",
-            layout: "question",
-            kicker: "БУМ-КВИЗ · 1/5",
-            title: "Виден герой целиком и всё место вокруг. Это какой план?",
-            image: "./assets/robot-general.webp",
-            imageAlt: "Игрушечный робот целиком в пространстве",
-            options: ["А · Общий", "Б · Крупный", "В · План побега", "Г · План захвата мира"],
-            nextHint: "Голосуем. Ответ — дальше",
-            teacher: "Пусть сначала ответят одновременно. За «план захвата мира» можно торжественно похвалить фантазию."
-          },
-          {
-            type: "magic",
-            layout: "answer-photo",
-            kicker: "Ответ 1",
-            title: "А · Общий. Герой найден!",
-            image: "./assets/robot-general.webp",
-            imageAlt: "Общий план: герой целиком и пространство вокруг",
-            items: [
-              "Понимаем, ГДЕ всё происходит",
-              "Видим героя целиком",
-              "План захвата мира оставим режиссёру"
-            ]
-          },
-          {
-            type: "magic",
-            layout: "question",
-            kicker: "БУМ-КВИЗ · 2/5",
-            title: "Нужны глаза, улыбка и эмоция. Как снимаем?",
-            image: "./assets/robot-close.webp",
-            imageAlt: "Лицо игрушечного робота крупным планом",
-            options: ["А · Общим", "Б · Крупным", "В · Снимаем потолок", "Г · Левый носок оператора"],
-            nextHint: "Что покажет эмоцию? Ответ — дальше"
-          },
-          {
-            type: "magic",
-            layout: "answer-photo",
-            kicker: "Ответ 2",
-            title: "Б · Крупный. Подходим ближе!",
-            image: "./assets/robot-close.webp",
-            imageAlt: "Крупный план лица",
-            items: [
-              "Крупный план показывает эмоцию",
-              "Глаза важнее люстры",
-              "Носок оператора сегодня не герой"
-            ]
-          },
-          {
-            type: "magic",
-            layout: "question",
-            kicker: "БУМ-КВИЗ · 3/5",
-            title: "Герой смотрит вправо. Где оставить свободное место?",
-            image: "./assets/girl-look.webp",
-            imageAlt: "Девочка смотрит вправо, перед взглядом оставлено свободное пространство",
-            options: ["А · Справа", "Б · Слева", "В · Только над головой", "Г · Воздух закончился"],
-            nextHint: "Куда должен продолжаться взгляд? Ответ — дальше"
-          },
-          {
-            type: "magic",
-            layout: "answer-photo",
-            kicker: "Ответ 3",
-            title: "А · Справа. Дайте взгляду дорогу.",
-            image: "./assets/girl-look.webp",
-            imageAlt: "Свободное пространство перед взглядом героя",
-            items: [
-              "Оставляем место перед взглядом",
-              "Не прижимаем лицо к краю кадра",
-              "Воздух есть. Просто расходуем его с умом"
-            ]
-          },
-          {
-            type: "magic",
-            layout: "question",
-            kicker: "БУМ-КВИЗ · 4/5",
-            title: "Правило третей. Куда чаще ставим главное?",
-            image: "./assets/composition-girl.webp",
-            imageAlt: "Два портрета с разной композицией",
-            options: ["А · К линии или пересечению", "Б · Всегда строго в центр", "В · В самый угол", "Г · Куда палец попал"],
-            nextHint: "Не по привычке — по смыслу. Ответ дальше"
-          },
-          {
-            type: "magic",
-            layout: "answer-photo",
-            kicker: "Ответ 4",
-            title: "А · К линии или точке пересечения.",
-            image: "./assets/robot-thirds.webp",
-            imageAlt: "Игрушечный робот расположен на линии трети",
-            items: [
-              "Так кадр часто выглядит живее",
-              "Центр не запрещён — просто он должен быть осознанным",
-              "«Куда палец попал» — официально не правило композиции"
-            ]
-          },
-          {
-            type: "magic",
-            layout: "question",
-            kicker: "БУМ-КВИЗ · 5/5",
-            title: "Что сильнее всего улучшит ваш кадр уже сегодня?",
-            image: "./assets/camera-hero.webp",
-            imageAlt: "Профессиональная видеокамера",
-            options: ["А · Камера за 300 000 ₽", "Б · План + композиция", "В · 47 фильтров", "Г · Очень серьёзное лицо оператора"],
-            nextHint: "Последний голос. Развязка — дальше"
-          },
-          {
-            type: "magic",
-            layout: "answer-photo",
-            kicker: "Ответ 5",
-            title: "Б · План + композиция. Камера не волшебная палочка.",
-            image: "./assets/runner-mixed.webp",
-            imageAlt: "Серия кадров разной крупности с бегущим человеком",
-            items: [
-              "Сначала выбираем, ЧТО показать",
-              "Потом решаем, КАК построить кадр",
-              "47 фильтров отправляем отдыхать"
-            ]
-          },
-          {
-            type: "finish",
-            kicker: "Квиз окончен",
-            title: "Операторская аттестация пройдена",
-            text: "5 из 5 — можно выдавать камеру. 3–4 — снимаем смело. 0–2 — монтажёр уже волнуется, но мы всё исправим на следующей съёмке.",
-            takeaway: "Вижу → выбираю план → строю кадр → СНИМАЮ"
-          }
-        );
-      })();
-    </script>
-    <script src="./app.js?v=20260916-5"></script>
+    <script src="./lessons.js?v=20260916-6"></script>
+    <script src="./app.js?v=20260916-6"></script>
   </body>
 </html>
+
