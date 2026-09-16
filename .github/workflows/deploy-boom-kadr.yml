@@ -6,6 +6,7 @@ on:
     paths:
       - 'index.html'
       - 'styles.css'
+      - 'lesson03-kids.css'
       - 'app.js'
       - 'lessons.js'
       - 'assets/**'
@@ -38,7 +39,7 @@ jobs:
 
       - name: Package and upload
         run: |
-          tar -czf /tmp/boom-kadr-site.tgz index.html styles.css app.js lessons.js assets README.txt
+          tar -czf /tmp/boom-kadr-site.tgz index.html styles.css lesson03-kids.css app.js lessons.js assets README.txt
           scp -i ~/.ssh/boom_kadr /tmp/boom-kadr-site.tgz root@217.149.24.242:/tmp/boom-kadr-site.tgz
           scp -i ~/.ssh/boom_kadr .deploy/boom-kadr-http.conf root@217.149.24.242:/tmp/boom-kadr-http.conf
           scp -i ~/.ssh/boom_kadr .deploy/boom-kadr-https.conf root@217.149.24.242:/tmp/boom-kadr-https.conf
