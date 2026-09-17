@@ -3237,11 +3237,19 @@ img {
 }
 
 @media (max-width: 560px) {
+  .site-header { gap: 10px; padding-inline: 10px; }
+  .sound-check { padding: 8px 10px; font-size: 11px; }
   .timecode-logo { gap: 9px; }
   .timecode-film { width: 34px; height: 34px; padding: 6px 9px; border-radius: 8px; }
   .timecode-film i { height: 9px; }
-  .timecode-name { font-size: 18px; }
+  .timecode-name { font-size: 16px; }
   .timecode-title-mark { width: 54px !important; gap: 8px; margin-bottom: 18px; }
   .title-stage h1.timecode-title > strong { font-size: clamp(39px, 11.3vw, 56px); }
   .title-stage h1.timecode-title > small { font-size: 10px; letter-spacing: .16em; }
+}
+
+@media (max-width: 380px) {
+  .timecode-name { font-size: 15px; }
+  .sound-check { font-size: 0; }
+  .sound-check::after { content: "Звук"; font-size: 11px; }
 }
