@@ -3671,3 +3671,38 @@ body.lesson-active > .site-footer { display: none; }
   .title-stage h1.timecode-title > strong { font-size: 37px; }
   .title-action-line { gap: 5px 12px; font-size: 17px; }
 }
+
+/* The final takeaway is a sentence, not a one-word stamp. On phones the
+   desktop circle made it narrower than the actual screen. */
+@media (max-width: 760px) {
+  .finish-mark {
+    width: 100%;
+    min-width: 0;
+    min-height: 0;
+    padding: clamp(28px, 8vw, 42px) 18px;
+    border-radius: 24px;
+  }
+
+  .finish-mark span {
+    display: block;
+    width: 100%;
+    max-width: 100%;
+    font-size: clamp(24px, 7.6vw, 34px);
+    line-height: 1.12;
+    letter-spacing: -.045em;
+    overflow-wrap: anywhere;
+    word-break: normal;
+    hyphens: auto;
+    transform: none;
+  }
+}
+
+@media (max-width: 390px) {
+  .finish-mark {
+    padding: 24px 14px;
+  }
+
+  .finish-mark span {
+    font-size: clamp(22px, 7.2vw, 28px);
+  }
+}
