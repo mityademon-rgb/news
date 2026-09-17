@@ -48,7 +48,9 @@ jobs:
         run: |
           ssh -i ~/.ssh/boom_kadr -o BatchMode=yes root@217.149.24.242 'bash -s' <<'REMOTE'
           set -Eeuo pipefail
-          HOST='boom-kadr.217-149-24-234.nip.io'
+          PRIMARY_HOST='timecode-lab.ru'
+          WWW_HOST='www.timecode-lab.ru'
+          LEGACY_HOST='boom-kadr.217-149-24-234.nip.io'
           CONF='/etc/nginx/conf.d/boom-kadr.conf'
           STAMP="$(date +%Y%m%d-%H%M%S)"
           BACKUP="/var/backups/boom-kadr/$STAMP"
@@ -84,7 +86,7 @@ jobs:
 
           HTTP_CODE="000"
           for attempt in 1 2 3 4 5; do
-            HTTP_CODE="$(curl -sS -D /tmp/boom-kadr-http-headers.txt -o /tmp/boom-kadr-http-check.html -w '%{http_code}' http://127.0.0.1/ -H "Host: $HOST" || true)"
+            HTTP_CODE="$(curl -sS -D /tmp/boom-kadr-http-headers.txt -o /tmp/boom-kadr-http-check.html -w '%{http_code}' http://127.0.0.1/ -H "Host: $PRIMARY_HOST" || true)"
             if [ "$HTTP_CODE" = "200" ] && grep -q 'TIMECODE' /tmp/boom-kadr-http-check.html; then
               break
             fi
@@ -95,7 +97,8 @@ jobs:
           test "$HTTP_CODE" = "200"
           grep -q 'TIMECODE' /tmp/boom-kadr-http-check.html
 
-          certbot certonly --webroot -w /var/www/boom-kadr -d "$HOST" \
+          certbot certonly --webroot -w /var/www/boom-kadr \
+            -d "$PRIMARY_HOST" -d "$WWW_HOST" \
             --non-interactive --agree-tos --register-unsafely-without-email \
             --keep-until-expiring
 
@@ -105,7 +108,7 @@ jobs:
 
           HTTPS_CODE="000"
           for attempt in 1 2 3 4 5; do
-            HTTPS_CODE="$(curl -k -sS --resolve "$HOST:443:217.149.24.234" -o /tmp/boom-kadr-https-check.html -w '%{http_code}' "https://$HOST/" || true)"
+            HTTPS_CODE="$(curl -k -sS --resolve "$PRIMARY_HOST:443:217.149.24.234" -o /tmp/boom-kadr-https-check.html -w '%{http_code}' "https://$PRIMARY_HOST/" || true)"
             if [ "$HTTPS_CODE" = "200" ] && grep -q 'TIMECODE' /tmp/boom-kadr-https-check.html; then
               break
             fi
@@ -122,7 +125,7 @@ jobs:
 
       - name: Verify public site and existing sites
         run: |
-          HOST='boom-kadr.217-149-24-234.nip.io'
+          HOST='timecode-lab.ru'
           for attempt in 1 2 3 4 5; do
             code="$(curl -sS -L -o /tmp/boom-public.html -w '%{http_code}' --max-time 15 "https://$HOST/" || true)"
             if [ "$code" = "200" ] && grep -q 'TIMECODE' /tmp/boom-public.html; then
@@ -132,6 +135,10 @@ jobs:
           done
           test "$code" = "200"
           grep -q 'TIMECODE' /tmp/boom-public.html
+          test "$(curl -sS -L -o /tmp/boom-www.html -w '%{http_code}' --max-time 15 https://www.timecode-lab.ru/)" = "200"
+          grep -q 'TIMECODE' /tmp/boom-www.html
+          test "$(curl -sS -L -o /tmp/boom-legacy.html -w '%{http_code}' --max-time 15 https://boom-kadr.217-149-24-234.nip.io/)" = "200"
+          grep -q 'TIMECODE' /tmp/boom-legacy.html
           test "$(curl -sS -L -o /dev/null -w '%{http_code}' --max-time 15 https://go.1tourtv.ru/)" = "200"
           test "$(curl -sS -L -o /dev/null -w '%{http_code}' --max-time 15 https://sale.1tourtv.ru/)" = "200"
           echo "Public checks passed"
