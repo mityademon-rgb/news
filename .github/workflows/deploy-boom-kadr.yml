@@ -1,4 +1,4 @@
-name: Deploy BOOM.KADR safely
+name: Deploy TIMECODE safely
 
 on:
   push:
@@ -85,7 +85,7 @@ jobs:
           HTTP_CODE="000"
           for attempt in 1 2 3 4 5; do
             HTTP_CODE="$(curl -sS -D /tmp/boom-kadr-http-headers.txt -o /tmp/boom-kadr-http-check.html -w '%{http_code}' http://127.0.0.1/ -H "Host: $HOST" || true)"
-            if [ "$HTTP_CODE" = "200" ] && grep -q 'БУМ' /tmp/boom-kadr-http-check.html; then
+            if [ "$HTTP_CODE" = "200" ] && grep -q 'TIMECODE' /tmp/boom-kadr-http-check.html; then
               break
             fi
             sleep 1
@@ -93,7 +93,7 @@ jobs:
           echo "HTTP pre-certificate check: $HTTP_CODE"
           sed -n '1,12p' /tmp/boom-kadr-http-headers.txt
           test "$HTTP_CODE" = "200"
-          grep -q 'БУМ' /tmp/boom-kadr-http-check.html
+          grep -q 'TIMECODE' /tmp/boom-kadr-http-check.html
 
           certbot certonly --webroot -w /var/www/boom-kadr -d "$HOST" \
             --non-interactive --agree-tos --register-unsafely-without-email \
@@ -106,18 +106,18 @@ jobs:
           HTTPS_CODE="000"
           for attempt in 1 2 3 4 5; do
             HTTPS_CODE="$(curl -k -sS --resolve "$HOST:443:217.149.24.234" -o /tmp/boom-kadr-https-check.html -w '%{http_code}' "https://$HOST/" || true)"
-            if [ "$HTTPS_CODE" = "200" ] && grep -q 'БУМ' /tmp/boom-kadr-https-check.html; then
+            if [ "$HTTPS_CODE" = "200" ] && grep -q 'TIMECODE' /tmp/boom-kadr-https-check.html; then
               break
             fi
             sleep 1
           done
           echo "HTTPS local check: $HTTPS_CODE"
           test "$HTTPS_CODE" = "200"
-          grep -q 'БУМ' /tmp/boom-kadr-https-check.html
+          grep -q 'TIMECODE' /tmp/boom-kadr-https-check.html
 
           rm -f /tmp/boom-kadr-site.tgz /tmp/boom-kadr-http.conf /tmp/boom-kadr-https.conf
           trap - ERR
-          echo "BOOM.KADR deployed successfully"
+          echo "TIMECODE deployed successfully"
           REMOTE
 
       - name: Verify public site and existing sites
@@ -125,13 +125,13 @@ jobs:
           HOST='boom-kadr.217-149-24-234.nip.io'
           for attempt in 1 2 3 4 5; do
             code="$(curl -sS -L -o /tmp/boom-public.html -w '%{http_code}' --max-time 15 "https://$HOST/" || true)"
-            if [ "$code" = "200" ] && grep -q 'БУМ' /tmp/boom-public.html; then
+            if [ "$code" = "200" ] && grep -q 'TIMECODE' /tmp/boom-public.html; then
               break
             fi
             sleep 3
           done
           test "$code" = "200"
-          grep -q 'БУМ' /tmp/boom-public.html
+          grep -q 'TIMECODE' /tmp/boom-public.html
           test "$(curl -sS -L -o /dev/null -w '%{http_code}' --max-time 15 https://go.1tourtv.ru/)" = "200"
           test "$(curl -sS -L -o /dev/null -w '%{http_code}' --max-time 15 https://sale.1tourtv.ru/)" = "200"
           echo "Public checks passed"

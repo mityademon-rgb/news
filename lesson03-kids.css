@@ -1,8 +1,8 @@
 /* Lesson 03 — 12+ visual skin. Keeps lesson content, changes how it is perceived. */
 .lesson-red {
-  --kid-yellow: #f4ff37;
-  --kid-red: #ff5a4e;
-  --kid-cyan: #37e8ff;
+  --kid-yellow: #f3efe7;
+  --kid-red: #ff3b2a;
+  --kid-cyan: #9b7cff;
   --kid-paper: #f6f1e8;
   --kid-ink: #090b0f;
 }
@@ -51,7 +51,7 @@
   letter-spacing: .04em;
   text-transform: none;
   transform: rotate(-1.5deg);
-  box-shadow: 5px 5px 0 rgba(255,90,78,.42);
+  box-shadow: 5px 5px 0 rgba(255, 59, 42,.42);
 }
 
 .lesson-red .scene-accent {
@@ -82,9 +82,9 @@
   border-radius: 34px 12px 34px 12px;
   background:
     linear-gradient(90deg, rgba(9,11,15,.92) 0 40%, rgba(9,11,15,.35) 70%, rgba(9,11,15,.15)),
-    radial-gradient(circle at 14% 15%, rgba(55,232,255,.26), transparent 28%),
+    radial-gradient(circle at 14% 15%, rgba(155, 124, 255,.26), transparent 28%),
     #151a20;
-  box-shadow: 14px 14px 0 rgba(244,255,55,.18);
+  box-shadow: 14px 14px 0 rgba(243, 239, 231,.18);
   isolation: isolate;
 }
 
@@ -149,9 +149,9 @@
   border-radius: 18px 42px 18px 42px;
   padding: clamp(34px, 5vw, 68px);
   background:
-    radial-gradient(circle at 80% 50%, transparent 0 70px, rgba(244,255,55,.78) 72px 77px, transparent 79px 108px, rgba(55,232,255,.55) 110px 114px, transparent 116px),
+    radial-gradient(circle at 80% 50%, transparent 0 70px, rgba(243, 239, 231,.78) 72px 77px, transparent 79px 108px, rgba(155, 124, 255,.55) 110px 114px, transparent 116px),
     linear-gradient(135deg, #17202a, #090b0f 70%);
-  box-shadow: 13px 13px 0 rgba(55,232,255,.14);
+  box-shadow: 13px 13px 0 rgba(155, 124, 255,.14);
 }
 
 .lesson-red .magic-statement .magic-type-card::before,

@@ -4,7 +4,7 @@
  * Главная сама создаст карточку, пересчитает количество уроков и покажет
  * последний готовый урок в большой кнопке. Для публикации: status: "ready".
  */
-window.BOOM_LESSONS = [
+window.TIMECODE_LESSONS = [
   {
     id: "studio-start",
     number: "01",
@@ -353,7 +353,7 @@ window.BOOM_LESSONS = [
       {
         type: "magic",
         layout: "game-intro",
-        kicker: "Финальный БУМ-КВИЗ",
+        kicker: "Финальный квиз TIME:CODE",
         title: "Пять вопросов. Вся студия против камеры.",
         accent: "Отвечаем вместе. Спорить можно. Правильный ответ — на следующем кадре.",
         teacher: "Не превращайте это в контрольную. Пусть дети показывают А/Б/В/Г пальцами, кричат вариант или голосуют командами."
@@ -361,7 +361,7 @@ window.BOOM_LESSONS = [
       {
         type: "magic",
         layout: "question",
-        kicker: "БУМ-КВИЗ · 1/5",
+        kicker: "Квиз TIME:CODE · 1/5",
         title: "Виден герой целиком и всё место вокруг. Это какой план?",
         image: "./assets/robot-general.webp",
         imageAlt: "Игрушечный робот целиком в пространстве",
@@ -385,7 +385,7 @@ window.BOOM_LESSONS = [
       {
         type: "magic",
         layout: "question",
-        kicker: "БУМ-КВИЗ · 2/5",
+        kicker: "Квиз TIME:CODE · 2/5",
         title: "Нужны глаза, улыбка и эмоция. Как снимаем?",
         image: "./assets/robot-close.webp",
         imageAlt: "Лицо игрушечного робота крупным планом",
@@ -408,7 +408,7 @@ window.BOOM_LESSONS = [
       {
         type: "magic",
         layout: "question",
-        kicker: "БУМ-КВИЗ · 3/5",
+        kicker: "Квиз TIME:CODE · 3/5",
         title: "Герой смотрит вправо. Где оставить свободное место?",
         image: "./assets/girl-look.webp",
         imageAlt: "Девочка смотрит вправо, перед взглядом оставлено свободное пространство",
@@ -431,7 +431,7 @@ window.BOOM_LESSONS = [
       {
         type: "magic",
         layout: "question",
-        kicker: "БУМ-КВИЗ · 4/5",
+        kicker: "Квиз TIME:CODE · 4/5",
         title: "Правило третей. Куда чаще ставим главное?",
         image: "./assets/composition-girl.webp",
         imageAlt: "Два портрета с разной композицией",
@@ -454,7 +454,7 @@ window.BOOM_LESSONS = [
       {
         type: "magic",
         layout: "question",
-        kicker: "БУМ-КВИЗ · 5/5",
+        kicker: "Квиз TIME:CODE · 5/5",
         title: "Что сильнее всего улучшит ваш кадр уже сегодня?",
         image: "./assets/camera-hero.webp",
         imageAlt: "Профессиональная видеокамера",

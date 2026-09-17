@@ -1,0 +1,6 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 256 256" role="img" aria-labelledby="title">
+  <title id="title">TIMECODE</title>
+  <rect width="256" height="256" rx="48" fill="#ff3b2a"/>
+  <rect x="82" y="42" width="92" height="70" rx="20" fill="#f3efe7"/>
+  <rect x="82" y="144" width="92" height="70" rx="20" fill="#f3efe7"/>
+</svg>

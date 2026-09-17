@@ -1,7 +1,7 @@
 (function () {
   "use strict";
 
-  const lessons = window.BOOM_LESSONS || [];
+  const lessons = window.TIMECODE_LESSONS || window.BOOM_LESSONS || [];
   const main = document.querySelector("#main");
   const soundButton = document.querySelector("#sound-check");
   const year = document.querySelector("#year");
@@ -103,7 +103,7 @@
           </div>
 
           <aside class="camera-console" aria-label="Пульт оператора">
-            <div class="console-brand"><strong>БУМ!</strong><span>КАДР</span></div>
+            <div class="console-brand"><strong>TIME</strong><span>:CODE</span></div>
             <div class="console-copy">
               <p class="console-kicker">Картинка говорит раньше тебя</p>
               <h2 id="shot-title">Начни с общего</h2>
@@ -135,7 +135,7 @@
           <div class="role-switches" role="tablist" aria-label="Съёмочные профессии">
             <button type="button" role="tab" aria-selected="true" data-role="operator" data-word="ВИЖУ" data-copy="Решаю, что попадёт в кадр — и что зритель никогда не увидит."><span>01</span> Оператор</button>
             <button type="button" role="tab" aria-selected="false" data-role="reporter" data-word="СПРАШИВАЮ" data-copy="Нахожу вопрос, после которого человек перестаёт отвечать шаблоном."><span>02</span> Репортёр</button>
-            <button type="button" role="tab" aria-selected="false" data-role="sound" data-word="СЛЫШУ" data-copy="Ловлю голос, паузу, шум и тот самый БУМ, который делает сцену живой."><span>03</span> Звук</button>
+            <button type="button" role="tab" aria-selected="false" data-role="sound" data-word="СЛЫШУ" data-copy="Ловлю голос, паузу, шум и тот самый момент, который делает сцену живой."><span>03</span> Звук</button>
             <button type="button" role="tab" aria-selected="false" data-role="editor" data-word="СОБИРАЮ" data-copy="Соединяю кадры так, чтобы из кусочков появилась история."><span>04</span> Монтаж</button>
           </div>
           <div class="role-output" id="role-output" data-role="operator">
@@ -170,7 +170,7 @@
             <span><b>Практика</b> с первого дня</span>
             <span><b>История</b> важнее кнопок</span>
           </div>
-          <p class="proof-origin">БУМ.КАДР — образовательный проект команды Медиацентра Марфино.</p>
+          <p class="proof-origin">TIMECODE — лаборатория креативных медиа Медиацентра Марфино.</p>
         </div>
       </section>`;
 
@@ -321,7 +321,11 @@
           <div class="title-badges" aria-label="Детская медиастудия, возраст 12 плюс">
             <span>Детская медиастудия</span><b>12+</b><i><em></em> Мы в эфире</i>
           </div>
-          <h1 id="hero-title"><span class="boom-hit" aria-label="БУМ!"><i>Б</i><i>У</i><i>М</i><i>!</i></span><strong>КАДР</strong></h1>
+          <h1 class="timecode-title" id="hero-title" aria-label="TIMECODE — лаборатория креативных медиа">
+            <span class="timecode-title-mark" aria-hidden="true"><i></i><i></i></span>
+            <strong>TIME<span>:</span>CODE</strong>
+            <small>Лаборатория креативных медиа</small>
+          </h1>
           <p class="title-action-line"><b>Смотри.</b><b>Слушай.</b><b>Снимай.</b></p>
           <div class="title-buttons">
             <a class="title-primary" href="${latestLink}"><span>Урок ${escapeHtml(latestNumber)}</span>${escapeHtml(latestTitle)} <b>→</b></a>
@@ -401,7 +405,9 @@
     }
 
     state.lesson = lesson;
-    const stored = Number(localStorage.getItem(`boom-kadr:${lesson.id}:scene`));
+    const storedValue = localStorage.getItem(`timecode:${lesson.id}:scene`)
+      ?? localStorage.getItem(`boom-kadr:${lesson.id}:scene`);
+    const stored = Number(storedValue);
     state.scene = Number.isInteger(stored) && stored >= 0 && stored < lesson.scenes.length ? stored : 0;
 
     main.innerHTML = `
@@ -459,7 +465,7 @@
       return;
     }
     state.scene = nextIndex;
-    localStorage.setItem(`boom-kadr:${state.lesson.id}:scene`, String(state.scene));
+    localStorage.setItem(`timecode:${state.lesson.id}:scene`, String(state.scene));
     drawScene();
   }
 
@@ -498,7 +504,7 @@
     const copy = `
       <div class="scene-copy">
         <div class="scene-meta"><span>КАДР ${sceneNumber} / ${totalScenes}</span><span>${escapeHtml(sceneLabels[scene.type] || "Задание")}</span></div>
-        <p class="eyebrow">${escapeHtml(scene.kicker || "БУМ.КАДР")}</p>
+        <p class="eyebrow">${escapeHtml(scene.kicker || "TIMECODE")}</p>
         <h2>${escapeHtml(scene.title)}</h2>
         ${scene.text ? `<p>${escapeHtml(scene.text)}</p>` : ""}
         ${scene.accent ? `<div class="scene-accent">${escapeHtml(scene.accent)}</div>` : ""}
@@ -512,7 +518,7 @@
         <span class="cover-rec"><i></i> REC</span>
         <span class="cover-number">${escapeHtml(state.lesson.number)}</span>
         <div class="cover-frame"><i></i><i></i><i></i><i></i></div>
-        <div class="cover-caption"><b>БУМ.КАДР</b><span>${escapeHtml(state.lesson.title)}</span></div>
+        <div class="cover-caption"><b>TIMECODE</b><span>${escapeHtml(state.lesson.title)}</span></div>
       </div></article>`;
     }
 
