@@ -6,12 +6,12 @@
     <meta name="theme-color" content="#0d0c12" />
     <meta
       name="description"
-      content="TIMECODE — лаборатория креативных медиа. Интерактивные уроки медиастудии Медиацентра Марфино."
+      content="TIMECODE — лаборатория креативных медиа Медиацентра Марфино. Интерактивные уроки о съёмке, интервью и монтаже."
     />
     <link rel="icon" type="image/svg+xml" href="./assets/brand/timecode-mark.svg" />
     <title>TIMECODE — лаборатория креативных медиа</title>
-    <link rel="stylesheet" href="./styles.css?v=20260917-2" />
-    <link rel="stylesheet" href="./lesson03-kids.css?v=20260917-1" />
+    <link rel="stylesheet" href="./styles.css?v=20260917-3" />
+    <link rel="stylesheet" href="./lesson03-kids.css?v=20260917-2" />
   </head>
   <body>
     <a class="skip-link" href="#main">К содержанию</a>
@@ -26,11 +26,15 @@
       </a>
       <nav class="top-nav" aria-label="Главное меню">
         <a href="#lessons">Уроки</a>
-        <a href="#about">О студии</a>
+        <a href="#about">О лаборатории</a>
       </nav>
-      <button class="sound-check" id="sound-check" type="button" aria-label="Проверить звук">
-        <span class="rec-dot"></span> Проверить звук
-      </button>
+      <details class="mobile-menu">
+        <summary><span>Меню</span><i aria-hidden="true"></i></summary>
+        <nav aria-label="Мобильное меню">
+          <a href="#lessons">Уроки</a>
+          <a href="#about">О лаборатории</a>
+        </nav>
+      </details>
     </header>
 
     <main id="main" tabindex="-1"></main>
@@ -46,7 +50,7 @@
       <p class="footer-origin">Проект команды Медиацентра Марфино · <span id="year"></span></p>
     </footer>
 
-    <script src="./lessons.js?v=20260917-1"></script>
-    <script src="./app.js?v=20260917-1"></script>
+    <script src="./lessons.js?v=20260917-2"></script>
+    <script src="./app.js?v=20260917-2"></script>
   </body>
 </html>

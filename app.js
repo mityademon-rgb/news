@@ -68,7 +68,7 @@
     main.innerHTML = `
       <section class="studio-entry" aria-labelledby="hero-title">
         <div class="entry-meta">
-          <span>Школа медиа · 12+</span>
+          <span>Лаборатория креативных медиа · 12+</span>
           <span class="entry-live"><i></i> Съёмочная площадка открыта</span>
           <span>Москва · Онлайн</span>
         </div>
@@ -318,8 +318,8 @@
     main.innerHTML = `
       <section class="title-stage" aria-labelledby="hero-title">
         <div class="title-stage-copy">
-          <div class="title-badges" aria-label="Детская медиастудия, возраст 12 плюс">
-            <span>Детская медиастудия</span><b>12+</b><i><em></em> Мы в эфире</i>
+          <div class="title-badges" aria-label="Лаборатория креативных медиа, возраст 12 плюс">
+            <span>Медиацентр Марфино</span><b>12+</b><i><em></em> Лаборатория в эфире</i>
           </div>
           <h1 class="timecode-title" id="hero-title" aria-label="TIMECODE — лаборатория креативных медиа">
             <span class="timecode-title-mark" aria-hidden="true"><i></i><i></i></span>
@@ -362,7 +362,7 @@
       <section class="studio-about" id="about" aria-labelledby="about-title">
         <div class="about-splash" aria-hidden="true"><span>10</span><b>лет<br />в эфире</b></div>
         <div class="about-copy">
-          <p class="eyebrow">Медиацентр Марфино</p>
+          <p class="eyebrow">Лаборатория TIMECODE</p>
           <h2 id="about-title">Здесь не играют<br />в телевидение.</h2>
           <p>Здесь снимают, задают вопросы, ошибаются, переснимают и выпускают настоящие истории.</p>
           <div class="about-chips">
@@ -371,7 +371,8 @@
         </div>
       </section>`;
 
-    document.body.classList.remove("teacher-mode");
+    document.body.classList.remove("teacher-mode", "lesson-active");
+    document.body.classList.add("home-active");
     bindTitleInteractions();
     if (scrollTarget) {
       requestAnimationFrame(() => document.querySelector(scrollTarget)?.scrollIntoView({ block: "start" }));
@@ -405,6 +406,8 @@
     }
 
     state.lesson = lesson;
+    document.body.classList.remove("home-active");
+    document.body.classList.add("lesson-active");
     const storedValue = localStorage.getItem(`timecode:${lesson.id}:scene`)
       ?? localStorage.getItem(`boom-kadr:${lesson.id}:scene`);
     const stored = Number(storedValue);
@@ -413,14 +416,14 @@
     main.innerHTML = `
       <section class="lesson-shell lesson-${escapeHtml(lesson.color)}" aria-label="Занятие ${escapeHtml(lesson.number)}: ${escapeHtml(lesson.title)}">
         <div class="lesson-toolbar">
-          <a class="back-link" href="#/">← Занятия</a>
-          <span class="lesson-code">СМЕНА ${escapeHtml(lesson.number)}</span>
+          <a class="back-link" href="#/">← Уроки</a>
+          <span class="lesson-code">УРОК ${escapeHtml(lesson.number)}</span>
           <div class="progress-wrap">
             <span class="progress-caption">Монтажная линия</span>
             <div class="progress-track" aria-hidden="true"><div class="progress-bar" id="progress-bar"></div></div>
             <span class="progress-label" id="progress-label"></span>
           </div>
-          <button class="teacher-toggle" id="teacher-toggle" type="button" aria-pressed="false">Режим педагога</button>
+          <button class="teacher-toggle" id="teacher-toggle" type="button" aria-pressed="false" aria-label="Включить подсказки педагогу">Педагогу</button>
         </div>
         <div class="scene-stage">
           <div id="scene-content"></div>
@@ -452,7 +455,8 @@
     document.body.classList.toggle("teacher-mode", state.teacherMode);
     const button = document.querySelector("#teacher-toggle");
     button.setAttribute("aria-pressed", String(state.teacherMode));
-    button.textContent = state.teacherMode ? "Режим ученика" : "Режим педагога";
+    button.textContent = state.teacherMode ? "Ученику" : "Педагогу";
+    button.setAttribute("aria-label", state.teacherMode ? "Скрыть подсказки педагогу" : "Включить подсказки педагогу");
     showToast(state.teacherMode ? "Подсказки педагогу включены" : "Подсказки скрыты");
   }
 
@@ -776,7 +780,10 @@
     else renderHome();
   }
 
-  soundButton.addEventListener("click", playBoom);
+  soundButton?.addEventListener("click", playBoom);
+  document.querySelectorAll(".mobile-menu a").forEach((link) => {
+    link.addEventListener("click", () => link.closest("details")?.removeAttribute("open"));
+  });
   window.addEventListener("hashchange", route);
   route();
 })();
