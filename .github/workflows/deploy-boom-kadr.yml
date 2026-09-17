@@ -97,6 +97,19 @@ jobs:
           test "$HTTP_CODE" = "200"
           grep -q 'TIMECODE' /tmp/boom-kadr-http-check.html
 
+          DNS_READY=0
+          for attempt in $(seq 1 60); do
+            PRIMARY_IP="$(getent ahostsv4 "$PRIMARY_HOST" | awk 'NR == 1 { print $1 }' || true)"
+            WWW_IP="$(getent ahostsv4 "$WWW_HOST" | awk 'NR == 1 { print $1 }' || true)"
+            echo "DNS check $attempt/60: $PRIMARY_HOST=${PRIMARY_IP:-pending}, $WWW_HOST=${WWW_IP:-pending}"
+            if [ "$PRIMARY_IP" = '217.149.24.234' ] && [ "$WWW_IP" = '217.149.24.234' ]; then
+              DNS_READY=1
+              break
+            fi
+            sleep 10
+          done
+          test "$DNS_READY" = "1"
+
           certbot certonly --webroot -w /var/www/boom-kadr \
             -d "$PRIMARY_HOST" -d "$WWW_HOST" \
             --non-interactive --agree-tos --register-unsafely-without-email \
