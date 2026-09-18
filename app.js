@@ -414,7 +414,7 @@
     state.scene = Number.isInteger(stored) && stored >= 0 && stored < lesson.scenes.length ? stored : 0;
 
     main.innerHTML = `
-      <section class="lesson-shell lesson-${escapeHtml(lesson.color)}" aria-label="Занятие ${escapeHtml(lesson.number)}: ${escapeHtml(lesson.title)}">
+      <section class="lesson-shell lesson-${escapeHtml(lesson.color)} lesson-${escapeHtml(lesson.id)}" aria-label="Занятие ${escapeHtml(lesson.number)}: ${escapeHtml(lesson.title)}">
         <div class="lesson-toolbar">
           <a class="back-link" href="#/">← Уроки</a>
           <span class="lesson-code">УРОК ${escapeHtml(lesson.number)}</span>
@@ -625,6 +625,21 @@
       stage = `${image("magic-photo-wide")}<div class="shot-word-bank">${scene.options.map((option) => `<span>${escapeHtml(option)}</span>`).join("")}</div>${hint}`;
     } else if (layout === "shots-answer") {
       stage = `${image("magic-photo-wide")}<div class="shot-answer-labels">${scene.labels.map((label) => `<span>${escapeHtml(label)}</span>`).join("")}</div>`;
+    } else if (layout === "storyboard") {
+      stage = `${image("magic-photo-wide video-storyboard")}<div class="video-shot-strip">${scene.labels.map((label, index) => `<span><b>${index + 1}</b>${escapeHtml(label)}</span>`).join("")}</div>`;
+    } else if (layout === "sequence-builder") {
+      const shuffled = scene.shuffle || [3, 0, 5, 2, 1, 4];
+      const sequenceStyle = `--sequence-image:url('${escapeHtml(scene.image)}')`;
+      stage = `<div class="sequence-builder" data-sequence-builder style="${sequenceStyle}">
+        <div class="sequence-player">
+          <div class="sequence-frame" data-sequence-frame data-shot="0"></div>
+          <div class="sequence-player-bar"><span>REC</span><strong data-sequence-status>Нажимайте кадры в нужном порядке</strong></div>
+        </div>
+        <div class="sequence-order" data-sequence-order>${scene.labels.map((_, index) => `<span>${index + 1}</span>`).join("")}</div>
+        <div class="sequence-cards">${shuffled.map((shot) => `<button type="button" class="sequence-card" data-sequence-shot="${shot}"><span class="video-shot" data-shot="${shot}"></span><b>${escapeHtml(scene.labels[shot])}</b><i></i></button>`).join("")}</div>
+        <div class="sequence-actions"><button type="button" data-sequence-reset>Сбросить</button><button type="button" class="sequence-play" data-sequence-play disabled>Собрать и включить ▶</button></div>
+        <p class="sequence-feedback" data-sequence-feedback aria-live="polite">Сначала выберите все шесть кадров.</p>
+      </div>`;
     } else if (layout === "quiz") {
       stage = `<div class="magic-quiz">${pickButtons}</div><p class="pick-feedback" aria-live="polite"></p>${hint}`;
     }
@@ -677,6 +692,83 @@
         showToast("Выбор принят. Ответ — дальше.");
       });
     });
+
+    const sequenceBuilder = document.querySelector("[data-sequence-builder]");
+    if (sequenceBuilder) {
+      const cards = Array.from(sequenceBuilder.querySelectorAll("[data-sequence-shot]"));
+      const slots = Array.from(sequenceBuilder.querySelectorAll("[data-sequence-order] span"));
+      const playButton = sequenceBuilder.querySelector("[data-sequence-play]");
+      const resetButton = sequenceBuilder.querySelector("[data-sequence-reset]");
+      const preview = sequenceBuilder.querySelector("[data-sequence-frame]");
+      const status = sequenceBuilder.querySelector("[data-sequence-status]");
+      const feedback = sequenceBuilder.querySelector("[data-sequence-feedback]");
+      const order = [];
+      const correctOrder = scene.correctOrder || [0, 1, 2, 3, 4, 5];
+
+      const resetSequence = () => {
+        clearSceneTimer();
+        order.splice(0, order.length);
+        cards.forEach((card) => {
+          card.disabled = false;
+          card.classList.remove("is-selected");
+          card.querySelector("i").textContent = "";
+        });
+        slots.forEach((slot, index) => {
+          slot.textContent = String(index + 1);
+          slot.classList.remove("is-filled");
+        });
+        sequenceBuilder.classList.remove("is-correct", "is-wrong", "is-playing");
+        preview.dataset.shot = "0";
+        status.textContent = "Нажимайте кадры в нужном порядке";
+        feedback.textContent = "Сначала выберите все шесть кадров.";
+        playButton.disabled = true;
+      };
+
+      cards.forEach((card) => {
+        card.addEventListener("click", () => {
+          const shot = Number(card.dataset.sequenceShot);
+          if (order.includes(shot) || order.length >= correctOrder.length) return;
+          order.push(shot);
+          card.classList.add("is-selected");
+          card.querySelector("i").textContent = String(order.length);
+          slots[order.length - 1].textContent = scene.labels[shot];
+          slots[order.length - 1].classList.add("is-filled");
+          playButton.disabled = order.length !== correctOrder.length;
+          feedback.textContent = order.length === correctOrder.length
+            ? "Последовательность готова. Включаем?"
+            : `Выбрано ${order.length} из ${correctOrder.length}.`;
+        });
+      });
+
+      resetButton.addEventListener("click", resetSequence);
+      playButton.addEventListener("click", () => {
+        clearSceneTimer();
+        cards.forEach((card) => { card.disabled = true; });
+        playButton.disabled = true;
+        sequenceBuilder.classList.add("is-playing");
+        let cursor = 0;
+        const showShot = () => {
+          const shot = order[cursor];
+          preview.dataset.shot = String(shot);
+          status.textContent = `${cursor + 1}/6 · ${scene.labels[shot]}`;
+          cursor += 1;
+          if (cursor < order.length) return;
+          clearSceneTimer();
+          sequenceBuilder.classList.remove("is-playing");
+          const correct = order.every((shot, index) => shot === correctOrder[index]);
+          sequenceBuilder.classList.add(correct ? "is-correct" : "is-wrong");
+          status.textContent = correct ? "Сцена читается!" : "История прыгает";
+          feedback.textContent = correct
+            ? "Да: место → герой → деталь → реакция → действие → финал."
+            : "Порядок пока сбивает смысл. Сбросьте и попробуйте выстроить причину и реакцию.";
+          if (correct) markAnswered();
+          cards.forEach((card) => { card.disabled = correct; });
+          playButton.disabled = correct;
+        };
+        showShot();
+        state.sceneTimer = window.setInterval(showShot, 900);
+      });
+    }
 
     const timer = document.querySelector(".lesson-timer");
     const timerStart = document.querySelector("[data-timer-start]");
