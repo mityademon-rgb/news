@@ -3706,3 +3706,48 @@ body.lesson-active > .site-footer { display: none; }
     font-size: clamp(22px, 7.2vw, 28px);
   }
 }
+
+/* Keep the final home section inside the phone viewport. The long unbroken
+   word "ТЕЛЕВИДЕНИЕ" must not set the width of the whole grid column. */
+@media (max-width: 760px) {
+  .studio-about {
+    min-width: 0;
+    overflow: hidden;
+  }
+
+  .about-copy {
+    width: 100%;
+    min-width: 0;
+    max-width: 100%;
+  }
+
+  .about-copy h2 {
+    width: 100%;
+    max-width: 100%;
+    font-size: clamp(30px, 9vw, 42px);
+    line-height: 1;
+    letter-spacing: -.055em;
+    word-break: normal;
+    overflow-wrap: normal;
+  }
+
+  .about-copy > p:not(.eyebrow),
+  .about-chips {
+    width: 100%;
+    max-width: 100%;
+  }
+
+  .about-copy > p:not(.eyebrow) {
+    overflow-wrap: break-word;
+  }
+
+  .about-chips span {
+    max-width: 100%;
+  }
+}
+
+@media (max-width: 390px) {
+  .about-copy h2 {
+    font-size: clamp(28px, 8.8vw, 35px);
+  }
+}
