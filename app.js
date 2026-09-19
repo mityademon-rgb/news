@@ -423,6 +423,7 @@
             <div class="progress-track" aria-hidden="true"><div class="progress-bar" id="progress-bar"></div></div>
             <span class="progress-label" id="progress-label"></span>
           </div>
+          <button class="fullscreen-toggle" id="fullscreen-toggle" type="button" aria-pressed="false" aria-label="Развернуть занятие на весь экран" title="На весь экран (F)"><span aria-hidden="true">⛶</span><b>На весь экран</b></button>
           <button class="teacher-toggle" id="teacher-toggle" type="button" aria-pressed="false" aria-label="Включить подсказки педагогу">Педагогу</button>
         </div>
         <div class="scene-stage">
@@ -437,6 +438,7 @@
       <div class="scene-toast" id="scene-toast" role="status" aria-live="polite"></div>`;
 
     document.querySelector("#teacher-toggle").addEventListener("click", toggleTeacherMode);
+    document.querySelector("#fullscreen-toggle").addEventListener("click", toggleFullscreen);
     document.querySelector("#prev-scene").addEventListener("click", () => changeScene(-1));
     document.querySelector("#next-scene").addEventListener("click", () => changeScene(1));
     document.addEventListener("keydown", lessonKeydown);
@@ -448,6 +450,63 @@
     if (!state.lesson || event.altKey || event.metaKey || event.ctrlKey) return;
     if (event.key === "ArrowRight") changeScene(1);
     if (event.key === "ArrowLeft") changeScene(-1);
+    if (event.key.toLowerCase() === "f") toggleFullscreen();
+    if (event.key === "Escape" && document.body.classList.contains("presentation-mode")) {
+      document.body.classList.remove("presentation-mode");
+      updateFullscreenButton();
+    }
+  }
+
+  function fullscreenActive() {
+    return Boolean(document.fullscreenElement || document.webkitFullscreenElement || document.body.classList.contains("presentation-mode"));
+  }
+
+  function updateFullscreenButton() {
+    const button = document.querySelector("#fullscreen-toggle");
+    if (!button) return;
+    const active = fullscreenActive();
+    button.setAttribute("aria-pressed", String(active));
+    button.setAttribute("aria-label", active ? "Выйти из полноэкранного режима" : "Развернуть занятие на весь экран");
+    button.title = active ? "Выйти из полноэкранного режима (F)" : "На весь экран (F)";
+    button.querySelector("span").textContent = active ? "↙" : "⛶";
+    button.querySelector("b").textContent = active ? "Выйти" : "На весь экран";
+  }
+
+  async function toggleFullscreen() {
+    const fullscreenElement = document.fullscreenElement || document.webkitFullscreenElement;
+    if (fullscreenElement) {
+      const exit = document.exitFullscreen || document.webkitExitFullscreen;
+      if (exit) await exit.call(document);
+      return;
+    }
+
+    if (document.body.classList.contains("presentation-mode")) {
+      document.body.classList.remove("presentation-mode");
+      updateFullscreenButton();
+      showToast("Обычный режим");
+      return;
+    }
+
+    const target = document.querySelector(".lesson-shell");
+    const request = target?.requestFullscreen || target?.webkitRequestFullscreen;
+    if (request) {
+      try {
+        await request.call(target, { navigationUI: "hide" });
+        return;
+      } catch (error) {
+        try {
+          await request.call(target);
+          return;
+        } catch (fallbackError) {
+          // Some mobile browsers expose the method but reject non-video elements.
+        }
+      }
+    }
+
+    document.body.classList.add("presentation-mode");
+    updateFullscreenButton();
+    window.scrollTo({ top: 0, behavior: "smooth" });
+    showToast("Включён режим показа");
   }
 
   function toggleTeacherMode() {
@@ -860,6 +919,7 @@
 
   function route() {
     document.removeEventListener("keydown", lessonKeydown);
+    document.body.classList.remove("presentation-mode");
     state.lesson = null;
     const hash = location.hash || "#/";
     const lessonMatch = hash.match(/^#\/lesson\/([^/]+)$/);
@@ -877,5 +937,7 @@
     link.addEventListener("click", () => link.closest("details")?.removeAttribute("open"));
   });
   window.addEventListener("hashchange", route);
+  document.addEventListener("fullscreenchange", updateFullscreenButton);
+  document.addEventListener("webkitfullscreenchange", updateFullscreenButton);
   route();
 })();
