@@ -492,10 +492,12 @@
     if (request) {
       try {
         await request.call(target, { navigationUI: "hide" });
+        window.setTimeout(updateFullscreenButton, 300);
         return;
       } catch (error) {
         try {
           await request.call(target);
+          window.setTimeout(updateFullscreenButton, 300);
           return;
         } catch (fallbackError) {
           // Some mobile browsers expose the method but reject non-video elements.
