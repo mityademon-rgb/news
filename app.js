@@ -287,8 +287,10 @@
     state.homeTimer = null;
 
     const readyLessons = lessons.filter((lesson) => lesson.status === "ready");
+    const youthLessons = lessons.filter((lesson) => lesson.track !== "adult");
+    const adultLessons = lessons.filter((lesson) => lesson.track === "adult");
     const latestLesson = readyLessons.at(-1) || lessons[0];
-    const cards = lessons.map((lesson) => {
+    const renderCards = (items) => items.map((lesson) => {
       const ready = lesson.status === "ready";
       const card = `
         <article class="course-card course-card-${escapeHtml(lesson.color)}" data-ready="${ready}">
@@ -308,6 +310,22 @@
         ? `<a class="course-card-link" href="#/lesson/${encodeURIComponent(lesson.id)}" aria-label="Открыть урок ${escapeHtml(lesson.number)}: ${escapeHtml(lesson.title)}">${card}</a>`
         : `<div class="course-card-link is-disabled" aria-label="Урок ${escapeHtml(lesson.number)} готовится">${card}</div>`;
     }).join("");
+    const youthCards = renderCards(youthLessons);
+    const adultCards = renderCards(adultLessons);
+    const lifehacks = lessons.flatMap((lesson) => (lesson.lifehacks || []).map((item) => ({
+      ...item,
+      lessonId: lesson.id,
+      lessonNumber: lesson.number,
+      lessonTitle: lesson.title
+    })));
+    const lifehackCards = lifehacks.map((item, index) => `
+      <article class="lifehack-card">
+        <div class="lifehack-card-top"><span>${String(index + 1).padStart(2, "0")}</span><b>${escapeHtml(item.category)}</b></div>
+        <h3>${escapeHtml(item.title)}</h3>
+        <p>${escapeHtml(item.text)}</p>
+        <div class="lifehack-action"><strong>Применить сегодня</strong><span>${escapeHtml(item.action)}</span></div>
+        <a href="#/lesson/${encodeURIComponent(item.lessonId)}">Урок ${escapeHtml(item.lessonNumber)} · ${escapeHtml(item.lessonTitle)} →</a>
+      </article>`).join("");
 
     const latestLink = latestLesson && latestLesson.status === "ready"
       ? `#/lesson/${encodeURIComponent(latestLesson.id)}`
@@ -318,8 +336,8 @@
     main.innerHTML = `
       <section class="title-stage" aria-labelledby="hero-title">
         <div class="title-stage-copy">
-          <div class="title-badges" aria-label="Лаборатория креативных медиа, возраст 12 плюс">
-            <span>Медиацентр Марфино</span><b>12+</b><i><em></em> Лаборатория в эфире</i>
+          <div class="title-badges" aria-label="Лаборатория креативных медиа, программы 12 плюс и 14 плюс">
+            <span>Медиацентр Марфино</span><b>12+ / 14+</b><i><em></em> Лаборатория в эфире</i>
           </div>
           <h1 class="timecode-title" id="hero-title" aria-label="TIMECODE — лаборатория креативных медиа">
             <span class="timecode-title-mark" aria-hidden="true"><i></i><i></i></span>
@@ -356,8 +374,26 @@
           </div>
           <p><strong>${readyLessons.length}</strong> готово · <strong>${lessons.length}</strong> в программе</p>
         </header>
-        <div class="course-grid">${cards}</div>
+        <div class="course-track">
+          <div class="track-heading"><span>12+</span><div><strong>Первая лаборатория</strong><small>Камера, интервью, композиция и первый видеосюжет</small></div></div>
+          <div class="course-grid">${youthCards}</div>
+        </div>
+        ${adultCards ? `<div class="course-track course-track-adult">
+          <div class="track-heading"><span>14+</span><div><strong>Старшая лаборатория</strong><small>Сценарий, журналистика и режиссура коротких историй</small></div></div>
+          <div class="course-grid">${adultCards}</div>
+        </div>` : ""}
       </section>
+
+      ${lifehackCards ? `<section class="lifehack-library" id="lifehacks" aria-labelledby="lifehacks-title">
+        <header class="library-header">
+          <div>
+            <p class="eyebrow">Можно применить на ближайшей съёмке</p>
+            <h2 id="lifehacks-title">Лайфхаки</h2>
+          </div>
+          <p><strong>${lifehacks.length}</strong> приёма · библиотека пополняется из каждого урока</p>
+        </header>
+        <div class="lifehack-grid">${lifehackCards}</div>
+      </section>` : ""}
 
       <section class="studio-about" id="about" aria-labelledby="about-title">
         <div class="about-splash" aria-hidden="true"><span>10</span><b>лет<br />в эфире</b></div>
@@ -701,6 +737,11 @@
         <div class="sequence-actions"><button type="button" data-sequence-reset>Сбросить</button><button type="button" class="sequence-play" data-sequence-play disabled>Собрать и включить ▶</button></div>
         <p class="sequence-feedback" data-sequence-feedback aria-live="polite">Сначала выберите все шесть кадров.</p>
       </div>`;
+    } else if (layout === "story-builder") {
+      stage = `<div class="story-builder" data-story-builder>
+        <div class="story-builder-groups">${scene.groups.map((group, groupIndex) => `<fieldset><legend><span>0${groupIndex + 1}</span>${escapeHtml(group.label)}</legend>${group.options.map((option, optionIndex) => `<button type="button" data-story-option data-group="${groupIndex}" data-option="${optionIndex}" data-value="${escapeHtml(option)}">${escapeHtml(option)}</button>`).join("")}</fieldset>`).join("")}</div>
+        <div class="story-builder-result"><span>ЗАЯВКА</span><strong data-story-result>Выберите по одному варианту в каждом блоке.</strong><button type="button" data-story-example>Показать готовое решение</button></div>
+      </div>`;
     } else if (layout === "quiz") {
       stage = `<div class="magic-quiz">${pickButtons}</div><p class="pick-feedback" aria-live="polite"></p>${hint}`;
     }
@@ -831,6 +872,36 @@
       });
     }
 
+    const storyBuilder = document.querySelector("[data-story-builder]");
+    if (storyBuilder) {
+      const selections = new Array((scene.groups || []).length).fill("");
+      const result = storyBuilder.querySelector("[data-story-result]");
+      const optionButtons = Array.from(storyBuilder.querySelectorAll("[data-story-option]"));
+      const updateStory = () => {
+        const complete = selections.every(Boolean);
+        result.textContent = complete
+          ? selections.join(" ")
+          : `Выбрано ${selections.filter(Boolean).length} из ${selections.length}.`;
+        storyBuilder.classList.toggle("is-complete", complete);
+        if (complete) markAnswered();
+      };
+      optionButtons.forEach((button) => {
+        button.addEventListener("click", () => {
+          const groupIndex = Number(button.dataset.group);
+          selections[groupIndex] = button.dataset.value;
+          optionButtons.filter((item) => Number(item.dataset.group) === groupIndex).forEach((item) => item.classList.toggle("is-selected", item === button));
+          updateStory();
+        });
+      });
+      storyBuilder.querySelector("[data-story-example]")?.addEventListener("click", () => {
+        selections.splice(0, selections.length, ...scene.groups.map((group) => group.options[0]));
+        optionButtons.forEach((button) => button.classList.toggle("is-selected", Number(button.dataset.option) === 0));
+        result.textContent = scene.example || selections.join(" ");
+        storyBuilder.classList.add("is-complete");
+        markAnswered();
+      });
+    }
+
     const timer = document.querySelector(".lesson-timer");
     const timerStart = document.querySelector("[data-timer-start]");
     const timerReset = document.querySelector("[data-timer-reset]");
@@ -930,6 +1001,7 @@
       return;
     }
     if (hash === "#lessons") renderHome("#lessons");
+    else if (hash === "#lifehacks") renderHome("#lifehacks");
     else if (hash === "#about") renderHome("#about");
     else renderHome();
   }
