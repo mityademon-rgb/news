@@ -684,8 +684,20 @@
 
     if (layout === "promise" || layout === "statement") {
       stage = `<div class="magic-type-card"><span class="magic-spark">✦</span><strong>${escapeHtml(scene.accent || scene.text || "Смотрите внимательнее")}</strong><i></i><i></i><i></i></div>`;
+    } else if (layout === "film-case") {
+      stage = `<div class="film-case-card">
+        <span>${escapeHtml(scene.caseLabel || "РАБОЧЕЕ НАЗВАНИЕ")}</span>
+        <strong>${escapeHtml(scene.caseTitle || "INTRUDER")}</strong>
+        <p>${escapeHtml(scene.caseNote || "")}</p>
+        <div><i></i><b>${escapeHtml(scene.accent || "")}</b></div>
+      </div>`;
     } else if (layout === "image") {
       stage = image("magic-photo-wide");
+    } else if (layout === "case-frames") {
+      stage = `<div class="case-frames">${(scene.labels || []).map((item, index) => `<figure>
+        <div class="case-frame-image case-frame-${index + 1}"><img src="${escapeHtml(scene.image)}" alt="${escapeHtml(scene.imageAlt || scene.title)}" /></div>
+        <figcaption><span>${escapeHtml(item[0])}</span><strong>${escapeHtml(item[1])}</strong><small>${escapeHtml(item[2])}</small></figcaption>
+      </figure>`).join("")}</div>`;
     } else if (layout === "question") {
       const pictures = scene.images
         ? `<div class="magic-compare">${scene.images.map((item) => `<figure><img src="${escapeHtml(item.src)}" alt="${escapeHtml(item.label)}" /><figcaption>${escapeHtml(item.label)}</figcaption></figure>`).join("")}</div>`
@@ -715,6 +727,13 @@
         <div class="script-review-bar"><span>ИСХОДНЫЙ ТЕКСТ</span><i></i><i></i><i></i></div>
         <pre>${escapeHtml(scene.script || "")}</pre>
         ${scene.note ? `<p><strong>СМОТРИМ:</strong> ${escapeHtml(scene.note)}</p>` : ""}
+      </div>`;
+    } else if (layout === "story-fork") {
+      stage = `<div class="story-fork">
+        <div class="story-fork-start"><span>ОДНО НАЧАЛО</span><strong>Дима и Катя находят карточку</strong></div>
+        <div class="story-fork-line" aria-hidden="true"><i></i><i></i><i></i></div>
+        <div class="story-fork-branches">${(scene.branches || []).map((item) => `<div><span>${escapeHtml(item[0])}</span><strong>${escapeHtml(item[1])}</strong><p>${escapeHtml(item[2])}</p></div>`).join("")}</div>
+        ${scene.note ? `<p class="story-fork-note"><b>РЕШЕНИЕ:</b> ${escapeHtml(scene.note)}</p>` : ""}
       </div>`;
     } else if (layout === "gaze") {
       stage = `<div class="magic-photo gaze-photo"><img src="${escapeHtml(scene.image)}" alt="${escapeHtml(scene.imageAlt)}" /><div class="gaze-air"><span>место для взгляда</span><i>→</i></div></div>`;
