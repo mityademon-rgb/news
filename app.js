@@ -2,6 +2,7 @@
   "use strict";
 
   const lessons = window.TIMECODE_LESSONS || window.BOOM_LESSONS || [];
+  const teacherGuides = window.TIMECODE_TEACHER_GUIDES || {};
   const main = document.querySelector("#main");
   const soundButton = document.querySelector("#sound-check");
   const year = document.querySelector("#year");
@@ -22,6 +23,8 @@
     .replaceAll(">", "&gt;")
     .replaceAll('"', "&quot;")
     .replaceAll("'", "&#039;");
+
+  const hasTeacherAccess = () => localStorage.getItem("timecode:teacher-access") === "granted";
 
   const teacherNote = (type, customText) => {
     const notes = {
@@ -407,7 +410,7 @@
         </div>
       </section>`;
 
-    document.body.classList.remove("teacher-mode", "lesson-active");
+    document.body.classList.remove("teacher-mode", "lesson-active", "teacher-portal-active");
     document.body.classList.add("home-active");
     bindTitleInteractions();
     if (scrollTarget) {
@@ -415,6 +418,150 @@
     } else {
       window.scrollTo({ top: 0, behavior: "instant" });
     }
+  }
+
+  function renderTeacherPortal(guideId) {
+    clearSceneTimer();
+    clearInterval(state.homeTimer);
+    state.homeTimer = null;
+    document.body.classList.remove("home-active", "lesson-active", "teacher-mode", "presentation-mode");
+    document.body.classList.add("teacher-portal-active");
+
+    if (!hasTeacherAccess()) {
+      main.innerHTML = `
+        <section class="teacher-login" aria-labelledby="teacher-login-title">
+          <div class="teacher-login-copy">
+            <p class="eyebrow">Служебный раздел TIMECODE</p>
+            <h1 id="teacher-login-title">План занятия<br />до начала занятия.</h1>
+            <p>Короткие сценарии работы преподавателя: последовательность, ключевые мысли, вопросы группе и результат каждого урока.</p>
+            <div class="teacher-login-mark" aria-hidden="true"><span>РЕЖИССУРА</span><b>УРОКА</b><i></i></div>
+          </div>
+          <form class="teacher-login-form" id="teacher-login-form">
+            <span class="teacher-access-label">ДОСТУП ПРЕПОДАВАТЕЛЯ</span>
+            <label>Логин<input name="login" type="text" inputmode="numeric" autocomplete="username" required /></label>
+            <label>Пароль<input name="password" type="password" inputmode="numeric" autocomplete="current-password" required /></label>
+            <button type="submit">Открыть планы <span>→</span></button>
+            <p class="teacher-login-error" id="teacher-login-error" role="alert" hidden>Логин или пароль не подходят.</p>
+          </form>
+        </section>`;
+
+      const form = document.querySelector("#teacher-login-form");
+      form?.addEventListener("submit", (event) => {
+        event.preventDefault();
+        const data = new FormData(form);
+        const accepted = data.get("login") === "01" && data.get("password") === "02";
+        const error = document.querySelector("#teacher-login-error");
+        if (!accepted) {
+          error.hidden = false;
+          form.classList.remove("is-wrong");
+          void form.offsetWidth;
+          form.classList.add("is-wrong");
+          form.querySelector("input")?.focus();
+          return;
+        }
+        localStorage.setItem("timecode:teacher-access", "granted");
+        renderTeacherPortal(guideId);
+      });
+      window.scrollTo({ top: 0, behavior: "instant" });
+      return;
+    }
+
+    const available = lessons
+      .filter((lesson) => lesson.status === "ready" && teacherGuides[lesson.id])
+      .map((lesson) => ({ lesson, guide: teacherGuides[lesson.id] }));
+    const selected = guideId ? available.find((item) => item.lesson.id === guideId) : null;
+
+    if (selected) {
+      const { lesson, guide } = selected;
+      const preparation = guide.preparation.map((item) => `<li><span>✓</span>${escapeHtml(item)}</li>`).join("");
+      const blocks = guide.blocks.map((block, index) => `
+        <article class="teacher-run-block">
+          <div class="teacher-run-time"><span>${String(index + 1).padStart(2, "0")}</span><b>${escapeHtml(block.time)}</b></div>
+          <div class="teacher-run-copy">
+            <p>${escapeHtml(block.screens)}</p>
+            <h3>${escapeHtml(block.title)}</h3>
+            <div><strong>Что делает преподаватель</strong><span>${escapeHtml(block.teacher)}</span></div>
+            <blockquote><strong>ДОНЕСТИ:</strong> ${escapeHtml(block.message)}</blockquote>
+          </div>
+        </article>`).join("");
+      const checkpoints = guide.checkpoints.map((item) => `<li>${escapeHtml(item)}</li>`).join("");
+      const avoid = guide.avoid.map((item) => `<li>${escapeHtml(item)}</li>`).join("");
+
+      main.innerHTML = `
+        <section class="teacher-guide-page">
+          <header class="teacher-portal-bar">
+            <a href="#/teacher">← Все планы</a>
+            <span>РЕЖИССУРА ЗАНЯТИЯ</span>
+            <button type="button" data-teacher-logout>Выйти</button>
+          </header>
+
+          <div class="teacher-guide-hero">
+            <div>
+              <p>${escapeHtml(guide.audience)} · ${escapeHtml(guide.duration)}</p>
+              <span>УРОК ${escapeHtml(guide.lessonNumber)}</span>
+              <h1>${escapeHtml(guide.title)}</h1>
+            </div>
+            <aside><strong>Результат занятия</strong><p>${escapeHtml(guide.result)}</p></aside>
+          </div>
+
+          <div class="teacher-guide-actions">
+            <button type="button" data-start-lesson="${escapeHtml(lesson.id)}">Начать урок с первого кадра <span>→</span></button>
+            <button type="button" class="teacher-print" data-print-guide>Распечатать план</button>
+          </div>
+
+          <section class="teacher-prep" aria-labelledby="teacher-prep-title">
+            <div><p>Перед входом группы</p><h2 id="teacher-prep-title">Подготовить</h2></div>
+            <ul>${preparation}</ul>
+          </section>
+
+          <section class="teacher-run" aria-labelledby="teacher-run-title">
+            <header><p>Ход занятия</p><h2 id="teacher-run-title">Что говорить и когда действовать</h2></header>
+            <div class="teacher-run-list">${blocks}</div>
+          </section>
+
+          <section class="teacher-control-grid">
+            <article><p>Проверка результата</p><h2>Ребята поняли, если…</h2><ul>${checkpoints}</ul></article>
+            <article class="teacher-avoid"><p>Не делать</p><h2>Что разрушит занятие</h2><ul>${avoid}</ul></article>
+          </section>
+        </section>`;
+    } else {
+      const cards = available.map(({ lesson, guide }, index) => `
+        <a class="teacher-guide-card" href="#/teacher/${encodeURIComponent(lesson.id)}">
+          <div><span>${String(index + 1).padStart(2, "0")}</span><b>УРОК ${escapeHtml(guide.lessonNumber)}</b></div>
+          <p>${escapeHtml(guide.audience)} · ${escapeHtml(guide.duration)}</p>
+          <h2>${escapeHtml(guide.title)}</h2>
+          <strong>${escapeHtml(guide.result)}</strong>
+          <em>Открыть план →</em>
+        </a>`).join("");
+
+      main.innerHTML = `
+        <section class="teacher-portal">
+          <header class="teacher-portal-bar">
+            <a href="#/">← На сайт</a>
+            <span>СЛУЖЕБНЫЙ РАЗДЕЛ</span>
+            <button type="button" data-teacher-logout>Выйти</button>
+          </header>
+          <div class="teacher-portal-hero">
+            <p class="eyebrow">TIMECODE · преподавателю</p>
+            <h1>Управляйте<br />занятием.</h1>
+            <p>Здесь не пересказ ученических экранов. Здесь — логика урока: что запустить, где остановить группу и какую мысль нельзя потерять.</p>
+            <div><strong>${available.length}</strong><span>готовых<br />плана</span></div>
+          </div>
+          <div class="teacher-guide-grid">${cards}</div>
+        </section>`;
+    }
+
+    document.querySelector("[data-teacher-logout]")?.addEventListener("click", () => {
+      localStorage.removeItem("timecode:teacher-access");
+      renderTeacherPortal();
+    });
+    document.querySelector("[data-start-lesson]")?.addEventListener("click", (event) => {
+      const lessonId = event.currentTarget.dataset.startLesson;
+      localStorage.setItem(`timecode:${lessonId}:scene`, "0");
+      location.hash = `#/lesson/${encodeURIComponent(lessonId)}`;
+    });
+    document.querySelector("[data-print-guide]")?.addEventListener("click", () => window.print());
+    window.scrollTo({ top: 0, behavior: "instant" });
   }
 
   function bindTitleInteractions() {
@@ -442,7 +589,7 @@
     }
 
     state.lesson = lesson;
-    document.body.classList.remove("home-active");
+    document.body.classList.remove("home-active", "teacher-portal-active");
     document.body.classList.add("lesson-active");
     const storedValue = localStorage.getItem(`timecode:${lesson.id}:scene`)
       ?? localStorage.getItem(`boom-kadr:${lesson.id}:scene`);
@@ -1021,8 +1168,13 @@
     state.lesson = null;
     const hash = location.hash || "#/";
     const lessonMatch = hash.match(/^#\/lesson\/([^/]+)$/);
+    const teacherMatch = hash.match(/^#\/teacher(?:\/([^/]+))?$/);
     if (lessonMatch) {
       renderLesson(decodeURIComponent(lessonMatch[1]));
+      return;
+    }
+    if (teacherMatch) {
+      renderTeacherPortal(teacherMatch[1] ? decodeURIComponent(teacherMatch[1]) : null);
       return;
     }
     if (hash === "#lessons") renderHome("#lessons");
