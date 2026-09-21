@@ -590,11 +590,11 @@
           <p><strong>${readyLessons.length}</strong> готово · <strong>${lessons.length}</strong> в программе</p>
         </header>
         <div class="course-track">
-          <div class="track-heading"><span>12+</span><div><strong>Первая лаборатория</strong><small>Камера, интервью, композиция и первый видеосюжет</small></div></div>
+          <div class="track-heading"><span>12+</span><div><strong>KIDS LAB</strong><small>Камера, интервью, композиция и первый видеосюжет</small></div></div>
           <div class="course-grid">${youthCards}</div>
         </div>
         ${adultCards ? `<div class="course-track course-track-adult">
-          <div class="track-heading"><span>14+</span><div><strong>Старшая лаборатория</strong><small>Сценарий, журналистика и режиссура коротких историй</small></div></div>
+          <div class="track-heading"><span>14+</span><div><strong>MEDIA LAB</strong><small>Сценарий, журналистика и режиссура коротких историй</small></div></div>
           <div class="course-grid">${adultCards}</div>
         </div>` : ""}
       </section>
