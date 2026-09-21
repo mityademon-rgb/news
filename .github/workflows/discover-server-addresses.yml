@@ -1,4 +1,4 @@
-name: Discover server addresses
+name: Discover CRM address
 
 on:
   workflow_dispatch:
@@ -12,10 +12,9 @@ jobs:
   inspect:
     runs-on: ubuntu-latest
     steps:
-      - name: Resolve and probe existing hosts
+      - name: Resolve CRM and producer hosts
         run: |
-          hosts="go.1tourtv.ru sale.1tourtv.ru proxy.1tourtv.ru proxy.mityademon.com"
-          for host in $hosts; do
+          for host in crm.1tourtv.ru 1tourtv.ru go.1tourtv.ru sale.1tourtv.ru; do
             echo "=== $host ==="
             getent ahostsv4 "$host" | awk '{print $1}' | sort -u || true
             curl -4 -k -sS -o /dev/null -w 'HTTP %{http_code} REMOTE %{remote_ip}\n' --connect-timeout 8 --max-time 12 "http://$host/" || true
