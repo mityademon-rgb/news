@@ -1671,6 +1671,153 @@ window.TIMECODE_TEACHER_GUIDES = {
     { id: "journalism", label: "#журналистика" },
     { id: "on-camera", label: "#работа в кадре" }
   ];
+  const playCatalog = [
+    {
+      id: "talk",
+      type: "Игра",
+      number: "01",
+      title: "Разговори человека",
+      text: "Пять реплик. Один незнакомец. Получится ли добраться до настоящей истории?",
+      image: "./assets/boom-mic-hero.webp",
+      accent: "red"
+    },
+    {
+      id: "crew",
+      type: "Тест",
+      number: "02",
+      title: "Кто ты в кинопроизводстве?",
+      text: "Не гороскоп: шесть ситуаций со съёмочной площадки и честный результат.",
+      image: "./assets/adult01-cover.webp",
+      accent: "violet"
+    },
+    {
+      id: "hack",
+      type: "Сегодня",
+      number: "03",
+      title: "Лайфхак дня",
+      text: "Одна картинка. Одна фраза. То, что можно применить сразу.",
+      image: "./assets/girl-look.webp",
+      accent: "cyan"
+    }
+  ];
+  const interviewRounds = [
+    {
+      scene: "Вы на городском празднике. Незнакомый парень только что сошёл со сцены и явно торопится.",
+      hero: "У меня буквально минута.",
+      choices: [
+        { text: "Можно задать вам несколько вопросов?", score: 0, reply: "Ну… если быстро. Только я не знаю, что рассказывать." },
+        { text: "Мы из TIMECODE. Что случилось за минуту до вашего выхода?", score: 3, reply: "За минуту? Я вообще хотел уйти. Стоял за кулисами и искал выход." },
+        { text: "Вы волновались перед выступлением?", score: 1, reply: "Да, конечно. Все волнуются." }
+      ]
+    },
+    {
+      scene: "Он уже собирается уходить, но вспоминает закулисье.",
+      hero: "Я действительно искал дверь, чтобы сбежать.",
+      choices: [
+        { text: "Почему вы хотели сбежать?", score: 3, reply: "Передо мной выступила девочка лет десяти. Она была спокойнее меня. Стало ужасно стыдно." },
+        { text: "И всё-таки выступление вам понравилось?", score: 0, reply: "В целом да. Спасибо, мне пора." },
+        { text: "А давно вы занимаетесь музыкой?", score: 1, reply: "Лет пять, наверное. Но на больших сценах почти не выступал." }
+      ]
+    },
+    {
+      scene: "В разговоре появилась деталь: десятилетняя девочка оказалась смелее взрослого музыканта.",
+      hero: "Она посмотрела на меня и сказала: «Вы следующий? Круто!»",
+      choices: [
+        { text: "Как её звали?", score: 1, reply: "Кажется, Лиза. Мы толком не познакомились." },
+        { text: "Что вы сделали после её слов?", score: 3, reply: "Перестал искать выход. Взял гитару и пошёл к сцене." },
+        { text: "Наверное, это вас очень поддержало?", score: 0, reply: "Наверное. Да." }
+      ]
+    },
+    {
+      scene: "История почти собрана. Осталось найти момент изменения.",
+      hero: "На сцену я вышел, но первые секунды всё равно ничего не слышал от страха.",
+      choices: [
+        { text: "Сколько зрителей было в зале?", score: 0, reply: "Не знаю. Много. Я не считал." },
+        { text: "Когда страх отпустил?", score: 3, reply: "В первом ряду я увидел ту девочку. Она показывала мне большой палец." },
+        { text: "Вы часто выступаете на таких праздниках?", score: 1, reply: "Нет, это был первый большой городской концерт." }
+      ]
+    },
+    {
+      scene: "Последняя реплика. Можно закончить формально или получить сильную цитату.",
+      hero: "После этого я наконец услышал музыку.",
+      choices: [
+        { text: "Что вы почувствовали после выступления?", score: 1, reply: "Облегчение. И хотелось ещё раз выйти." },
+        { text: "Если бы вы встретили эту девочку сейчас, что бы сказали?", score: 3, reply: "Что мой первый большой концерт начался не с песни. Он начался с её большого пальца." },
+        { text: "Спасибо за интервью!", score: 0, reply: "Спасибо. Удачи вам!" }
+      ]
+    }
+  ];
+  const crewQuestions = [
+    {
+      title: "До съёмки пять минут. Все спорят. Что вы делаете?",
+      answers: [
+        ["Быстро решаю, какую историю мы рассказываем", "director"],
+        ["Проверяю свет, батареи и свободное место", "operator"],
+        ["Ищу героя и начинаю с ним разговаривать", "journalist"],
+        ["Раскладываю задачи и собираю всех по времени", "producer"]
+      ]
+    },
+    {
+      title: "В чужом видео вы первым замечаете…",
+      answers: [
+        ["Зачем вообще снята эта сцена", "director"],
+        ["Свет, композицию и движение камеры", "operator"],
+        ["Фразу, за которой спрятана история", "journalist"],
+        ["Момент, где видео нужно сократить", "editor"]
+      ]
+    },
+    {
+      title: "Герой неожиданно отказался сниматься.",
+      answers: [
+        ["Меняю сцену, но сохраняю её смысл", "director"],
+        ["Предлагаю снять руки, детали и пространство", "operator"],
+        ["Выясняю причину и возвращаю доверие", "journalist"],
+        ["Нахожу замену и пересобираю расписание", "producer"]
+      ]
+    },
+    {
+      title: "Какой момент съёмки вам интереснее?",
+      answers: [
+        ["Когда идея впервые становится сценой", "director"],
+        ["Когда найден тот самый кадр", "operator"],
+        ["Когда человек перестаёт отвечать формально", "journalist"],
+        ["Когда из разрозненных кадров складывается ритм", "editor"]
+      ]
+    },
+    {
+      title: "В группе появился хаос.",
+      answers: [
+        ["Принимаю решение и объясняю его всем", "director"],
+        ["Продолжаю делать свою часть максимально точно", "operator"],
+        ["Снимаю напряжение разговором или шуткой", "journalist"],
+        ["Составляю новый порядок действий", "producer"]
+      ]
+    },
+    {
+      title: "Какой результат радует сильнее?",
+      answers: [
+        ["История вызвала именно ту эмоцию, которую мы задумали", "director"],
+        ["Кадр хочется остановить и рассматривать", "operator"],
+        ["Герой сказал то, чего не собирался говорить", "journalist"],
+        ["Из материала получилось быстрее и сильнее, чем ожидали", "editor"]
+      ]
+    }
+  ];
+  const crewProfiles = {
+    director: { title: "Режиссёр", line: "Вы первым ищете смысл и готовы принимать решения, когда остальные ещё обсуждают варианты.", extra: "Ваша сила — видеть целое. Риск — объяснять замысел уже после того, как все начали снимать." },
+    operator: { title: "Оператор", line: "Вы думаете изображением и замечаете то, мимо чего остальные проходят.", extra: "Ваша сила — точность взгляда. Риск — сделать прекрасный кадр, который не двигает историю." },
+    journalist: { title: "Журналист", line: "Вам интереснее всего человек и момент, когда формальный ответ превращается в живой рассказ.", extra: "Ваша сила — контакт. Риск — увлечься разговором и забыть, какую историю вы собираете." },
+    editor: { title: "Монтажёр", line: "Вы чувствуете ритм, легко выбрасываете лишнее и находите связь между разными фрагментами.", extra: "Ваша сила — собирать смысл. Риск — пытаться спасти монтажом то, чего не сняли." },
+    producer: { title: "Продюсер", line: "Пока другие придумывают, вы понимаете, кто, что и когда должен сделать, чтобы съёмка состоялась.", extra: "Ваша сила — превращать идею в результат. Риск — так увлечься порядком, что у идеи не останется воздуха." }
+  };
+  const dailyHacks = [
+    { image: "./assets/boom-mic-hero.webp", tag: "#интервью", title: "Не начинайте с «Можно задать вопрос?»", text: "Вы уже его задали. Представьтесь, одним предложением скажите, зачем подошли, и начинайте разговор." },
+    { image: "./assets/girl-look.webp", tag: "#уверенность", title: "Камера — это один человек", text: "Не говорите объективу. Выберите знакомого человека за камерой и рассказывайте только ему." },
+    { image: "./assets/camera-hero.webp", tag: "#работа в кадре", title: "Забыли текст — вспоминайте мысль", text: "Зрителю не нужна заученная фраза. Ему нужно понимать, что вы хотите сказать." },
+    { image: "./assets/adult01-theatre.webp", tag: "#общение", title: "Хотите стать душой компании?", text: "Не пытайтесь говорить больше всех. Помогите другим оказаться интересными." },
+    { image: "./assets/robot-medium.webp", tag: "#компания", title: "Не знаете, как войти в разговор?", text: "Спросите не «как дела?», а «что сегодня было самым странным?»" },
+    { image: "./assets/runner-mixed.webp", tag: "#съёмка", title: "Не увеличивайте пальцами", text: "Хотите крупнее — подойдите. Цифровой зум приближает не героя, а недостатки изображения." }
+  ];
   const main = document.querySelector("#main");
   const soundButton = document.querySelector("#sound-check");
   const year = document.querySelector("#year");
@@ -1680,7 +1827,12 @@ window.TIMECODE_TEACHER_GUIDES = {
     teacherMode: false,
     answered: Object.create(null),
     homeTimer: null,
-    sceneTimer: null
+    sceneTimer: null,
+    playTalkStep: 0,
+    playTalkScore: 0,
+    playCrewStep: 0,
+    playCrewScores: { director: 0, operator: 0, journalist: 0, editor: 0, producer: 0 },
+    playHackIndex: Math.floor(Date.now() / 86400000) % dailyHacks.length
   };
 
   year.textContent = new Date().getFullYear();
@@ -2035,6 +2187,13 @@ window.TIMECODE_TEACHER_GUIDES = {
       `<button type="button" class="is-active" data-lifehack-filter="all" aria-pressed="true">Все</button>`,
       ...lifehackFilters.map((filter) => `<button type="button" data-lifehack-filter="${escapeHtml(filter.id)}" aria-pressed="false">${escapeHtml(filter.label)}</button>`)
     ].join("");
+    const playCards = playCatalog.map((item) => `
+      <a class="play-card play-card-${escapeHtml(item.accent)}" href="#/play/${encodeURIComponent(item.id)}">
+        <img src="${escapeHtml(item.image)}" alt="" loading="lazy" />
+        <span class="play-card-shade" aria-hidden="true"></span>
+        <div class="play-card-top"><b>${escapeHtml(item.type)}</b><i>${escapeHtml(item.number)}</i></div>
+        <div class="play-card-copy"><h3>${escapeHtml(item.title)}</h3><p>${escapeHtml(item.text)}</p><strong>Открыть <i>→</i></strong></div>
+      </a>`).join("");
 
     const latestLink = latestLesson && latestLesson.status === "ready"
       ? `#/lesson/${encodeURIComponent(latestLesson.id)}`
@@ -2074,6 +2233,14 @@ window.TIMECODE_TEACHER_GUIDES = {
       <div class="boom-ticker" aria-hidden="true">
         <div>КАМЕРА · МИКРОФОН · СВЕТ · ИДЕЯ · ИНТЕРВЬЮ · МОНТАЖ · КАМЕРА · МИКРОФОН · СВЕТ · ИДЕЯ · ИНТЕРВЬЮ · МОНТАЖ ·</div>
       </div>
+
+      <section class="play-shelf" id="play" aria-labelledby="play-title">
+        <header>
+          <div><p class="eyebrow">Три штуки на сегодня</p><h2 id="play-title">TIME<span>:</span>CODE PLAY</h2></div>
+          <p>Можно зайти на минуту.<br />Что будет дальше — не обещаем.</p>
+        </header>
+        <div class="play-card-grid">${playCards}</div>
+      </section>
 
       <section class="course-library" id="lessons" aria-labelledby="lessons-title">
         <header class="library-header">
@@ -2117,7 +2284,7 @@ window.TIMECODE_TEACHER_GUIDES = {
         </div>
       </section>`;
 
-    document.body.classList.remove("teacher-mode", "lesson-active", "teacher-portal-active");
+    document.body.classList.remove("teacher-mode", "lesson-active", "teacher-portal-active", "play-active");
     document.body.classList.add("home-active");
     bindTitleInteractions();
     bindLifehackFilters();
@@ -2126,6 +2293,212 @@ window.TIMECODE_TEACHER_GUIDES = {
     } else {
       window.scrollTo({ top: 0, behavior: "instant" });
     }
+  }
+
+  function setPlayPage() {
+    clearSceneTimer();
+    clearInterval(state.homeTimer);
+    state.homeTimer = null;
+    state.lesson = null;
+    document.body.classList.remove("home-active", "lesson-active", "teacher-portal-active", "teacher-mode", "presentation-mode");
+    document.body.classList.add("play-active");
+  }
+
+  function playHeader(label, title, step) {
+    return `
+      <header class="play-page-bar">
+        <a href="#/play" aria-label="Вернуться в раздел TIME:CODE PLAY">← PLAY</a>
+        <span>${escapeHtml(label)}</span>
+        ${step ? `<b>${escapeHtml(step)}</b>` : "<b>TIME:CODE</b>"}
+      </header>
+      <div class="play-page-heading"><h1>${escapeHtml(title)}</h1></div>`;
+  }
+
+  function resetPlay(type) {
+    if (type === "talk") {
+      state.playTalkStep = 0;
+      state.playTalkScore = 0;
+    }
+    if (type === "crew") {
+      state.playCrewStep = 0;
+      state.playCrewScores = { director: 0, operator: 0, journalist: 0, editor: 0, producer: 0 };
+    }
+  }
+
+  function renderPlayHub() {
+    setPlayPage();
+    const cards = playCatalog.map((item) => `
+      <a class="play-card play-card-${escapeHtml(item.accent)}" href="#/play/${encodeURIComponent(item.id)}">
+        <img src="${escapeHtml(item.image)}" alt="" />
+        <span class="play-card-shade" aria-hidden="true"></span>
+        <div class="play-card-top"><b>${escapeHtml(item.type)}</b><i>${escapeHtml(item.number)}</i></div>
+        <div class="play-card-copy"><h2>${escapeHtml(item.title)}</h2><p>${escapeHtml(item.text)}</p><strong>Открыть <i>→</i></strong></div>
+      </a>`).join("");
+
+    main.innerHTML = `
+      <section class="play-page play-hub" aria-labelledby="play-hub-title">
+        <header class="play-page-bar"><a href="#/">← На главную</a><span>НЕ УРОКИ</span><b>03 сегодня</b></header>
+        <div class="play-hub-intro">
+          <p>Можно зависнуть на минуту</p>
+          <h1 id="play-hub-title">TIME<span>:</span>CODE PLAY</h1>
+          <strong>Сегодня — три штуки. Завтра добавим ещё.</strong>
+        </div>
+        <div class="play-card-grid">${cards}</div>
+      </section>`;
+    window.scrollTo({ top: 0, behavior: "instant" });
+  }
+
+  function renderTalkGame() {
+    setPlayPage();
+    const step = state.playTalkStep;
+    if (step >= interviewRounds.length) {
+      const result = state.playTalkScore >= 12
+        ? { title: "Вы разговорили героя", text: "Из обычного ответа получилась история: страх, поворот и сильная финальная фраза." }
+        : state.playTalkScore >= 7
+          ? { title: "История почти получилась", text: "Контакт есть, но несколько общих вопросов остановили разговор раньше времени." }
+          : { title: "Герой ушёл раньше истории", text: "Формальные вопросы дают формальные ответы. Ищите действие, деталь и момент перемены." };
+      main.innerHTML = `
+        <section class="play-page play-experience">
+          ${playHeader("Игра закончена", "Разговори человека")}
+          <article class="play-result play-result-talk">
+            <span>ВАШ РЕЗУЛЬТАТ · ${state.playTalkScore} / 15</span>
+            <h2>${escapeHtml(result.title)}</h2>
+            <p>${escapeHtml(result.text)}</p>
+            <blockquote>Лучшая формула: не «что вы чувствуете?», а «в какой момент всё изменилось?»</blockquote>
+            <div class="play-result-actions"><button type="button" data-play-retry="talk">Ещё раз</button><a href="#/play">Другие штуки →</a></div>
+          </article>
+        </section>`;
+      document.querySelector("[data-play-retry]")?.addEventListener("click", () => {
+        resetPlay("talk");
+        renderTalkGame();
+      });
+      window.scrollTo({ top: 0, behavior: "instant" });
+      return;
+    }
+
+    const round = interviewRounds[step];
+    const choices = round.choices.map((choice, index) => `
+      <button type="button" class="play-answer" data-talk-choice="${index}">
+        <span>${String.fromCharCode(65 + index)}</span>${escapeHtml(choice.text)}
+      </button>`).join("");
+    main.innerHTML = `
+      <section class="play-page play-experience">
+        ${playHeader("Интервью-игра", "Разговори человека", `${step + 1} / ${interviewRounds.length}`)}
+        <div class="play-progress" aria-hidden="true"><i style="width:${((step + 1) / interviewRounds.length) * 100}%"></i></div>
+        <article class="talk-stage">
+          <div class="talk-scene"><span>СИТУАЦИЯ</span><p>${escapeHtml(round.scene)}</p></div>
+          <div class="talk-hero"><img src="./assets/boom-mic-hero.webp" alt="" /><blockquote>«${escapeHtml(round.hero)}»</blockquote></div>
+          <div class="play-question"><span>Что спросите?</span><div class="play-options">${choices}</div></div>
+          <div class="talk-reply" data-talk-reply hidden><span>ОТВЕТ ГЕРОЯ</span><p></p><button type="button" data-talk-next>${step === interviewRounds.length - 1 ? "Узнать результат →" : "Следующий вопрос →"}</button></div>
+        </article>
+      </section>`;
+
+    document.querySelectorAll("[data-talk-choice]").forEach((button) => {
+      button.addEventListener("click", () => {
+        const choice = round.choices[Number(button.dataset.talkChoice)];
+        state.playTalkScore += choice.score;
+        document.querySelectorAll("[data-talk-choice]").forEach((item) => {
+          item.disabled = true;
+          item.classList.toggle("is-picked", item === button);
+        });
+        const reply = document.querySelector("[data-talk-reply]");
+        reply.querySelector("p").textContent = `«${choice.reply}»`;
+        reply.hidden = false;
+        reply.scrollIntoView({ behavior: "smooth", block: "nearest" });
+      }, { once: true });
+    });
+    document.querySelector("[data-talk-next]")?.addEventListener("click", () => {
+      state.playTalkStep += 1;
+      renderTalkGame();
+    });
+    window.scrollTo({ top: 0, behavior: "instant" });
+  }
+
+  function renderCrewTest() {
+    setPlayPage();
+    const step = state.playCrewStep;
+    if (step >= crewQuestions.length) {
+      const ranked = Object.entries(state.playCrewScores).sort((a, b) => b[1] - a[1]);
+      const [winnerKey] = ranked[0];
+      const profile = crewProfiles[winnerKey];
+      main.innerHTML = `
+        <section class="play-page play-experience">
+          ${playHeader("Тест закончен", "Кто ты в кинопроизводстве?")}
+          <article class="play-result play-result-crew">
+            <span>ВАША РОЛЬ В КОМАНДЕ</span>
+            <h2>${escapeHtml(profile.title)}</h2>
+            <p>${escapeHtml(profile.line)}</p>
+            <blockquote>${escapeHtml(profile.extra)}</blockquote>
+            <small>Это не приговор: на настоящей съёмке роли можно и нужно пробовать.</small>
+            <div class="play-result-actions"><button type="button" data-play-retry="crew">Пройти ещё раз</button><a href="#/play">Другие штуки →</a></div>
+          </article>
+        </section>`;
+      document.querySelector("[data-play-retry]")?.addEventListener("click", () => {
+        resetPlay("crew");
+        renderCrewTest();
+      });
+      window.scrollTo({ top: 0, behavior: "instant" });
+      return;
+    }
+
+    const question = crewQuestions[step];
+    const answers = question.answers.map(([text, role], index) => `
+      <button type="button" class="play-answer" data-crew-role="${escapeHtml(role)}">
+        <span>${String.fromCharCode(65 + index)}</span>${escapeHtml(text)}
+      </button>`).join("");
+    main.innerHTML = `
+      <section class="play-page play-experience play-crew">
+        ${playHeader("Тест без правильных ответов", "Кто ты в кинопроизводстве?", `${step + 1} / ${crewQuestions.length}`)}
+        <div class="play-progress" aria-hidden="true"><i style="width:${((step + 1) / crewQuestions.length) * 100}%"></i></div>
+        <article class="crew-stage">
+          <span>СИТУАЦИЯ ${String(step + 1).padStart(2, "0")}</span>
+          <h2>${escapeHtml(question.title)}</h2>
+          <div class="play-options">${answers}</div>
+        </article>
+      </section>`;
+    document.querySelectorAll("[data-crew-role]").forEach((button) => {
+      button.addEventListener("click", () => {
+        document.querySelectorAll("[data-crew-role]").forEach((item) => { item.disabled = true; });
+        button.classList.add("is-picked");
+        state.playCrewScores[button.dataset.crewRole] += 1;
+        window.setTimeout(() => {
+          state.playCrewStep += 1;
+          renderCrewTest();
+        }, 260);
+      }, { once: true });
+    });
+    window.scrollTo({ top: 0, behavior: "instant" });
+  }
+
+  function renderDailyHack() {
+    setPlayPage();
+    const hack = dailyHacks[state.playHackIndex % dailyHacks.length];
+    main.innerHTML = `
+      <section class="play-page play-experience play-hack-page">
+        ${playHeader("Одна строка на сегодня", "Лайфхак дня", `${state.playHackIndex % dailyHacks.length + 1} / ${dailyHacks.length}`)}
+        <article class="play-hack-full">
+          <img src="${escapeHtml(hack.image)}" alt="" />
+          <span class="play-card-shade" aria-hidden="true"></span>
+          <div><p>${escapeHtml(hack.tag)}</p><h2>${escapeHtml(hack.title)}</h2><strong>${escapeHtml(hack.text)}</strong></div>
+        </article>
+        <div class="play-hack-actions"><button type="button" data-next-hack>Ещё один →</button><a href="#/play">Хватит на сегодня</a></div>
+      </section>`;
+    document.querySelector("[data-next-hack]")?.addEventListener("click", () => {
+      state.playHackIndex = (state.playHackIndex + 1) % dailyHacks.length;
+      renderDailyHack();
+    });
+    window.scrollTo({ top: 0, behavior: "instant" });
+  }
+
+  function renderPlay(playId) {
+    if (!playId) {
+      renderPlayHub();
+      return;
+    }
+    if (playId === "talk") renderTalkGame();
+    else if (playId === "crew") renderCrewTest();
+    else if (playId === "hack") renderDailyHack();
+    else renderPlayHub();
   }
 
   function renderTeacherPortal(guideId) {
@@ -2877,12 +3250,17 @@ window.TIMECODE_TEACHER_GUIDES = {
     const hash = location.hash || "#/";
     const lessonMatch = hash.match(/^#\/lesson\/([^/]+)$/);
     const teacherMatch = hash.match(/^#\/teacher(?:\/([^/]+))?$/);
+    const playMatch = hash.match(/^#\/play(?:\/([^/]+))?$/);
     if (lessonMatch) {
       renderLesson(decodeURIComponent(lessonMatch[1]));
       return;
     }
     if (teacherMatch) {
       renderTeacherPortal(teacherMatch[1] ? decodeURIComponent(teacherMatch[1]) : null);
+      return;
+    }
+    if (playMatch) {
+      renderPlay(playMatch[1] ? decodeURIComponent(playMatch[1]) : null);
       return;
     }
     if (hash === "#lessons") renderHome("#lessons");
