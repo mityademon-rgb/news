@@ -883,7 +883,7 @@ window.TIMECODE_LESSONS = [
     id: "adult-story-pitch",
     number: "A01",
     track: "adult",
-    trackLabel: "Старшая лаборатория · 14+",
+    trackLabel: "MEDIA LAB · 14+",
     title: "История в одном предложении",
     eyebrow: "Сценарий и журналистика",
     summary: "Разбираем настоящий текст группы и учимся строить историю до написания сцен.",
@@ -926,7 +926,7 @@ window.TIMECODE_LESSONS = [
     scenes: [
       {
         type: "cover",
-        kicker: "Старшая лаборатория · Урок A01",
+        kicker: "MEDIA LAB · Урок A01",
         title: "Разбираем INTRUDER",
         text: "INTRUDER — так участники группы назвали свой сценарий короткого фильма. На их тексте разберём, как из набора эффектных сцен собрать одну понятную историю.",
         accent: "Не переписываем фильм за авторов — учимся видеть его конструкцию."
@@ -1367,7 +1367,7 @@ window.TIMECODE_TEACHER_GUIDES = {
   interview: {
     lessonNumber: "02",
     title: "Вопрос, после которого начинается история",
-    audience: "Первая лаборатория · 12+",
+    audience: "KIDS LAB · 12+",
     duration: "75 минут",
     result: "К концу занятия участник отличает закрытый вопрос от открытого, умеет задать уточнение и получает короткую историю вместо односложного ответа.",
     preparation: [
@@ -1435,7 +1435,7 @@ window.TIMECODE_TEACHER_GUIDES = {
   "beautiful-frame": {
     lessonNumber: "03",
     title: "Учимся красиво снимать",
-    audience: "Первая лаборатория · 12+",
+    audience: "KIDS LAB · 12+",
     duration: "80 минут",
     result: "Участник осознанно выбирает общий, средний и крупный план, использует правило третей и оставляет воздух по направлению взгляда.",
     preparation: [
@@ -1503,7 +1503,7 @@ window.TIMECODE_TEACHER_GUIDES = {
   "video-story": {
     lessonNumber: "04",
     title: "Один кадр — факт. Шесть кадров — история",
-    audience: "Первая лаборатория · 12+",
+    audience: "KIDS LAB · 12+",
     duration: "80 минут",
     result: "Группа снимает понятную микросцену из шести фрагментов, соблюдает последовательность действия и оставляет монтажный запас.",
     preparation: [
@@ -1578,7 +1578,7 @@ window.TIMECODE_TEACHER_GUIDES = {
   "adult-story-pitch": {
     lessonNumber: "A01",
     title: "История в одном предложении",
-    audience: "Старшая лаборатория · 14+",
+    audience: "MEDIA LAB · 14+",
     duration: "85 минут",
     result: "Участники перестают начинать со сцен и диалогов: формулируют заявку, выбирают героя и главный вопрос, затем собирают пятистрочный сценарный план.",
     preparation: [
@@ -2251,11 +2251,11 @@ window.TIMECODE_TEACHER_GUIDES = {
           <p><strong>${readyLessons.length}</strong> готово · <strong>${lessons.length}</strong> в программе</p>
         </header>
         <div class="course-track">
-          <div class="track-heading"><span>12+</span><div><strong>Первая лаборатория</strong><small>Камера, интервью, композиция и первый видеосюжет</small></div></div>
+          <div class="track-heading"><span>12+</span><div><strong>KIDS LAB</strong><small>Камера, интервью, композиция и первый видеосюжет</small></div></div>
           <div class="course-grid">${youthCards}</div>
         </div>
         ${adultCards ? `<div class="course-track course-track-adult">
-          <div class="track-heading"><span>14+</span><div><strong>Старшая лаборатория</strong><small>Сценарий, журналистика и режиссура коротких историй</small></div></div>
+          <div class="track-heading"><span>14+</span><div><strong>MEDIA LAB</strong><small>Сценарий, журналистика и режиссура коротких историй</small></div></div>
           <div class="course-grid">${adultCards}</div>
         </div>` : ""}
       </section>
