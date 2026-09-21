@@ -4,7 +4,7 @@
   const lessons = window.TIMECODE_LESSONS || window.BOOM_LESSONS || [];
   const teacherGuides = window.TIMECODE_TEACHER_GUIDES || {};
   const lifehackFilters = [
-    { id: "shooting", label: "#съёмка" },
+    { id: "shooting", label: "#съемка" },
     { id: "directing", label: "#режиссура" },
     { id: "script", label: "#сценарий" },
     { id: "journalism", label: "#журналистика" },
