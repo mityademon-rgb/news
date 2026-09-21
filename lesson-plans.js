@@ -2,7 +2,7 @@ window.TIMECODE_TEACHER_GUIDES = {
   interview: {
     lessonNumber: "02",
     title: "Вопрос, после которого начинается история",
-    audience: "Первая лаборатория · 12+",
+    audience: "KIDS LAB · 12+",
     duration: "75 минут",
     result: "К концу занятия участник отличает закрытый вопрос от открытого, умеет задать уточнение и получает короткую историю вместо односложного ответа.",
     preparation: [
@@ -70,7 +70,7 @@ window.TIMECODE_TEACHER_GUIDES = {
   "beautiful-frame": {
     lessonNumber: "03",
     title: "Учимся красиво снимать",
-    audience: "Первая лаборатория · 12+",
+    audience: "KIDS LAB · 12+",
     duration: "80 минут",
     result: "Участник осознанно выбирает общий, средний и крупный план, использует правило третей и оставляет воздух по направлению взгляда.",
     preparation: [
@@ -138,7 +138,7 @@ window.TIMECODE_TEACHER_GUIDES = {
   "video-story": {
     lessonNumber: "04",
     title: "Один кадр — факт. Шесть кадров — история",
-    audience: "Первая лаборатория · 12+",
+    audience: "KIDS LAB · 12+",
     duration: "80 минут",
     result: "Группа снимает понятную микросцену из шести фрагментов, соблюдает последовательность действия и оставляет монтажный запас.",
     preparation: [
@@ -213,7 +213,7 @@ window.TIMECODE_TEACHER_GUIDES = {
   "adult-story-pitch": {
     lessonNumber: "A01",
     title: "История в одном предложении",
-    audience: "Старшая лаборатория · 14+",
+    audience: "MEDIA LAB · 14+",
     duration: "85 минут",
     result: "Участники перестают начинать со сцен и диалогов: формулируют заявку, выбирают героя и главный вопрос, затем собирают пятистрочный сценарный план.",
     preparation: [
