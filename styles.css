@@ -4524,6 +4524,69 @@ body.presentation-mode .lesson-shell {
   box-shadow: 9px 9px 0 var(--cyan);
 }
 
+.script-review {
+  overflow: hidden;
+  border: 1px solid rgba(255, 255, 255, .16);
+  border-radius: 20px;
+  background: #f4f1e8;
+  color: #0d0c12;
+  box-shadow: 12px 12px 0 rgba(255, 64, 56, .2);
+}
+
+.script-review-bar {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  min-height: 40px;
+  padding: 9px 14px;
+  background: #17141d;
+  color: #f4f1e8;
+  font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+  font-size: 11px;
+  font-weight: 900;
+  letter-spacing: .12em;
+}
+
+.script-review-bar span { margin-right: auto; }
+.script-review-bar i {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: rgba(255, 255, 255, .24);
+}
+.script-review-bar i:first-of-type { background: var(--red); }
+
+.script-review pre {
+  max-height: min(52svh, 520px);
+  overflow: auto;
+  margin: 0;
+  padding: clamp(18px, 3vw, 30px);
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+  font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+  font-size: clamp(14px, 1.25vw, 18px);
+  font-weight: 680;
+  line-height: 1.55;
+}
+
+.script-review > p {
+  margin: 0;
+  padding: 14px clamp(18px, 3vw, 30px);
+  border-top: 2px solid #0d0c12;
+  background: #ff4038;
+  color: #0d0c12;
+  font-size: 15px;
+  font-weight: 780;
+  line-height: 1.35;
+}
+
+.script-review > p strong {
+  margin-right: 6px;
+  font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+  font-size: 11px;
+  letter-spacing: .08em;
+}
+
 .lesson-adult-story-pitch .scene-copy h2 {
   font-size: clamp(40px, 5vw, 78px);
 }
@@ -4550,4 +4613,7 @@ body.presentation-mode .lesson-shell {
   .track-heading small { line-height: 1.35; }
   .lesson-adult-story-pitch .scene-copy h2 { font-size: clamp(34px, 10vw, 52px); }
   .story-builder fieldset { padding: 10px; }
+  .script-review { border-radius: 16px; box-shadow: 7px 7px 0 rgba(255, 64, 56, .2); }
+  .script-review pre { max-height: 46svh; padding: 16px; font-size: 14px; line-height: 1.45; }
+  .script-review > p { padding: 12px 16px; font-size: 14px; }
 }

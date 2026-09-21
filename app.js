@@ -710,6 +710,12 @@
       stage = `<div class="magic-photo grid-photo"><img src="${escapeHtml(scene.image)}" alt="${escapeHtml(scene.imageAlt)}" /><div class="composition-grid" aria-hidden="true"><i></i><i></i><i></i><i></i></div><span class="grid-point p1"></span><span class="grid-point p2"></span><span class="grid-point p3"></span><span class="grid-point p4"></span></div>`;
     } else if (layout === "answer-photo") {
       stage = `${image("magic-photo-answer")}<ol class="photo-callouts">${scene.items.map((item) => `<li>${escapeHtml(item)}</li>`).join("")}</ol>`;
+    } else if (layout === "script-review") {
+      stage = `<div class="script-review">
+        <div class="script-review-bar"><span>ИСХОДНЫЙ ТЕКСТ</span><i></i><i></i><i></i></div>
+        <pre>${escapeHtml(scene.script || "")}</pre>
+        ${scene.note ? `<p><strong>СМОТРИМ:</strong> ${escapeHtml(scene.note)}</p>` : ""}
+      </div>`;
     } else if (layout === "gaze") {
       stage = `<div class="magic-photo gaze-photo"><img src="${escapeHtml(scene.image)}" alt="${escapeHtml(scene.imageAlt)}" /><div class="gaze-air"><span>место для взгляда</span><i>→</i></div></div>`;
     } else if (layout === "air") {
