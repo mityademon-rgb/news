@@ -3,6 +3,13 @@
 
   const lessons = window.TIMECODE_LESSONS || window.BOOM_LESSONS || [];
   const teacherGuides = window.TIMECODE_TEACHER_GUIDES || {};
+  const lifehackFilters = [
+    { id: "shooting", label: "#съёмка" },
+    { id: "directing", label: "#режиссура" },
+    { id: "script", label: "#сценарий" },
+    { id: "journalism", label: "#журналистика" },
+    { id: "on-camera", label: "#работа в кадре" }
+  ];
   const main = document.querySelector("#main");
   const soundButton = document.querySelector("#sound-check");
   const year = document.querySelector("#year");
@@ -284,6 +291,35 @@
     });
   }
 
+  function bindLifehackFilters() {
+    const buttons = [...document.querySelectorAll("[data-lifehack-filter]")];
+    const cards = [...document.querySelectorAll("[data-lifehack-tags]")];
+    const count = document.querySelector("[data-lifehack-count]");
+    if (!buttons.length || !cards.length) return;
+
+    buttons.forEach((button) => {
+      button.addEventListener("click", () => {
+        const selected = button.dataset.lifehackFilter;
+        let visible = 0;
+
+        buttons.forEach((item) => {
+          const active = item === button;
+          item.classList.toggle("is-active", active);
+          item.setAttribute("aria-pressed", String(active));
+        });
+
+        cards.forEach((card) => {
+          const tags = card.dataset.lifehackTags.split(" ").filter(Boolean);
+          const show = selected === "all" || tags.includes(selected);
+          card.hidden = !show;
+          if (show) visible += 1;
+        });
+
+        if (count) count.textContent = String(visible);
+      });
+    });
+  }
+
   function renderHome(scrollTarget) {
     clearSceneTimer();
     clearInterval(state.homeTimer);
@@ -321,14 +357,23 @@
       lessonNumber: lesson.number,
       lessonTitle: lesson.title
     })));
-    const lifehackCards = lifehacks.map((item, index) => `
-      <article class="lifehack-card">
+    const lifehackLabel = (id) => lifehackFilters.find((filter) => filter.id === id)?.label || `#${id}`;
+    const lifehackCards = lifehacks.map((item, index) => {
+      const hashtags = item.hashtags || [];
+      return `
+      <article class="lifehack-card" data-lifehack-tags="${hashtags.map(escapeHtml).join(" ")}">
         <div class="lifehack-card-top"><span>${String(index + 1).padStart(2, "0")}</span><b>${escapeHtml(item.category)}</b></div>
         <h3>${escapeHtml(item.title)}</h3>
         <p>${escapeHtml(item.text)}</p>
+        <div class="lifehack-hashtags">${hashtags.map((tag) => `<span>${escapeHtml(lifehackLabel(tag))}</span>`).join("")}</div>
         <div class="lifehack-action"><strong>Применить сегодня</strong><span>${escapeHtml(item.action)}</span></div>
         <a href="#/lesson/${encodeURIComponent(item.lessonId)}">Урок ${escapeHtml(item.lessonNumber)} · ${escapeHtml(item.lessonTitle)} →</a>
-      </article>`).join("");
+      </article>`;
+    }).join("");
+    const lifehackFilterButtons = [
+      `<button type="button" class="is-active" data-lifehack-filter="all" aria-pressed="true">Все</button>`,
+      ...lifehackFilters.map((filter) => `<button type="button" data-lifehack-filter="${escapeHtml(filter.id)}" aria-pressed="false">${escapeHtml(filter.label)}</button>`)
+    ].join("");
 
     const latestLink = latestLesson && latestLesson.status === "ready"
       ? `#/lesson/${encodeURIComponent(latestLesson.id)}`
@@ -393,8 +438,9 @@
             <p class="eyebrow">Можно применить на ближайшей съёмке</p>
             <h2 id="lifehacks-title">Лайфхаки</h2>
           </div>
-          <p><strong>${lifehacks.length}</strong> приёма · библиотека пополняется из каждого урока</p>
+          <p><strong data-lifehack-count>${lifehacks.length}</strong> приёмов · библиотека пополняется из каждого урока</p>
         </header>
+        <div class="lifehack-filters" aria-label="Фильтр лайфхаков">${lifehackFilterButtons}</div>
         <div class="lifehack-grid">${lifehackCards}</div>
       </section>` : ""}
 
@@ -413,6 +459,7 @@
     document.body.classList.remove("teacher-mode", "lesson-active", "teacher-portal-active");
     document.body.classList.add("home-active");
     bindTitleInteractions();
+    bindLifehackFilters();
     if (scrollTarget) {
       requestAnimationFrame(() => document.querySelector(scrollTarget)?.scrollIntoView({ block: "start" }));
     } else {
