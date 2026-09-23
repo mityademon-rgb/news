@@ -1,0 +1,40 @@
+name: Inspect kino group routing safely
+on:
+  push:
+    branches: [boom-kadr-deploy]
+    paths: ['.github/workflows/kino-readonly.yml']
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  inspect:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - name: Configure existing server connection
+        env:
+          BOOM_SSH_KEY: ${{ secrets.BOOM_SSH_KEY }}
+        run: |
+          install -d -m 700 ~/.ssh
+          printf '%s\n' "$BOOM_SSH_KEY" > ~/.ssh/kino_inspect
+          chmod 600 ~/.ssh/kino_inspect
+          ssh-keyscan -T 8 -H 217.149.24.242 > ~/.ssh/known_hosts
+      - name: Inspect routing and prepared app without modifying services
+        run: |
+          ssh -i ~/.ssh/kino_inspect -o BatchMode=yes root@217.149.24.242 'bash -s' <<'REMOTE'
+          set -e
+          echo '=== NGINX PROCESS ==='
+          ps -eo pid,args | grep '[n]ginx: master' || true
+          echo '=== NGINX INCLUDES ==='
+          grep -n 'include ' /etc/nginx/nginx.conf || true
+          echo '=== RELEVANT SERVER BLOCKS ==='
+          nginx -T 2>&1 | grep -n -E 'configuration file /etc/nginx/(conf.d|sites-enabled)/|listen .*80|server_name .*nip.io|server_name .*timecode' | tail -n 100 || true
+          echo '=== HTTP ON BOTH ADDRESSES ==='
+          for ip in 217.149.24.234 217.149.24.242; do
+            curl -sS --max-time 6 --noproxy '*' --resolve "group.217-149-24-234.nip.io:80:$ip" -D - -o /dev/null 'http://group.217-149-24-234.nip.io/' | head -n 12 || true
+          done
+          echo '=== PREPARED APP ==='
+          systemctl is-active kino-group.service || true
+          test -f /etc/kino-group.env && echo 'env file exists'
+          test -d /opt/kino-group/kino-group && echo 'app directory exists'
+          REMOTE
