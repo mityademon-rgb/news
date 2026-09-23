@@ -1,0 +1,53 @@
+name: Probe kino ACME routing with rollback
+on:
+  push:
+    branches: [boom-kadr-deploy]
+    paths: ['.github/workflows/kino-probe.yml']
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  probe:
+    runs-on: ubuntu-latest
+    timeout-minutes: 7
+    steps:
+      - name: Configure existing SSH
+        env:
+          BOOM_SSH_KEY: ${{ secrets.BOOM_SSH_KEY }}
+        run: |
+          install -d -m 700 ~/.ssh
+          printf '%s\n' "$BOOM_SSH_KEY" > ~/.ssh/kino
+          chmod 600 ~/.ssh/kino
+          ssh-keyscan -T 8 -H 217.149.24.242 > ~/.ssh/known_hosts
+      - name: Isolated diagnostic vhost; always remove it
+        run: |
+          ssh -i ~/.ssh/kino -o BatchMode=yes root@217.149.24.242 'bash -s' <<'REMOTE'
+          set -Eeuo pipefail
+          CONF=/etc/nginx/conf.d/kino-group-probe.conf
+          test ! -e "$CONF"
+          cleanup() {
+            rm -f "$CONF"
+            nginx -t >/dev/null 2>&1 && systemctl reload nginx || true
+          }
+          trap cleanup EXIT
+          cat > "$CONF" <<'EOF'
+          server {
+              listen 217.149.24.234:80;
+              server_name group.217-149-24-234.nip.io;
+              add_header X-Kino-Probe yes always;
+              location = /kino-probe { return 200 "KINO_PROBE_OK\n"; }
+              location / { return 418; }
+          }
+          EOF
+          nginx -t
+          systemctl reload nginx
+          sleep 2
+          echo '=== CONFIG ==='
+          nginx -T 2>&1 | grep -n -A 10 -B 2 'kino-group-probe.conf' | head -n 25 || true
+          echo '=== LOCAL VIA SERVER IP ==='
+          curl -sS -i --noproxy '*' --resolve group.217-149-24-234.nip.io:80:217.149.24.234 http://group.217-149-24-234.nip.io/kino-probe | head -n 25
+          echo '=== LOCAL VIA LOOPBACK ==='
+          curl -sS -i --noproxy '*' --resolve group.217-149-24-234.nip.io:80:127.0.0.1 http://group.217-149-24-234.nip.io/kino-probe | head -n 25
+          echo '=== RELOAD STATUS ==='
+          systemctl status nginx --no-pager -l | tail -n 25 || true
+          REMOTE
