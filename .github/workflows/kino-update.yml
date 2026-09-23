@@ -38,3 +38,5 @@ jobs:
           curl -fsS --max-time 20 https://timecode-lab.ru/ -o /dev/null
           curl -fsS --max-time 20 https://go.1tourtv.ru/ -o /dev/null
           curl -fsS --max-time 20 https://sale.1tourtv.ru/ -o /dev/null
+
+# Refresh KT16 sign-in guidance
