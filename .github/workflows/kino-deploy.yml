@@ -1,0 +1,44 @@
+name: Deploy kino group isolated
+on:
+  push:
+    branches: [boom-kadr-deploy]
+    paths: ['.github/workflows/kino-deploy.yml']
+  workflow_dispatch:
+permissions:
+  contents: read
+concurrency:
+  group: kino-group-deploy
+  cancel-in-progress: false
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - name: Configure existing server SSH
+        env:
+          BOOM_SSH_KEY: ${{ secrets.BOOM_SSH_KEY }}
+        run: |
+          install -d -m 700 ~/.ssh
+          printf '%s\n' "$BOOM_SSH_KEY" > ~/.ssh/kino
+          chmod 600 ~/.ssh/kino
+          ssh-keyscan -T 8 -H 217.149.24.242 > ~/.ssh/known_hosts
+      - name: Resume only kino-group deployment
+        run: |
+          ssh -i ~/.ssh/kino -o BatchMode=yes root@217.149.24.242 'bash -s' <<'REMOTE'
+          set -Eeuo pipefail
+          test -d /tmp/kino-group-install/.git
+          test -f /etc/kino-group.env
+          test ! -e /etc/nginx/conf.d/kino-group.conf
+          git -C /tmp/kino-group-install pull --ff-only
+          printf '\n' | bash /tmp/kino-group-install/kino-group/deploy/resume-nip.sh
+          echo 'KINO SERVICE'
+          systemctl is-active kino-group.service
+          echo 'KINO HTTPS'
+          curl -fsS --max-time 12 --resolve group.217-149-24-234.nip.io:443:217.149.24.234 https://group.217-149-24-234.nip.io/health
+          REMOTE
+      - name: Verify site and unaffected domains
+        run: |
+          curl -fsS --max-time 20 https://group.217-149-24-234.nip.io/health
+          curl -fsS --max-time 20 https://timecode-lab.ru/ -o /dev/null
+          curl -fsS --max-time 20 https://go.1tourtv.ru/ -o /dev/null
+          curl -fsS --max-time 20 https://sale.1tourtv.ru/ -o /dev/null
