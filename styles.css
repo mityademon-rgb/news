@@ -5531,6 +5531,18 @@ body.play-active #main { min-height: 100svh; background: #0d0c12; }
 .lesson-adult-mistake-room .scene-copy .eyebrow,
 .lesson-adult-mistake-room .scene-meta span:last-child { color: var(--mistake-violet); }
 
+.lesson-adult-mistake-room .magic-photo-answer img {
+  width: 100%;
+  height: auto;
+  aspect-ratio: 16 / 9;
+  object-fit: cover;
+}
+
+.lesson-adult-mistake-room .magic-answer-photo .scene-copy h2 {
+  max-width: 19ch;
+  font-size: clamp(35px, 3.7vw, 56px);
+}
+
 .magic-habit-check .scene-copy {
   grid-template-columns: minmax(260px, .72fr) minmax(0, 1.28fr);
   align-items: end;
@@ -5742,6 +5754,8 @@ body.play-active #main { min-height: 100svh; background: #0d0c12; }
 @media (max-width: 760px) {
   .magic-habit-check .scene-copy { display: block; }
   .magic-habit-check .scene-copy h2 { max-width: 100%; font-size: clamp(34px, 10vw, 48px); }
+  .lesson-adult-mistake-room .magic-answer-photo .scene-copy h2 { max-width: 100%; font-size: clamp(32px, 9vw, 44px); }
+  .lesson-adult-mistake-room .magic-photo-answer img { aspect-ratio: 16 / 9; }
   .habit-scorebar { align-items: flex-start; padding: 12px; }
   .habit-score { display: grid; }
   .habit-score span { padding: 7px 9px; font-size: 8px; }
