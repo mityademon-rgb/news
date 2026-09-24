@@ -23,7 +23,7 @@ jobs:
           path=pathlib.Path('/opt/timecode-bot/timecode-bot/server.py')
           url='https://raw.githubusercontent.com/mityademon-rgb/media-center-bot/633d41dd9c80e8f5d24f0d4f8d09a46edd881763/timecode-bot/server.py'
           new=urllib.request.urlopen(url,timeout=25).read()
-          assert b'if any(re.search' in new and b'История начинается' in new
+          assert b'if any(re.search' in new and 'История начинается'.encode() in new
           tmp=path.with_suffix('.py.new')
           tmp.write_bytes(new)
           py_compile.compile(str(tmp),doraise=True)
