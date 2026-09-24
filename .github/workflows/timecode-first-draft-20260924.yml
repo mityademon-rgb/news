@@ -19,21 +19,18 @@ jobs:
           printf '%s\n' "$BOOM_SSH_KEY" > ~/.ssh/timecode_key
           chmod 600 ~/.ssh/timecode_key
           ssh-keyscan -T 8 -H 217.149.24.242 > ~/.ssh/known_hosts
-          timeout 20 ssh -o ServerAliveInterval=10 -i ~/.ssh/timecode_key -o BatchMode=yes root@217.149.24.242 'python3 -' <<'PY'
-          import os,json,urllib.request,urllib.error
+          timeout 65 ssh -o ServerAliveInterval=10 -i ~/.ssh/timecode_key -o BatchMode=yes root@217.149.24.242 'python3 -' <<'PY'
+          import os,json,subprocess
           env={}
           for line in open('/etc/timecode-bot.env',encoding='utf-8'):
               if '=' in line and not line.lstrip().startswith('#'):
                   k,v=line.strip().split('=',1);env[k]=v
-          data={'model':env.get('KIMI_MODEL','kimi-k2.6'),'messages':[{'role':'user','content':'Ответь словом привет'}],'max_tokens':35,'response_format':{'type':'json_object'},'thinking':{'type':'disabled'}}
-          data['messages'][0]['content']='Ответь JSON объектом с полем answer равным привет.'
-          req=urllib.request.Request('https://api.moonshot.ai/v1/chat/completions',json.dumps(data).encode(),{'Authorization':'Bearer '+env.get('MOONSHOT_API_KEY',''),'Content-Type':'application/json'})
+          data={'model':env.get('KIMI_MODEL','kimi-k2.6'),'messages':[{'role':'user','content':'Ответь JSON объектом с полем answer равным привет.'}],'max_tokens':45,'response_format':{'type':'json_object'},'thinking':{'type':'disabled'}}
+          cmd=['curl','-4','-sS','--connect-timeout','8','--max-time','45','-w','\\n%{http_code}','-H','Content-Type: application/json','-H','Authorization: Bearer '+env.get('MOONSHOT_API_KEY',''),'-d','@-','https://api.moonshot.ai/v1/chat/completions']
+          proc=subprocess.run(cmd,input=json.dumps(data),text=True,capture_output=True,timeout=50)
+          body,_,status=proc.stdout.rpartition('\\n')
           try:
-              with urllib.request.urlopen(req,timeout=18) as response:
-                  reply=json.load(response)
-              print('Kimi minimal call: OK, model:',reply.get('model','?'),'output-length:',len(str(reply.get('choices',[]))),flush=True)
-          except urllib.error.HTTPError as error:
-              info=json.loads(error.read().decode())
-              print('Kimi HTTP:',error.code,'type:',info.get('error',{}).get('type'),'message:',str(info.get('error',{}).get('message',''))[:150],flush=True)
-          except Exception as error:print('Kimi connection:',type(error).__name__,str(error)[:90],flush=True)
+              result=json.loads(body)
+              print('Kimi minimal POST:',status,'exit:',proc.returncode,'model:',result.get('model','?'),'error type:',result.get('error',{}).get('type',''),flush=True)
+          except Exception:print('Kimi POST:',status,'exit:',proc.returncode,'transport:',proc.stderr[:100],flush=True)
           PY
