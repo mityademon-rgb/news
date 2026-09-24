@@ -1,0 +1,37 @@
+name: Inspect TIMECODE bot service
+on:
+  push:
+    branches: [boom-kadr-deploy]
+    paths: ['.github/workflows/inspect-timecode-bot.yml']
+permissions:
+  contents: read
+jobs:
+  inspect:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - name: Connect using existing server key
+        env:
+          BOOM_SSH_KEY: ${{ secrets.BOOM_SSH_KEY }}
+        run: |
+          test -n "$BOOM_SSH_KEY"
+          install -d -m 700 ~/.ssh
+          printf '%s\n' "$BOOM_SSH_KEY" > ~/.ssh/timecode_inspect
+          chmod 600 ~/.ssh/timecode_inspect
+          ssh-keyscan -T 8 -H 217.149.24.242 > ~/.ssh/known_hosts
+      - name: Read TIMECODE status and sanitized logs
+        run: |
+          ssh -i ~/.ssh/timecode_inspect -o BatchMode=yes root@217.149.24.242 'bash -s' <<'REMOTE'
+          echo '=== SERVICE ==='
+          systemctl is-active timecode-bot.service || true
+          systemctl show timecode-bot.service -p SubState -p MainPID -p NRestarts || true
+          echo '=== HEALTH ==='
+          curl -sS --max-time 5 http://127.0.0.1:8097/health || true
+          echo
+          echo '=== CONFIG PRESENCE (NO VALUES) ==='
+          for name in BOT_TOKEN ADMIN_IDS MOONSHOT_API_KEY BASE_URL JOIN_SECRET SECRET; do
+            if grep -q "^$name=" /etc/timecode-bot.env 2>/dev/null; then echo "$name: present"; else echo "$name: absent"; fi
+          done
+          echo '=== SERVICE LOG (REDACTED) ==='
+          journalctl -u timecode-bot.service -n 50 --no-pager -o cat 2>&1 | sed -E 's/[0-9]{7,}:[A-Za-z0-9_-]{20,}/[TELEGRAM_TOKEN]/g; s/sk-[A-Za-z0-9_-]{15,}/[API_KEY]/g'
+          REMOTE
