@@ -1329,6 +1329,40 @@
         <div class="sequence-actions"><button type="button" data-sequence-reset>Сбросить</button><button type="button" class="sequence-play" data-sequence-play disabled>Собрать и включить ▶</button></div>
         <p class="sequence-feedback" data-sequence-feedback aria-live="polite">Сначала выберите все шесть кадров.</p>
       </div>`;
+    } else if (layout === "habit-check") {
+      const totalHabits = (scene.rounds || []).reduce((sum, round) => sum + (round.cases || []).length, 0);
+      stage = `<div class="habit-check" data-habit-check>
+        <div class="habit-scorebar">
+          <div><span data-habit-round>РАУНД 1</span><strong data-habit-round-title>10 ошибок операторов</strong></div>
+          <div class="habit-score"><span>УЗНАЛИ У СЕБЯ <b data-habit-confessed>0</b></span><span>ПОНЯЛИ ПРИЧИНУ <b data-habit-score>0</b> / ${totalHabits}</span></div>
+        </div>
+        <div class="habit-panel" data-habit-panel>
+          <div class="habit-progress"><span data-habit-hashtag>#съёмка</span><b><i data-habit-number>01</i> / ${totalHabits}</b></div>
+          <div class="habit-stamp" data-habit-stamp>ОБЪЕКТИВ</div>
+          <h3 data-habit-text></h3>
+          <div class="habit-self-check" data-habit-self-check>
+            <p>ДЕЛАЕТЕ ТАК?</p>
+            <div><button type="button" data-habit-own="yes">Да, бывает</button><button type="button" data-habit-own="no">Нет, не делаю</button></div>
+          </div>
+          <div class="habit-reason" data-habit-reason hidden>
+            <p data-habit-question>Почему это ошибка?</p>
+            <div data-habit-options></div>
+          </div>
+          <div class="habit-verdict" data-habit-verdict hidden>
+            <span data-habit-result></span>
+            <p data-habit-why></p>
+            <strong data-habit-rule></strong>
+          </div>
+          <div class="habit-actions"><button type="button" data-habit-reset>Начать заново</button><button type="button" class="habit-next" data-habit-next disabled>Следующая ошибка →</button></div>
+        </div>
+        <div class="habit-finish" data-habit-finish hidden>
+          <span>ПРОВЕРКА ЗАКОНЧЕНА</span>
+          <strong data-habit-final-score>0 / ${totalHabits}</strong>
+          <h3>Теперь вы не просто знаете список ошибок — вы понимаете, почему они ломают материал.</h3>
+          <p data-habit-final-habits></p>
+          <button type="button" data-habit-restart>Пройти ещё раз</button>
+        </div>
+      </div>`;
     } else if (layout === "camera-cards") {
       stage = `<div class="camera-card-deck" data-camera-card-deck>
         <div class="camera-card-toolbar"><span><b data-camera-card-count>0</b> / ${scene.cards.length} открыто</span><button type="button" data-camera-card-reset>Вернуть карточки</button></div>
@@ -1514,6 +1548,113 @@
         storyBuilder.classList.add("is-complete");
         markAnswered();
       });
+    }
+
+    const habitCheck = document.querySelector("[data-habit-check]");
+    if (habitCheck) {
+      const items = (scene.rounds || []).flatMap((round, roundIndex) => (round.cases || []).map((item) => ({ ...item, round, roundIndex })));
+      const panel = habitCheck.querySelector("[data-habit-panel]");
+      const finish = habitCheck.querySelector("[data-habit-finish]");
+      const ownButtons = Array.from(habitCheck.querySelectorAll("[data-habit-own]"));
+      const reasonBlock = habitCheck.querySelector("[data-habit-reason]");
+      const optionsBlock = habitCheck.querySelector("[data-habit-options]");
+      const verdict = habitCheck.querySelector("[data-habit-verdict]");
+      const nextButton = habitCheck.querySelector("[data-habit-next]");
+      let cursor = 0;
+      let confessed = 0;
+      let score = 0;
+      let selfAnswered = false;
+      let reasonAnswered = false;
+
+      const renderHabit = () => {
+        const item = items[cursor];
+        selfAnswered = false;
+        reasonAnswered = false;
+        habitCheck.querySelector("[data-habit-round]").textContent = item.round.label;
+        habitCheck.querySelector("[data-habit-round-title]").textContent = item.round.title;
+        habitCheck.querySelector("[data-habit-hashtag]").textContent = item.round.hashtag;
+        habitCheck.querySelector("[data-habit-number]").textContent = String(cursor + 1).padStart(2, "0");
+        habitCheck.querySelector("[data-habit-stamp]").textContent = item.stamp;
+        habitCheck.querySelector("[data-habit-text]").textContent = item.habit;
+        habitCheck.querySelector("[data-habit-question]").textContent = item.question || "Почему это ошибка?";
+        ownButtons.forEach((button) => {
+          button.disabled = false;
+          button.classList.remove("is-selected");
+        });
+        optionsBlock.innerHTML = item.options.map((option, index) => `<button type="button" data-habit-option="${index}"><span>${String.fromCharCode(1040 + index)}</span>${escapeHtml(option)}</button>`).join("");
+        reasonBlock.hidden = true;
+        verdict.hidden = true;
+        verdict.classList.remove("is-correct", "is-wrong");
+        nextButton.disabled = true;
+        nextButton.textContent = cursor === items.length - 1 ? "Показать результат →" : "Следующая ошибка →";
+      };
+
+      ownButtons.forEach((button) => {
+        button.addEventListener("click", () => {
+          if (selfAnswered) return;
+          selfAnswered = true;
+          if (button.dataset.habitOwn === "yes") confessed += 1;
+          habitCheck.querySelector("[data-habit-confessed]").textContent = String(confessed);
+          ownButtons.forEach((item) => {
+            item.disabled = true;
+            item.classList.toggle("is-selected", item === button);
+          });
+          reasonBlock.hidden = false;
+          reasonBlock.scrollIntoView({ block: "nearest", behavior: "smooth" });
+        });
+      });
+
+      optionsBlock.addEventListener("click", (event) => {
+        const button = event.target.closest("[data-habit-option]");
+        if (!button || reasonAnswered) return;
+        reasonAnswered = true;
+        const item = items[cursor];
+        const selected = Number(button.dataset.habitOption);
+        const correct = selected === item.correct;
+        if (correct) score += 1;
+        habitCheck.querySelector("[data-habit-score]").textContent = String(score);
+        Array.from(optionsBlock.querySelectorAll("[data-habit-option]")).forEach((optionButton, index) => {
+          optionButton.disabled = true;
+          optionButton.classList.toggle("is-correct", index === item.correct);
+          optionButton.classList.toggle("is-wrong", index === selected && !correct);
+        });
+        verdict.hidden = false;
+        verdict.classList.add(correct ? "is-correct" : "is-wrong");
+        habitCheck.querySelector("[data-habit-result]").textContent = correct ? "ДА. ВЫ ПОНЯЛИ ПРИЧИНУ" : "НЕ СОВСЕМ. ВОТ ЧТО ЛОМАЕТСЯ";
+        habitCheck.querySelector("[data-habit-why]").textContent = item.why;
+        habitCheck.querySelector("[data-habit-rule]").textContent = item.rule;
+        nextButton.disabled = false;
+        if (cursor === items.length - 1) markAnswered();
+      });
+
+      nextButton.addEventListener("click", () => {
+        if (!reasonAnswered) return;
+        if (cursor < items.length - 1) {
+          cursor += 1;
+          renderHabit();
+          panel.scrollIntoView({ block: "start", behavior: "smooth" });
+          return;
+        }
+        panel.hidden = true;
+        finish.hidden = false;
+        habitCheck.querySelector("[data-habit-final-score]").textContent = `${score} / ${items.length}`;
+        habitCheck.querySelector("[data-habit-final-habits]").textContent = `Узнали у себя привычек: ${confessed}. Это не штраф — это список того, что теперь можно контролировать.`;
+        finish.scrollIntoView({ block: "center", behavior: "smooth" });
+      });
+
+      const restart = () => {
+        cursor = 0;
+        confessed = 0;
+        score = 0;
+        habitCheck.querySelector("[data-habit-confessed]").textContent = "0";
+        habitCheck.querySelector("[data-habit-score]").textContent = "0";
+        panel.hidden = false;
+        finish.hidden = true;
+        renderHabit();
+      };
+      habitCheck.querySelector("[data-habit-reset]")?.addEventListener("click", restart);
+      habitCheck.querySelector("[data-habit-restart]")?.addEventListener("click", restart);
+      renderHabit();
     }
 
     const cameraDeck = document.querySelector("[data-camera-card-deck]");
