@@ -1,0 +1,21 @@
+name: Deploy TIMECODE photo captions
+on:
+  push:
+    branches: [boom-kadr-deploy]
+    paths: [.github/workflows/timecode-photo-captions.yml]
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Deploy TIMECODE bot only
+        env:
+          BOOM_SSH_KEY: ${{ secrets.BOOM_SSH_KEY }}
+        run: |
+          set -euo pipefail
+          curl -fsSL 'https://raw.githubusercontent.com/mityademon-rgb/media-center-bot/d3f5a16769d518fc782dff8213e3c515b080d5e4/timecode-bot/server.py' -o /tmp/timecode-server.py
+          python3 -m py_compile /tmp/timecode-server.py
+          printf '%s\n' "$BOOM_SSH_KEY" > /tmp/deploy_key
+          chmod 600 /tmp/deploy_key
+          ssh-keyscan -T 8 -H 217.149.24.242 >> /tmp/known_hosts 2>/dev/null
+          scp -i /tmp/deploy_key -o UserKnownHostsFile=/tmp/known_hosts /tmp/timecode-server.py root@217.149.24.242:/tmp/timecode-caption-server.py
+          ssh -i /tmp/deploy_key -o UserKnownHostsFile=/tmp/known_hosts root@217.149.24.242 'set -eu; target=/opt/timecode-bot/timecode-bot/server.py; test -f "$target"; cp -p "$target" "$target.backup-captions"; python3 -m py_compile /tmp/timecode-caption-server.py; install -m 644 /tmp/timecode-caption-server.py "$target"; systemctl restart timecode-bot.service; for i in 1 2 3 4 5; do if curl -fsS --max-time 3 http://127.0.0.1:8097/health; then exit 0; fi; sleep 2; done; cp -p "$target.backup-captions" "$target"; systemctl restart timecode-bot.service; exit 1'
