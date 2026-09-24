@@ -1329,6 +1329,28 @@
         <div class="sequence-actions"><button type="button" data-sequence-reset>Сбросить</button><button type="button" class="sequence-play" data-sequence-play disabled>Собрать и включить ▶</button></div>
         <p class="sequence-feedback" data-sequence-feedback aria-live="polite">Сначала выберите все шесть кадров.</p>
       </div>`;
+    } else if (layout === "camera-cards") {
+      stage = `<div class="camera-card-deck" data-camera-card-deck>
+        <div class="camera-card-toolbar"><span><b data-camera-card-count>0</b> / ${scene.cards.length} открыто</span><button type="button" data-camera-card-reset>Вернуть карточки</button></div>
+        <div class="camera-card-grid">${scene.cards.map((card, index) => `<button type="button" class="camera-task-card" data-camera-card="${index}" aria-label="Открыть карточку ${index + 1}">
+          <span class="camera-task-card-inner">
+            <span class="camera-task-front"><b>${String(index + 1).padStart(2, "0")}</b><strong>?</strong><small>ОТКРЫТЬ</small></span>
+            <span class="camera-task-back"><b>ЗАДАНИЕ ${String(index + 1).padStart(2, "0")}</b><strong>${escapeHtml(card.title)}</strong><small>✓ ОТКРЫТО</small></span>
+          </span>
+        </button>`).join("")}</div>
+        <div class="camera-card-modal" data-camera-card-modal hidden role="dialog" aria-modal="true" aria-labelledby="camera-card-modal-title">
+          <div class="camera-card-modal-panel">
+            <div class="camera-card-modal-head"><span data-camera-card-number></span><button type="button" data-camera-card-close aria-label="Закрыть задание">×</button></div>
+            <h3 id="camera-card-modal-title" data-camera-card-title></h3>
+            <div class="camera-role-grid">
+              <section><span>🎙 ВЕДУЩИЙ</span><p data-camera-presenter></p></section>
+              <section><span>🎥 ОПЕРАТОР</span><p data-camera-operator></p></section>
+            </div>
+            <div class="camera-card-rule"><b>20 секунд</b><span>на подготовку</span><i></i><b>до 30 секунд</b><span>на один дубль</span></div>
+            <button type="button" class="camera-card-accept" data-camera-card-close>Задание принято — снимаем</button>
+          </div>
+        </div>
+      </div>`;
     } else if (layout === "story-builder") {
       stage = `<div class="story-builder" data-story-builder>
         <div class="story-builder-groups">${scene.groups.map((group, groupIndex) => `<fieldset><legend><span>0${groupIndex + 1}</span>${escapeHtml(group.label)}</legend>${group.options.map((option, optionIndex) => `<button type="button" data-story-option data-group="${groupIndex}" data-option="${optionIndex}" data-value="${escapeHtml(option)}">${escapeHtml(option)}</button>`).join("")}</fieldset>`).join("")}</div>
@@ -1491,6 +1513,45 @@
         result.textContent = scene.example || selections.join(" ");
         storyBuilder.classList.add("is-complete");
         markAnswered();
+      });
+    }
+
+    const cameraDeck = document.querySelector("[data-camera-card-deck]");
+    if (cameraDeck) {
+      const cards = Array.from(cameraDeck.querySelectorAll("[data-camera-card]"));
+      const modal = cameraDeck.querySelector("[data-camera-card-modal]");
+      const counter = cameraDeck.querySelector("[data-camera-card-count]");
+      const opened = new Set();
+      const closeModal = () => {
+        modal.hidden = true;
+        document.body.classList.remove("camera-card-open");
+      };
+      cards.forEach((button) => {
+        button.addEventListener("click", () => {
+          const index = Number(button.dataset.cameraCard);
+          const task = scene.cards[index];
+          opened.add(index);
+          button.classList.add("is-flipped", "is-used");
+          counter.textContent = String(opened.size);
+          modal.querySelector("[data-camera-card-number]").textContent = `КАРТОЧКА ${String(index + 1).padStart(2, "0")}`;
+          modal.querySelector("[data-camera-card-title]").textContent = task.title;
+          modal.querySelector("[data-camera-presenter]").textContent = task.presenter;
+          modal.querySelector("[data-camera-operator]").textContent = task.operator;
+          window.setTimeout(() => {
+            modal.hidden = false;
+            document.body.classList.add("camera-card-open");
+            modal.querySelector("[data-camera-card-close]")?.focus();
+          }, 280);
+          if (opened.size === scene.cards.length) markAnswered();
+        });
+      });
+      cameraDeck.querySelectorAll("[data-camera-card-close]").forEach((button) => button.addEventListener("click", closeModal));
+      cameraDeck.querySelector("[data-camera-card-reset]")?.addEventListener("click", () => {
+        opened.clear();
+        counter.textContent = "0";
+        cards.forEach((button) => button.classList.remove("is-flipped", "is-used"));
+        closeModal();
+        showToast("Все карточки снова закрыты");
       });
     }
 
