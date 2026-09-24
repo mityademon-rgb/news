@@ -5546,6 +5546,8 @@ body.play-active #main { min-height: 100svh; background: #0d0c12; }
   color: var(--mistake-cream);
 }
 
+.habit-check [hidden] { display: none !important; }
+
 .habit-scorebar {
   display: flex;
   align-items: center;
