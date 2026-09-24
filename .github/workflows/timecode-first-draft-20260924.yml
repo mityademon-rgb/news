@@ -19,21 +19,10 @@ jobs:
           printf '%s\n' "$BOOM_SSH_KEY" > ~/.ssh/timecode_key
           chmod 600 ~/.ssh/timecode_key
           ssh-keyscan -T 8 -H 217.149.24.242 > ~/.ssh/known_hosts
-          timeout 140 ssh -o ServerAliveInterval=20 -o ServerAliveCountMax=8 -i ~/.ssh/timecode_key -o BatchMode=yes root@217.149.24.242 'python3 -' <<'PY'
-          import os,sys,sqlite3
-          for line in open('/etc/timecode-bot.env',encoding='utf-8'):
-              if '=' in line and not line.lstrip().startswith('#'):
-                  key,value=line.strip().split('=',1)
-                  os.environ[key]=value
-          sys.path.insert(0,'/opt/timecode-bot/timecode-bot')
-          import server
-          admin=397724997
-          assert admin in server.ADMINS, 'Admin Telegram ID is not configured'
-          assert server.AI_KEY and server.TOKEN, 'Kimi or Telegram key is missing'
-          with server.conn() as c:
-              before=c.execute("select count(*) from quest_drafts where lab='kids' and status='draft'").fetchone()[0]
-          server.quests.prepare(admin,'kids','Пропавший кадр: перед премьерой исчез финальный план, а три человека помнят съёмку по-разному',server.conn,server.send,server.BASE,server.AI_KEY,server.AI_MODEL,server.kimi_params())
-          with server.conn() as c:
-              after=c.execute("select count(*) from quest_drafts where lab='kids' and status='draft'").fetchone()[0]
-          print('new private draft:',after-before,'published: 0')
+          timeout 20 ssh -o ServerAliveInterval=10 -i ~/.ssh/timecode_key -o BatchMode=yes root@217.149.24.242 'python3 -' <<'PY'
+          import os,subprocess,time,socket
+          print('dns:',socket.getaddrinfo('api.moonshot.ai',443,proto=socket.IPPROTO_TCP)[0][4][0],flush=True)
+          r=subprocess.run(['curl','-sS','-o','/dev/null','-w','%{http_code}','--connect-timeout','4','--max-time','10','https://api.moonshot.ai/v1/models'],capture_output=True,text=True)
+          print('API connection:',r.returncode,'HTTP:',r.stdout,flush=True)
+          print('stderr:',r.stderr[:100],flush=True)
           PY
