@@ -1,0 +1,41 @@
+name: Fix TIMECODE daily mission
+on:
+  push:
+    branches: [boom-kadr-deploy]
+    paths: ['.github/workflows/timecode-mission-fix-20260924.yml']
+permissions:
+  contents: read
+jobs:
+  fix:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Apply isolated bot fix
+        env:
+          BOOM_SSH_KEY: ${{ secrets.BOOM_SSH_KEY }}
+        run: |
+          mkdir -p ~/.ssh
+          chmod 700 ~/.ssh
+          printf '%s\n' "$BOOM_SSH_KEY" > ~/.ssh/timecode_key
+          chmod 600 ~/.ssh/timecode_key
+          ssh-keyscan -T 8 -H 217.149.24.242 > ~/.ssh/known_hosts
+          ssh -i ~/.ssh/timecode_key -o BatchMode=yes root@217.149.24.242 'python3 -' <<'PY'
+          import pathlib, urllib.request, py_compile, os, shutil, sqlite3, datetime, subprocess
+          path=pathlib.Path('/opt/timecode-bot/timecode-bot/server.py')
+          url='https://raw.githubusercontent.com/mityademon-rgb/media-center-bot/633d41dd9c80e8f5d24f0d4f8d09a46edd881763/timecode-bot/server.py'
+          new=urllib.request.urlopen(url,timeout=25).read()
+          assert b'if any(re.search' in new and b'История начинается' in new
+          tmp=path.with_suffix('.py.new')
+          tmp.write_bytes(new)
+          py_compile.compile(str(tmp),doraise=True)
+          shutil.copy2(path,path.with_suffix('.py.before-mission-fix'))
+          os.replace(tmp,path)
+          db=pathlib.Path('/var/lib/timecode-bot/timecode.db')
+          backup=db.with_name('timecode.db.before-mission-fix-'+datetime.datetime.now().strftime('%Y%m%d%H%M%S'))
+          with sqlite3.connect(db) as c:
+              with sqlite3.connect(backup) as target:c.backup(target)
+              rows=c.execute("select day,title,body from daily_content where kind='mission' and (body like '%Выбери лучший из двух вариантов кадра%' or body_kids like '%Выбери лучший из двух вариантов кадра%')").fetchall()
+              c.execute("update daily_content set title='МИКРОЗАДАНИЕ / РЕШЕНИЕ',body='История начинается с пустой студии или с руки, которая включает камеру? Выбери начало и объясни одной фразой.',body_kids='История начинается с пустой студии или с руки, которая включает камеру? Выбери начало и объясни одной фразой.',body_media='Начать репортаж с пустой студии или с крупного плана кнопки REC? Выбери начало и объясни одной фразой.' where kind='mission' and (body like '%Выбери лучший из двух вариантов кадра%' or body_kids like '%Выбери лучший из двух вариантов кадра%')")
+          subprocess.run(['systemctl','restart','timecode-bot.service'],check=True)
+          state=subprocess.run(['systemctl','is-active','timecode-bot.service'],capture_output=True,text=True,check=True).stdout.strip()
+          print('service:',state,'corrected cached missions:',len(rows))
+          PY
