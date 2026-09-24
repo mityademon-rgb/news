@@ -1,0 +1,21 @@
+name: Deploy TIMECODE daily check-ins
+on:
+  push:
+    branches: [boom-kadr-deploy]
+    paths: [.github/workflows/timecode-checkins.yml]
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Deploy only TIMECODE server.py
+        env:
+          BOOM_SSH_KEY: ${{ secrets.BOOM_SSH_KEY }}
+        run: |
+          set -euo pipefail
+          curl -fsSL 'https://raw.githubusercontent.com/mityademon-rgb/media-center-bot/dcf8bf909ff256cf7d136319e149b196bd50638a/timecode-bot/server.py' -o /tmp/timecode-server.py
+          python3 -m py_compile /tmp/timecode-server.py
+          printf '%s\n' "$BOOM_SSH_KEY" > /tmp/deploy_key
+          chmod 600 /tmp/deploy_key
+          ssh-keyscan -T 8 -H 217.149.24.242 >> /tmp/known_hosts 2>/dev/null
+          scp -i /tmp/deploy_key -o UserKnownHostsFile=/tmp/known_hosts /tmp/timecode-server.py root@217.149.24.242:/tmp/timecode-checkins-server.py
+          ssh -i /tmp/deploy_key -o UserKnownHostsFile=/tmp/known_hosts root@217.149.24.242 'set -eu; target=/opt/timecode-bot/timecode-bot/server.py; test -f "$target"; cp -p "$target" "$target.backup-checkins"; python3 -m py_compile /tmp/timecode-checkins-server.py; install -m 644 /tmp/timecode-checkins-server.py "$target"; systemctl restart timecode-bot.service; for i in 1 2 3 4 5; do if curl -fsS --max-time 3 http://127.0.0.1:8097/health; then exit 0; fi; sleep 2; done; cp -p "$target.backup-checkins" "$target"; systemctl restart timecode-bot.service; exit 1'
