@@ -1542,9 +1542,312 @@ INTRUDER.
         takeaway: "Заявка → повороты → сцены → съёмка"
       }
     ]
+  },
+  {
+    id: "adult-mistake-room",
+    number: "A02",
+    track: "adult",
+    trackLabel: "MEDIA LAB · 14+",
+    title: "Косяк в эфире",
+    eyebrow: "Съёмка и работа в кадре",
+    summary: "Двадцать профессиональных привычек: признаём свои ошибки и проверяем, понимаем ли мы их причину.",
+    duration: "85 мин",
+    color: "purple",
+    accent: "#8f63ff",
+    status: "ready",
+    cover: "./assets/adult01-cover.webp",
+    coverAlt: "Редакционная команда разбирает ошибки на экране",
+    tags: ["ошибки", "эфир", "интерактив"],
+    goals: ["Быстро замечать главную ошибку", "Отличать технический косяк от редакционного", "Принимать одно рабочее решение без съёмки"],
+    materials: ["Большой экран или проектор", "Один компьютер для управления игрой", "Никаких камер и телефонов для съёмки"],
+    lifehacks: [
+      {
+        hashtags: ["shooting"],
+        category: "Съёмка",
+        title: "Сначала звук, потом красота",
+        text: "Средний кадр можно немного увеличить. Реплику, утонувшую в кофемашине, вернуть нельзя.",
+        action: "До REC послушайте площадку десять секунд в наушниках."
+      },
+      {
+        hashtags: ["on-camera"],
+        category: "Работа в кадре",
+        title: "Первая фраза должна что-то сообщать",
+        text: "Приветствие не удерживает зрителя. Событие, конфликт или неожиданный факт — удерживают.",
+        action: "Удалите «Здравствуйте, дорогие друзья» и проверьте, стало ли начало сильнее."
+      },
+      {
+        hashtags: ["journalism"],
+        category: "Журналистика",
+        title: "Один вопрос — один шанс на ответ",
+        text: "Три вопроса подряд позволяют собеседнику выбрать самый удобный и забыть остальные.",
+        action: "Задайте один вопрос и стройте следующий из услышанного ответа."
+      },
+      {
+        hashtags: ["directing", "journalism"],
+        category: "Режиссура · Журналистика",
+        title: "Не рассказывайте то, что уже видно",
+        text: "Фраза «за моей спиной идёт концерт» дублирует картинку и тратит время.",
+        action: "Добавьте причину, последствие или деталь, которую камера сама не объяснит."
+      }
+    ],
+    scenes: [
+      {
+        type: "cover",
+        kicker: "MEDIA LAB · Урок A02",
+        title: "Косяк в эфире",
+        text: "Сейчас я назову десять главных ошибок операторов. Решите, делаете вы так или нет. Затем проверим, понимаете ли вы, почему это ошибка. После — те же десять вопросов для ведущих и корреспондентов.",
+        image: "./assets/adult01-cover.webp",
+        imageAlt: "Редакционная команда обсуждает материал на экране"
+      },
+      {
+        type: "magic",
+        layout: "answer-cards",
+        kicker: "Правила редакционной игры",
+        title: "Сначала признаём. Потом понимаем.",
+        items: [
+          ["Шаг 1", "Да, я так делаю — или нет, уже перестал"],
+          ["Шаг 2", "Выбираем, почему это действительно ошибка"],
+          ["Шаг 3", "Получаем короткий разбор и рабочее правило"],
+          ["20 привычек", "10 операторских и 10 ведущих и корреспондентов"]
+        ]
+      },
+      {
+        type: "magic",
+        layout: "habit-check",
+        kicker: "Главная игра · Два раунда",
+        title: "Делаю или не делаю?",
+        text: "Отвечайте честно. Признание не отнимает баллы: балл даётся только за понимание причины.",
+        rounds: [
+          {
+            label: "РАУНД 1",
+            title: "10 ошибок операторов",
+            hashtag: "#съёмка",
+            cases: [
+              {
+                stamp: "ОБЪЕКТИВ",
+                habit: "Начинаю снимать, не протерев объектив.",
+                question: "Почему это ошибка?",
+                options: ["Грязь снижает детализацию и даёт мутные засветки", "Камера быстрее разряжается", "Звук становится тише"],
+                correct: 0,
+                why: "Жирный след на объективе особенно заметен возле окон и ламп. На монтаже такую дымку нормально не убрать.",
+                rule: "Первое движение оператора — не REC, а салфетка."
+              },
+              {
+                stamp: "ЗВУК",
+                habit: "Проверяю картинку, но не слушаю звук до записи.",
+                question: "Почему это ошибка?",
+                options: ["Микрофон может не записаться или утонуть в шуме", "Изображение станет темнее", "Файл займёт больше памяти"],
+                correct: 0,
+                why: "Красивый кадр с неразборчивой речью почти бесполезен. Шум, треск и отключённый микрофон нужно услышать до дубля.",
+                rule: "Десять секунд в наушниках дешевле пересъёмки."
+              },
+              {
+                stamp: "СВЕТ",
+                habit: "Ставлю человека спиной к яркому окну.",
+                question: "Почему это ошибка?",
+                options: ["Камера затемняет лицо ради яркого окна", "Человек начинает говорить тише", "Фон становится слишком резким"],
+                correct: 0,
+                why: "Автоматика спасает светлое окно и превращает лицо в силуэт. Без дополнительного света лучше развернуть героя.",
+                rule: "Сначала лицо к свету, потом красивый фон."
+              },
+              {
+                stamp: "ФОН",
+                habit: "Смотрю на героя, но не проверяю, что находится у него за головой.",
+                question: "Почему это ошибка?",
+                options: ["Стойки, ветки и вывески визуально врастают в человека", "Камера перестаёт писать звук", "Файл нельзя будет открыть"],
+                correct: 0,
+                why: "Зритель замечает случайную конструкцию раньше смысла реплики. Часто достаточно сдвинуть камеру на полшага.",
+                rule: "Перед REC проверьте фон и четыре края кадра."
+              },
+              {
+                stamp: "ФОКУС",
+                habit: "Полностью доверяю автофокусу и не фиксирую его по лицу.",
+                question: "Почему это ошибка?",
+                options: ["Камера может переключиться на яркий предмет позади", "Объектив станет шире", "Речь станет короче"],
+                correct: 0,
+                why: "Автоматика выбирает самый контрастный объект, а не самого важного героя. В середине фразы резким может стать плакат.",
+                rule: "Главный человек выбран — фокус зафиксирован."
+              },
+              {
+                stamp: "ЗУМ",
+                habit: "Приближаю героя пальцами прямо во время дубля.",
+                question: "Почему это ошибка?",
+                options: ["Цифровой зум портит качество и выглядит случайным", "Микрофон отключается", "Свет меняет цвет"],
+                correct: 0,
+                why: "Рывок масштаба выдаёт отсутствие решения. Если крупность нужна, её выбирают до записи или меняют положение камеры.",
+                rule: "Нужен крупнее — подойдите или снимите отдельный план."
+              },
+              {
+                stamp: "ДВИЖЕНИЕ",
+                habit: "Вожу камерой за каждым жестом и поворотом головы.",
+                question: "Почему это ошибка?",
+                options: ["Беспричинное движение отвлекает и укачивает", "Герой забывает текст", "Кадр становится длиннее"],
+                correct: 0,
+                why: "Камера начинает комментировать нервозность оператора. Движение оправдано, когда меняется действие или информация.",
+                rule: "Нет причины двигаться — держите кадр."
+              },
+              {
+                stamp: "КРУПНОСТЬ",
+                habit: "Снимаю весь материал одним средним планом.",
+                question: "Почему это ошибка?",
+                options: ["Монтажу не хватает деталей, реакций и смены акцентов", "Файл получается слишком маленьким", "Герой начинает говорить медленнее"],
+                correct: 0,
+                why: "Один план сообщает всё одинаково. Деталь, реакция и общий план дают монтажу смысл и возможность сокращать.",
+                rule: "Снимайте место, действие, деталь и реакцию."
+              },
+              {
+                stamp: "REC",
+                habit: "Нажимаю STOP сразу после последнего слова.",
+                question: "Почему это ошибка?",
+                options: ["Монтажу не остаётся чистого окончания кадра", "Камера не сохраняет начало", "Звук становится громче"],
+                correct: 0,
+                why: "Обрезанное дыхание и движение не дают спокойно закончить сцену или сделать переход.",
+                rule: "После последней фразы держите кадр ещё две секунды."
+              },
+              {
+                stamp: "ГОТОВНОСТЬ",
+                habit: "Проверяю заряд и память, когда герой уже стоит перед камерой.",
+                question: "Почему это ошибка?",
+                options: ["Техническая пауза ломает темп и доверие героя", "Лицо становится темнее", "Интервью автоматически сокращается"],
+                correct: 0,
+                why: "Подготовка при герое превращает работу в суету. Иногда нужная эмоция или доступ к человеку второго дубля не переживают.",
+                rule: "Батарея, память, звук и настройки — до приглашения героя."
+              }
+            ]
+          },
+          {
+            label: "РАУНД 2",
+            title: "10 ошибок ведущих и корреспондентов",
+            hashtag: "#работа_в_кадре · #журналистика",
+            cases: [
+              {
+                stamp: "ПЕРВАЯ ФРАЗА",
+                habit: "Начинаю с длинного приветствия и обещания интересного выпуска.",
+                question: "Почему это ошибка?",
+                options: ["Зритель не получает причины смотреть дальше", "Камера хуже фокусируется", "Материал становится официальным"],
+                correct: 0,
+                why: "Фраза «сегодня будет интересно» ничего не доказывает. Интерес создаёт само событие, конфликт или неожиданный факт.",
+                rule: "Начинайте с новости, а не с церемонии приветствия."
+              },
+              {
+                stamp: "ТЕКСТ",
+                habit: "Заучиваю каждое слово и пытаюсь вспомнить текст дословно.",
+                question: "Почему это ошибка?",
+                options: ["Потеря одного слова рушит всю фразу и живую интонацию", "Кадр становится слишком широким", "Микрофон записывает тише"],
+                correct: 0,
+                why: "Память занята формулировкой, а не смыслом. Поэтому взгляд стекленеет, а пауза после забытого слова становится катастрофой.",
+                rule: "Запоминайте три опорные мысли, а не диктант."
+              },
+              {
+                stamp: "ВЗГЛЯД",
+                habit: "Смотрю на своё изображение на экране, а не в объектив.",
+                question: "Почему это ошибка?",
+                options: ["Зритель чувствует, что ведущий говорит кому-то рядом", "Изображение становится темнее", "Фраза звучит быстрее"],
+                correct: 0,
+                why: "Контакт возникает только через объектив. Взгляд на экран выглядит как постоянное отвлечение от собеседника.",
+                rule: "Объектив — человек. Экран — зеркало, которое сейчас не нужно."
+              },
+              {
+                stamp: "ТЕМП",
+                habit: "Говорю без пауз, чтобы не забыть следующую фразу.",
+                question: "Почему это ошибка?",
+                options: ["Зритель не успевает разделить и понять мысли", "Кадр становится короче", "Фон выглядит резче"],
+                correct: 0,
+                why: "Скорость маскирует волнение, но уничтожает смысловые акценты. Спокойная пауза выглядит увереннее тараторки.",
+                rule: "Одна мысль — одна фраза — одна пауза."
+              },
+              {
+                stamp: "ОЧЕВИДНО",
+                habit: "В стендапе пересказываю то, что зритель уже видит за моей спиной.",
+                question: "Почему это ошибка?",
+                options: ["Речь дублирует картинку и не добавляет смысла", "Оператору становится скучно", "Герой исчезает из фокуса"],
+                correct: 0,
+                why: "Камера уже показывает концерт, очередь или дождь. Корреспондент нужен для причины, последствия и детали, которой не видно.",
+                rule: "Не озвучивайте картинку — дополняйте её."
+              },
+              {
+                stamp: "ДА / НЕТ",
+                habit: "Спрашиваю: «Вам понравилось?»",
+                question: "Почему это ошибка?",
+                options: ["Ответ легко закрывается одним словом", "Вопрос слишком короткий", "Герой обязательно соврёт"],
+                correct: 0,
+                why: "Оценка «да» или «нет» не даёт эпизода. История начинается, когда человек вспоминает конкретный момент и объясняет выбор.",
+                rule: "Просите назвать момент, поступок, причину или пример."
+              },
+              {
+                stamp: "ТРИ В ОДНОМ",
+                habit: "Задаю сразу два-три вопроса в одной реплике.",
+                question: "Почему это ошибка?",
+                options: ["Собеседник выбирает самый удобный вопрос и забывает остальные", "Интервью длится дольше", "Камера меняет баланс белого"],
+                correct: 0,
+                why: "Пакет вопросов позволяет уйти от сложной части. Кроме того, корреспондент уже не может нормально услышать первый ответ.",
+                rule: "Один вопрос. Один ответ. Потом уточнение."
+              },
+              {
+                stamp: "СЛУШАТЬ",
+                habit: "После ответа сразу читаю следующий заготовленный вопрос.",
+                question: "Почему это ошибка?",
+                options: ["Можно пропустить неожиданную деталь, в которой и есть история", "Интервью станет слишком коротким", "Герой начнёт смотреть в камеру"],
+                correct: 0,
+                why: "Лучшие повороты интервью редко записаны в плане. Они появляются в словах героя и требуют немедленного уточнения.",
+                rule: "Следующий вопрос растёт из последнего ответа."
+              },
+              {
+                stamp: "ПОДСКАЗКА",
+                habit: "В вопросе подсказываю собеседнику удобный ответ.",
+                question: "Почему это ошибка?",
+                options: ["Получаем подтверждение версии журналиста, а не позицию героя", "Ответ получается слишком длинным", "Монтажу не хватает перебивок"],
+                correct: 0,
+                why: "Фраза «Вы ведь согласны, что…» превращает интервью в доказательство заранее придуманной мысли.",
+                rule: "Сначала открытый вопрос. Версию проверяем уточнением, а не внушением."
+              },
+              {
+                stamp: "ОТВЕТ?",
+                habit: "Принимаю фразу «меры принимаются» и перехожу дальше.",
+                question: "Почему это ошибка?",
+                options: ["В ответе нет проверяемого действия, срока и ответственного", "Фраза слишком официальная для микрофона", "Она плохо звучит на фоне музыки"],
+                correct: 0,
+                why: "Общая формулировка имитирует информацию. Журналист должен превратить её в конкретику, которую можно проверить позже.",
+                rule: "Какие меры? Когда? Кто отвечает? Какая цифра покажет результат?"
+              }
+            ]
+          }
+        ],
+      },
+      {
+        type: "magic",
+        layout: "answer-cards",
+        kicker: "Разбор результата",
+        title: "Сколько причин вы действительно понимаете?",
+        items: [
+          ["18–20", "Профессиональный контроль: видите не только косяк, но и его последствия"],
+          ["14–17", "Крепкая редакция: несколько привычек ещё работают на автопилоте"],
+          ["9–13", "Список ошибок знаком, но причины местами путаются"],
+          ["0–8", "Нужен реванш. Пока кофемашина убедительнее ведущего"]
+        ]
+      },
+      {
+        type: "magic",
+        layout: "check",
+        kicker: "Четыре фильтра перед работой",
+        title: "Ошибку ищем в правильном порядке",
+        items: [
+          ["Понятно?", "Зритель сразу понимает, о чём материал"],
+          ["Слышно и видно?", "Главное не потеряно технически"],
+          ["Есть человек?", "Тема показана через конкретного героя"],
+          ["Есть факт?", "Громкие слова можно проверить"]
+        ]
+      },
+      {
+        type: "finish",
+        kicker: "Редакционная смена закрыта",
+        title: "Профессионал не тот, кто не ошибается",
+        text: "Профессионал быстрее остальных замечает, что именно ломает кадр, речь или историю — и исправляет сначала главное.",
+        takeaway: "Увидел → назвал → выбрал главное → исправил"
+      }
+    ]
   }
 ];
-
 
 window.TIMECODE_TEACHER_GUIDES = {
   interview: {
@@ -1915,9 +2218,78 @@ window.TIMECODE_TEACHER_GUIDES = {
       "Не спорить о логике мира фильма раньше выбора героя и главного вопроса.",
       "Не уходить в крупности, музыку и свет, пока не собрана причинная цепочка."
     ]
+  },
+
+  "adult-mistake-room": {
+    lessonNumber: "A02",
+    title: "Косяк в эфире",
+    audience: "MEDIA LAB · 14+",
+    duration: "85 минут",
+    result: "Участники узнают двадцать типичных ошибок в собственной работе и могут объяснить, какое конкретное последствие каждая ошибка создаёт для зрителя, героя или монтажа.",
+    preparation: [
+      "Открыть урок на большом экране и включить полноэкранный режим.",
+      "Камеры и телефоны для съёмки не нужны: всё занятие проходит как экранная игра.",
+      "Заранее договориться, что ответ «да, я так делаю» не считается проигрышем и не обсуждается персонально.",
+      "Решить, отвечает группа вместе или две команды по очереди; баллы начисляет сам тренажёр за понимание причины."
+    ],
+    blocks: [
+      {
+        time: "0–8 мин",
+        title: "Объявляем правила без лекции",
+        screens: "Кадры 01–02",
+        teacher: "Скажите: сейчас я назову десять ошибок операторов, затем десять ошибок ведущих и корреспондентов. На каждой ошибке сначала честно отвечаем, бывает ли она у нас, затем выбираем причину. Не просите участников оправдываться и не выясняйте, кто именно ошибался.",
+        message: "Признанная привычка — не штраф. Штрафом для материала становится привычка, причины которой никто не понимает."
+      },
+      {
+        time: "8–38 мин",
+        title: "Раунд 1: десять ошибок операторов",
+        screens: "Кадр 03 · Раунд 1",
+        teacher: "Читайте привычку вслух. Дайте группе пять секунд решить «делаю или не делаю», затем пятнадцать секунд на выбор причины. После ответа прочитайте только итоговое правило и попросите привести один реальный случай, если он вспоминается. Не превращайте каждую карточку в отдельную лекцию.",
+        message: "Операторская ошибка важна не названием, а тем, что она отнимает: звук, лицо, монтажный запас, внимание или доверие героя."
+      },
+      {
+        time: "38–43 мин",
+        title: "Промежуточная фиксация",
+        screens: "Переход между раундами внутри игры",
+        teacher: "Посмотрите два числа: сколько привычек группа узнала у себя и сколько причин определила верно. Не сравнивайте участников. Спросите, какая ошибка казалась мелочью, пока не увидели её последствие.",
+        message: "Контроль начинается там, где человек может заранее назвать последствие своей ошибки."
+      },
+      {
+        time: "43–73 мин",
+        title: "Раунд 2: ведущие и корреспонденты",
+        screens: "Кадр 03 · Раунд 2",
+        teacher: "Сохраняйте тот же темп. В спорных карточках возвращайте группу к зрителю: что он поймёт, услышит или потеряет? Разделяйте ошибки подачи ведущего и ошибки журналистской работы, но не уходите в теорию жанров.",
+        message: "Хорошая речь — не красивое произношение. Это ясная мысль, контакт со зрителем и вопрос, который достаёт информацию."
+      },
+      {
+        time: "73–80 мин",
+        title: "Читаем результат без экзамена",
+        screens: "Кадр 04",
+        teacher: "Сравните итоговый балл со шкалой. Затем попросите группу выбрать по одной самой опасной ошибке оператора и корреспондента. Выбор нужно защитить последствием, а не фразой «так нельзя».",
+        message: "Главная ошибка — та, после которой материал перестаёт выполнять задачу."
+      },
+      {
+        time: "80–85 мин",
+        title: "Закрываем четырьмя фильтрами",
+        screens: "Кадры 05–06",
+        teacher: "Пройдите четыре фильтра: понятно, слышно и видно, есть человек, есть проверяемый факт. Попросите назвать одно правило, которое участник будет контролировать на следующей реальной работе.",
+        message: "Увидел → назвал последствие → исправил сначала главное."
+      }
+    ],
+    checkpoints: [
+      "Участники не только узнают ошибку, но и называют её конкретное последствие.",
+      "Операторские проблемы не смешиваются с проблемами речи и журналистского вопроса.",
+      "Группа принимает честный ответ «да, я так делаю» без насмешек и персональных разборок.",
+      "Весь урок проходит без съёмки и просмотра собственного материала."
+    ],
+    avoid: [
+      "Не просить поднимать руки и публично признаваться в каждой ошибке — ответ можно давать всей группой.",
+      "Не читать длинное объяснение до выбора причины: сначала решение, потом короткий разбор.",
+      "Не превращать неправильный ответ в повод показать превосходство преподавателя.",
+      "Не добавлять практическую съёмку в конце: задача урока — диагностика и понимание причин."
+    ]
   }
 };
-
 
 (function () {
   "use strict";
@@ -3250,6 +3622,40 @@ window.TIMECODE_TEACHER_GUIDES = {
         <div class="sequence-actions"><button type="button" data-sequence-reset>Сбросить</button><button type="button" class="sequence-play" data-sequence-play disabled>Собрать и включить ▶</button></div>
         <p class="sequence-feedback" data-sequence-feedback aria-live="polite">Сначала выберите все шесть кадров.</p>
       </div>`;
+    } else if (layout === "habit-check") {
+      const totalHabits = (scene.rounds || []).reduce((sum, round) => sum + (round.cases || []).length, 0);
+      stage = `<div class="habit-check" data-habit-check>
+        <div class="habit-scorebar">
+          <div><span data-habit-round>РАУНД 1</span><strong data-habit-round-title>10 ошибок операторов</strong></div>
+          <div class="habit-score"><span>УЗНАЛИ У СЕБЯ <b data-habit-confessed>0</b></span><span>ПОНЯЛИ ПРИЧИНУ <b data-habit-score>0</b> / ${totalHabits}</span></div>
+        </div>
+        <div class="habit-panel" data-habit-panel>
+          <div class="habit-progress"><span data-habit-hashtag>#съёмка</span><b><i data-habit-number>01</i> / ${totalHabits}</b></div>
+          <div class="habit-stamp" data-habit-stamp>ОБЪЕКТИВ</div>
+          <h3 data-habit-text></h3>
+          <div class="habit-self-check" data-habit-self-check>
+            <p>ДЕЛАЕТЕ ТАК?</p>
+            <div><button type="button" data-habit-own="yes">Да, бывает</button><button type="button" data-habit-own="no">Нет, не делаю</button></div>
+          </div>
+          <div class="habit-reason" data-habit-reason hidden>
+            <p data-habit-question>Почему это ошибка?</p>
+            <div data-habit-options></div>
+          </div>
+          <div class="habit-verdict" data-habit-verdict hidden>
+            <span data-habit-result></span>
+            <p data-habit-why></p>
+            <strong data-habit-rule></strong>
+          </div>
+          <div class="habit-actions"><button type="button" data-habit-reset>Начать заново</button><button type="button" class="habit-next" data-habit-next disabled>Следующая ошибка →</button></div>
+        </div>
+        <div class="habit-finish" data-habit-finish hidden>
+          <span>ПРОВЕРКА ЗАКОНЧЕНА</span>
+          <strong data-habit-final-score>0 / ${totalHabits}</strong>
+          <h3>Теперь вы не просто знаете список ошибок — вы понимаете, почему они ломают материал.</h3>
+          <p data-habit-final-habits></p>
+          <button type="button" data-habit-restart>Пройти ещё раз</button>
+        </div>
+      </div>`;
     } else if (layout === "camera-cards") {
       stage = `<div class="camera-card-deck" data-camera-card-deck>
         <div class="camera-card-toolbar"><span><b data-camera-card-count>0</b> / ${scene.cards.length} открыто</span><button type="button" data-camera-card-reset>Вернуть карточки</button></div>
@@ -3435,6 +3841,113 @@ window.TIMECODE_TEACHER_GUIDES = {
         storyBuilder.classList.add("is-complete");
         markAnswered();
       });
+    }
+
+    const habitCheck = document.querySelector("[data-habit-check]");
+    if (habitCheck) {
+      const items = (scene.rounds || []).flatMap((round, roundIndex) => (round.cases || []).map((item) => ({ ...item, round, roundIndex })));
+      const panel = habitCheck.querySelector("[data-habit-panel]");
+      const finish = habitCheck.querySelector("[data-habit-finish]");
+      const ownButtons = Array.from(habitCheck.querySelectorAll("[data-habit-own]"));
+      const reasonBlock = habitCheck.querySelector("[data-habit-reason]");
+      const optionsBlock = habitCheck.querySelector("[data-habit-options]");
+      const verdict = habitCheck.querySelector("[data-habit-verdict]");
+      const nextButton = habitCheck.querySelector("[data-habit-next]");
+      let cursor = 0;
+      let confessed = 0;
+      let score = 0;
+      let selfAnswered = false;
+      let reasonAnswered = false;
+
+      const renderHabit = () => {
+        const item = items[cursor];
+        selfAnswered = false;
+        reasonAnswered = false;
+        habitCheck.querySelector("[data-habit-round]").textContent = item.round.label;
+        habitCheck.querySelector("[data-habit-round-title]").textContent = item.round.title;
+        habitCheck.querySelector("[data-habit-hashtag]").textContent = item.round.hashtag;
+        habitCheck.querySelector("[data-habit-number]").textContent = String(cursor + 1).padStart(2, "0");
+        habitCheck.querySelector("[data-habit-stamp]").textContent = item.stamp;
+        habitCheck.querySelector("[data-habit-text]").textContent = item.habit;
+        habitCheck.querySelector("[data-habit-question]").textContent = item.question || "Почему это ошибка?";
+        ownButtons.forEach((button) => {
+          button.disabled = false;
+          button.classList.remove("is-selected");
+        });
+        optionsBlock.innerHTML = item.options.map((option, index) => `<button type="button" data-habit-option="${index}"><span>${String.fromCharCode(1040 + index)}</span>${escapeHtml(option)}</button>`).join("");
+        reasonBlock.hidden = true;
+        verdict.hidden = true;
+        verdict.classList.remove("is-correct", "is-wrong");
+        nextButton.disabled = true;
+        nextButton.textContent = cursor === items.length - 1 ? "Показать результат →" : "Следующая ошибка →";
+      };
+
+      ownButtons.forEach((button) => {
+        button.addEventListener("click", () => {
+          if (selfAnswered) return;
+          selfAnswered = true;
+          if (button.dataset.habitOwn === "yes") confessed += 1;
+          habitCheck.querySelector("[data-habit-confessed]").textContent = String(confessed);
+          ownButtons.forEach((item) => {
+            item.disabled = true;
+            item.classList.toggle("is-selected", item === button);
+          });
+          reasonBlock.hidden = false;
+          reasonBlock.scrollIntoView({ block: "nearest", behavior: "smooth" });
+        });
+      });
+
+      optionsBlock.addEventListener("click", (event) => {
+        const button = event.target.closest("[data-habit-option]");
+        if (!button || reasonAnswered) return;
+        reasonAnswered = true;
+        const item = items[cursor];
+        const selected = Number(button.dataset.habitOption);
+        const correct = selected === item.correct;
+        if (correct) score += 1;
+        habitCheck.querySelector("[data-habit-score]").textContent = String(score);
+        Array.from(optionsBlock.querySelectorAll("[data-habit-option]")).forEach((optionButton, index) => {
+          optionButton.disabled = true;
+          optionButton.classList.toggle("is-correct", index === item.correct);
+          optionButton.classList.toggle("is-wrong", index === selected && !correct);
+        });
+        verdict.hidden = false;
+        verdict.classList.add(correct ? "is-correct" : "is-wrong");
+        habitCheck.querySelector("[data-habit-result]").textContent = correct ? "ДА. ВЫ ПОНЯЛИ ПРИЧИНУ" : "НЕ СОВСЕМ. ВОТ ЧТО ЛОМАЕТСЯ";
+        habitCheck.querySelector("[data-habit-why]").textContent = item.why;
+        habitCheck.querySelector("[data-habit-rule]").textContent = item.rule;
+        nextButton.disabled = false;
+        if (cursor === items.length - 1) markAnswered();
+      });
+
+      nextButton.addEventListener("click", () => {
+        if (!reasonAnswered) return;
+        if (cursor < items.length - 1) {
+          cursor += 1;
+          renderHabit();
+          panel.scrollIntoView({ block: "start", behavior: "smooth" });
+          return;
+        }
+        panel.hidden = true;
+        finish.hidden = false;
+        habitCheck.querySelector("[data-habit-final-score]").textContent = `${score} / ${items.length}`;
+        habitCheck.querySelector("[data-habit-final-habits]").textContent = `Узнали у себя привычек: ${confessed}. Это не штраф — это список того, что теперь можно контролировать.`;
+        finish.scrollIntoView({ block: "center", behavior: "smooth" });
+      });
+
+      const restart = () => {
+        cursor = 0;
+        confessed = 0;
+        score = 0;
+        habitCheck.querySelector("[data-habit-confessed]").textContent = "0";
+        habitCheck.querySelector("[data-habit-score]").textContent = "0";
+        panel.hidden = false;
+        finish.hidden = true;
+        renderHabit();
+      };
+      habitCheck.querySelector("[data-habit-reset]")?.addEventListener("click", restart);
+      habitCheck.querySelector("[data-habit-restart]")?.addEventListener("click", restart);
+      renderHabit();
     }
 
     const cameraDeck = document.querySelector("[data-camera-card-deck]");
