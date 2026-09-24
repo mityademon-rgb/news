@@ -1,0 +1,37 @@
+name: TIMECODE game progress repair
+on:
+  push:
+    branches: [boom-kadr-deploy]
+    paths: ['.github/workflows/timecode-score-fix-20260924.yml']
+permissions:
+  contents: read
+jobs:
+  repair:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Apply checked bot server update
+        env:
+          BOOM_SSH_KEY: ${{ secrets.BOOM_SSH_KEY }}
+        run: |
+          set -euo pipefail
+          curl -fsSL --retry 2 --connect-timeout 10 --max-time 40 https://raw.githubusercontent.com/mityademon-rgb/media-center-bot/1785d3085edd81987b5f43821155de9027f39b1f/timecode-bot/server.py -o /tmp/timecode-server.py
+          python3 -m py_compile /tmp/timecode-server.py
+          grep -q "'framing','moon','words'" /tmp/timecode-server.py
+          mkdir -p ~/.ssh
+          chmod 700 ~/.ssh
+          printf '%s\n' "$BOOM_SSH_KEY" > ~/.ssh/timecode_key
+          chmod 600 ~/.ssh/timecode_key
+          ssh-keyscan -T 8 -H 217.149.24.242 > ~/.ssh/known_hosts
+          scp -i ~/.ssh/timecode_key -o BatchMode=yes /tmp/timecode-server.py root@217.149.24.242:/opt/timecode-bot/timecode-bot/server.py.new
+          ssh -i ~/.ssh/timecode_key -o BatchMode=yes root@217.149.24.242 'python3 -' <<'PY'
+          import pathlib,shutil,os,py_compile,subprocess,urllib.request
+          p=pathlib.Path('/opt/timecode-bot/timecode-bot/server.py')
+          n=p.with_suffix('.py.new')
+          py_compile.compile(str(n),doraise=True)
+          shutil.copy2(p,p.with_suffix('.py.before-score-fix'))
+          os.replace(n,p)
+          subprocess.run(['systemctl','restart','timecode-bot.service'],check=True)
+          assert subprocess.check_output(['systemctl','is-active','timecode-bot.service'],text=True).strip()=='active'
+          assert b'"ok": true' in urllib.request.urlopen('http://127.0.0.1:8097/health',timeout=5).read()
+          print('TIMECODE score persistence: active')
+          PY
