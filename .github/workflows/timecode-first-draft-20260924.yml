@@ -1,4 +1,4 @@
-name: Draft first TIMECODE quest for editorial review
+name: TIMECODE private quest delivery
 on:
   push:
     branches: [boom-kadr-deploy]
@@ -6,26 +6,58 @@ on:
 permissions:
   contents: read
 jobs:
-  draft:
+  deliver:
     runs-on: ubuntu-latest
     steps:
-      - name: Apply IPv4 Kimi client and prepare private Kids Lab preview
+      - name: Upgrade transport and deliver saved editorial preview
         env:
           BOOM_SSH_KEY: ${{ secrets.BOOM_SSH_KEY }}
         run: |
           set -euo pipefail
+          base=https://raw.githubusercontent.com/mityademon-rgb/media-center-bot/d802d7e59496023ab0ae9bda29ddcd64f5990009/timecode-bot
+          curl -fsSL --retry 2 --connect-timeout 8 --max-time 40 "$base/server.py" -o /tmp/tc-server.py
+          curl -fsSL --retry 2 --connect-timeout 8 --max-time 40 "$base/quest_engine.py" -o /tmp/tc-quest-engine.py
+          python3 -m py_compile /tmp/tc-server.py /tmp/tc-quest-engine.py
           mkdir -p ~/.ssh
           chmod 700 ~/.ssh
           printf '%s\n' "$BOOM_SSH_KEY" > ~/.ssh/timecode_key
           chmod 600 ~/.ssh/timecode_key
           ssh-keyscan -T 8 -H 217.149.24.242 > ~/.ssh/known_hosts
-          timeout 30 ssh -o ServerAliveInterval=15 -o ServerAliveCountMax=12 -i ~/.ssh/timecode_key -o BatchMode=yes root@217.149.24.242 'python3 -' <<'PY'
-          import os,subprocess,json
-          env={}
+          scp -i ~/.ssh/timecode_key -o BatchMode=yes /tmp/tc-server.py /tmp/tc-quest-engine.py root@217.149.24.242:/opt/timecode-bot/
+          timeout 95 ssh -o ServerAliveInterval=10 -o ServerAliveCountMax=10 -i ~/.ssh/timecode_key -o BatchMode=yes root@217.149.24.242 'python3 -' <<'PY'
+          import os,sys,json,sqlite3,pathlib,shutil,py_compile,subprocess,time,urllib.request
+          root=pathlib.Path('/opt/timecode-bot')
+          app=root/'timecode-bot'
+          for name,staged in [('server.py','tc-server.py'),('quest_engine.py','tc-quest-engine.py')]:
+              source=root/staged;target=app/name
+              py_compile.compile(str(source),doraise=True)
+              shutil.copy2(target,root/(name+'.before-ipv4'))
+              os.replace(source,target)
+          subprocess.run(['systemctl','restart','timecode-bot.service'],check=True)
+          for attempt in range(25):
+              try:
+                  assert b'"ok": true' in urllib.request.urlopen('http://127.0.0.1:8097/health',timeout=3).read()
+                  break
+              except Exception:
+                  if attempt==24:raise
+                  time.sleep(1)
           for line in open('/etc/timecode-bot.env',encoding='utf-8'):
               if '=' in line and not line.lstrip().startswith('#'):
-                  key,value=line.strip().split('=',1);env[key]=value
-          result=subprocess.run(['curl','-4','-fsS','--connect-timeout','5','--max-time','12','https://api.telegram.org/bot'+env['BOT_TOKEN']+'/getMe'],capture_output=True,text=True,timeout=15)
-          body=json.loads(result.stdout) if result.returncode==0 else {}
-          print('Telegram IPv4 reachable:',bool(body.get('ok')),'error code:',result.returncode,flush=True)
+                  key,value=line.strip().split('=',1)
+                  os.environ[key]=value
+          sys.path.insert(0,str(app))
+          import server
+          admin=397724997
+          assert admin in server.ADMINS
+          with server.conn() as c:
+              draft=c.execute("select id,lab,content from quest_drafts where lab='kids' and status='draft' order by id desc limit 1").fetchone()
+          assert draft, 'No private draft found'
+          count=[0]
+          def checked_send(*args,**kwargs):
+              reply=server.send(*args,**kwargs)
+              if not reply.get('ok'):raise RuntimeError('Telegram rejected private draft message '+str(count[0]+1))
+              count[0]+=1
+              return reply
+          server.quests.deliver_preview(admin,draft['id'],draft['lab'],json.loads(draft['content']),checked_send)
+          print('private preview messages:',count[0],'quest ID:',draft['id'],'published: 0',flush=True)
           PY
