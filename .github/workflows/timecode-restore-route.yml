@@ -1,0 +1,50 @@
+name: Restore TIMECODE miniapp route
+on:
+  push:
+    branches: [boom-kadr-deploy]
+    paths: ['.github/workflows/timecode-restore-route.yml']
+permissions:
+  contents: read
+jobs:
+  restore:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Restore only /tc/ route in timecode-lab.ru vhost
+        env:
+          BOOM_SSH_KEY: ${{ secrets.BOOM_SSH_KEY }}
+        run: |
+          set -euo pipefail
+          mkdir -p ~/.ssh
+          printf '%s\n' "$BOOM_SSH_KEY" > ~/.ssh/timecode_key
+          chmod 600 ~/.ssh/timecode_key
+          ssh-keyscan -T 8 -H 217.149.24.242 >> ~/.ssh/known_hosts
+          cat > /tmp/timecode-restore-route.py <<'PY'
+          from pathlib import Path
+          import shutil
+          cfg = Path('/etc/nginx/conf.d/boom-kadr.conf')
+          current = cfg.read_text()
+          marker = '    add_header Referrer-Policy strict-origin-when-cross-origin always;\n'
+          assert current.count(marker) == 1, 'Unexpected vhost layout'
+          assert current.count('server_name timecode-lab.ru;') == 1, 'Unexpected server_name'
+          assert 'location ^~ /tc/' not in current, 'Route already present'
+          location = '''
+              location = /tc {
+                  return 301 /tc/;
+              }
+
+              location ^~ /tc/ {
+                  proxy_pass http://127.0.0.1:8097/;
+                  proxy_set_header Host $host;
+                  proxy_set_header X-Real-IP $remote_addr;
+                  proxy_set_header X-Forwarded-Proto $scheme;
+                  proxy_read_timeout 30s;
+              }
+          '''
+          backup = cfg.with_name(cfg.name + '.before-timecode-route-20260924')
+          assert not backup.exists(), 'Backup already exists'
+          shutil.copy2(cfg, backup)
+          cfg.write_text(current.replace(marker, marker + location, 1))
+          print('Added /tc/ proxy to the timecode-lab.ru vhost; backup:', backup)
+          PY
+          scp -i ~/.ssh/timecode_key -o BatchMode=yes /tmp/timecode-restore-route.py root@217.149.24.242:/tmp/timecode-restore-route.py
+          ssh -i ~/.ssh/timecode_key -o BatchMode=yes root@217.149.24.242 'set -eu; before=$(curl -ksS --resolve timecode-lab.ru:443:217.149.24.234 --max-time 5 https://timecode-lab.ru/ | sha256sum | cut -d" " -f1); python3 /tmp/timecode-restore-route.py; if ! nginx -t; then cp /etc/nginx/conf.d/boom-kadr.conf.before-timecode-route-20260924 /etc/nginx/conf.d/boom-kadr.conf; nginx -t; exit 1; fi; systemctl reload nginx; if ! curl -kfsS --resolve timecode-lab.ru:443:217.149.24.234 --max-time 6 https://timecode-lab.ru/tc/ | grep -q "timecode-auth"; then cp /etc/nginx/conf.d/boom-kadr.conf.before-timecode-route-20260924 /etc/nginx/conf.d/boom-kadr.conf; nginx -t; systemctl reload nginx; echo "Miniapp failed; restored config"; exit 1; fi; for asset in app.js terms-memory.js terms-memory.css; do curl -kfsS --resolve timecode-lab.ru:443:217.149.24.234 --max-time 6 "https://timecode-lab.ru/tc/$asset" -o /dev/null; done; after=$(curl -ksS --resolve timecode-lab.ru:443:217.149.24.234 --max-time 5 https://timecode-lab.ru/ | sha256sum | cut -d" " -f1); test "$before" = "$after"; echo "TIMECODE app route restored; main site unchanged"'
