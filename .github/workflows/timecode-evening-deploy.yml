@@ -1,0 +1,25 @@
+name: Deploy TIMECODE evening check-in
+on:
+  push:
+    branches: [boom-kadr-deploy]
+    paths: ['.github/workflows/timecode-evening-deploy.yml']
+permissions:
+  contents: read
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Deploy only TIMECODE server
+        env:
+          BOOM_SSH_KEY: ${{ secrets.BOOM_SSH_KEY }}
+        run: |
+          set -euo pipefail
+          test -n "$BOOM_SSH_KEY"
+          mkdir -p ~/.ssh
+          printf '%s\n' "$BOOM_SSH_KEY" > ~/.ssh/timecode_key
+          chmod 600 ~/.ssh/timecode_key
+          ssh-keyscan -T 8 -H 217.149.24.242 >> ~/.ssh/known_hosts
+          curl --fail --location --retry 3 --max-time 30 'https://raw.githubusercontent.com/mityademon-rgb/media-center-bot/2eef637f85af6e278f0118207212dd41ff9eaa01/timecode-bot/server.py' -o /tmp/timecode-evening-server.py
+          python3 -m py_compile /tmp/timecode-evening-server.py
+          scp -i ~/.ssh/timecode_key -o BatchMode=yes /tmp/timecode-evening-server.py root@217.149.24.242:/tmp/timecode-evening-server.py
+          ssh -i ~/.ssh/timecode_key -o BatchMode=yes root@217.149.24.242 'set -eu; target=/opt/timecode-bot/timecode-bot/server.py; test -f "$target"; cp -p "$target" "$target.before-evening-20260924"; python3 -m py_compile /tmp/timecode-evening-server.py; install -m 0644 /tmp/timecode-evening-server.py "$target"; systemctl restart timecode-bot.service; systemctl is-active --quiet timecode-bot.service; for i in 1 2 3 4 5; do if curl -fsS --max-time 3 http://127.0.0.1:8097/health >/dev/null; then echo "TIMECODE evening check-in active"; exit 0; fi; sleep 2; done; echo "Service active but health endpoint unavailable"; systemctl status timecode-bot.service --no-pager | tail -20; exit 1'
