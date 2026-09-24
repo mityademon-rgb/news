@@ -47,6 +47,21 @@ jobs:
           con=sqlite3.connect('/var/lib/timecode-bot/timecode.db')
           print('registered users:',con.execute('select id,role,joined from users').fetchall())
           print('configured admin ID:',conf.get('ADMIN_IDS'))
+          req=urllib.request.Request('https://api.telegram.org/bot'+token+'/sendMessage',data=json.dumps({'chat_id':int(conf['ADMIN_IDS']),'text':'TIMECODE: проверка связи. Бот работает; открой приложение ещё раз.'}).encode(),headers={'Content-Type':'application/json'})
+          try:
+              with urllib.request.urlopen(req,timeout=12) as response: message=json.load(response)
+              print('test message delivered:',message.get('ok'),'error:',str(message.get('description',''))[:130])
+          except Exception as e: print('test message request failed:',type(e).__name__)
+          import hashlib,hmac,time,urllib.parse
+          user={'id':int(conf['ADMIN_IDS'])}
+          fields={'auth_date':str(int(time.time())),'user':json.dumps(user,separators=(',',':'))}
+          check='\\n'.join(k+'='+v for k,v in sorted(fields.items()))
+          key=hmac.new(b'WebAppData',token.encode(),hashlib.sha256).digest()
+          fields['hash']=hmac.new(key,check.encode(),hashlib.sha256).hexdigest()
+          auth=urllib.request.Request('http://127.0.0.1:8097/api/auth',data=json.dumps({'initData':urllib.parse.urlencode(fields)}).encode(),headers={'Content-Type':'application/json'})
+          try:
+              with urllib.request.urlopen(auth,timeout=4) as response: print('miniapp auth status:',response.status)
+          except Exception as e: print('miniapp auth failure:',type(e).__name__,getattr(e,'code',''))
           PY
           echo '=== SERVICE LOG (REDACTED) ==='
           journalctl -u timecode-bot.service -n 50 --no-pager -o cat 2>&1 | sed -E 's/[0-9]{7,}:[A-Za-z0-9_-]{20,}/[TELEGRAM_TOKEN]/g; s/sk-[A-Za-z0-9_-]{15,}/[API_KEY]/g'
