@@ -14,33 +14,17 @@ jobs:
           BOOM_SSH_KEY: ${{ secrets.BOOM_SSH_KEY }}
         run: |
           set -euo pipefail
-          curl -fsSL --retry 2 --connect-timeout 8 --max-time 35 https://raw.githubusercontent.com/mityademon-rgb/media-center-bot/b35c875df75ba9376b0fd6649fc899f7c61e0d98/timecode-bot/quest_engine.py -o /tmp/tc-quest-engine.py
-          python3 -m py_compile /tmp/tc-quest-engine.py
           mkdir -p ~/.ssh
           chmod 700 ~/.ssh
           printf '%s\n' "$BOOM_SSH_KEY" > ~/.ssh/timecode_key
           chmod 600 ~/.ssh/timecode_key
           ssh-keyscan -T 8 -H 217.149.24.242 > ~/.ssh/known_hosts
-          scp -i ~/.ssh/timecode_key -o BatchMode=yes /tmp/tc-quest-engine.py root@217.149.24.242:/opt/timecode-bot/timecode-bot/quest_engine.py.new
-          timeout 195 ssh -o ServerAliveInterval=15 -o ServerAliveCountMax=12 -i ~/.ssh/timecode_key -o BatchMode=yes root@217.149.24.242 'python3 -' <<'PY'
-          import os,sys,pathlib,py_compile,shutil,sqlite3
-          p=pathlib.Path('/opt/timecode-bot/timecode-bot/quest_engine.py')
-          n=p.with_suffix('.py.new')
-          py_compile.compile(str(n),doraise=True)
-          shutil.copy2(p,p.with_suffix('.py.before-kimi-ipv4'))
-          os.replace(n,p)
-          for line in open('/etc/timecode-bot.env',encoding='utf-8'):
-              if '=' in line and not line.lstrip().startswith('#'):
-                  key,value=line.strip().split('=',1)
-                  os.environ[key]=value
-          sys.path.insert(0,str(p.parent))
-          import server
-          admin=397724997
-          assert admin in server.ADMINS
-          with server.conn() as c:
-              before=c.execute("select count(*) from quest_drafts where lab='kids' and status='draft'").fetchone()[0]
-          server.quests.prepare(admin,'kids','Пропавший кадр: перед премьерой исчез финальный план, а три человека помнят съёмку по-разному',server.conn,server.send,server.BASE,server.AI_KEY,server.AI_MODEL,server.kimi_params())
-          with server.conn() as c:
-              after=c.execute("select count(*) from quest_drafts where lab='kids' and status='draft'").fetchone()[0]
-          print('new private drafts:',after-before,'published: 0',flush=True)
+          timeout 30 ssh -o ServerAliveInterval=15 -o ServerAliveCountMax=12 -i ~/.ssh/timecode_key -o BatchMode=yes root@217.149.24.242 'python3 -' <<'PY'
+          import sqlite3,subprocess
+          c=sqlite3.connect('/var/lib/timecode-bot/timecode.db')
+          rows=c.execute('select id,lab,status,length(content) from quest_drafts order by id desc limit 5').fetchall()
+          print('quest drafts:',rows,flush=True)
+          p=subprocess.run(['journalctl','-u','timecode-bot.service','--since','-12 min','--no-pager'],capture_output=True,text=True)
+          safe=[line[-180:] for line in p.stdout.splitlines() if ('Quest generation:' in line or 'Telegram:' in line or 'Kimi:' in line)]
+          print('service errors:',safe[-5:],flush=True)
           PY
