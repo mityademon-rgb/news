@@ -1,0 +1,28 @@
+name: Inspect TIMECODE lesson rows
+on:
+  push:
+    branches: [boom-kadr-deploy]
+    paths: ['.github/workflows/timecode-schedule-inspect.yml']
+permissions:
+  contents: read
+jobs:
+  inspect:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - name: Connect to existing server
+        env:
+          BOOM_SSH_KEY: ${{ secrets.BOOM_SSH_KEY }}
+        run: |
+          install -d -m 700 ~/.ssh
+          printf '%s\n' "$BOOM_SSH_KEY" > ~/.ssh/timecode_schedule
+          chmod 600 ~/.ssh/timecode_schedule
+          ssh-keyscan -T 8 -H 217.149.24.242 > ~/.ssh/known_hosts
+      - name: Read TIMECODE lessons and overrides only
+        run: |
+          ssh -i ~/.ssh/timecode_schedule -o BatchMode=yes root@217.149.24.242 'python3 -' <<'PY'
+          import sqlite3
+          c=sqlite3.connect('/var/lib/timecode-bot/timecode.db')
+          print('LESSONS:',c.execute('select id,lab,weekday,start,title,place,enabled from lessons order by weekday,start').fetchall())
+          print('FUTURE OVERRIDES:',c.execute("select id,day,lab,start,title,cancelled from overrides where day>=date('now') order by day").fetchall())
+          PY
