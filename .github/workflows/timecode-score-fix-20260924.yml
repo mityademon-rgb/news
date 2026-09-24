@@ -32,6 +32,13 @@ jobs:
           os.replace(n,p)
           subprocess.run(['systemctl','restart','timecode-bot.service'],check=True)
           assert subprocess.check_output(['systemctl','is-active','timecode-bot.service'],text=True).strip()=='active'
-          assert b'"ok": true' in urllib.request.urlopen('http://127.0.0.1:8097/health',timeout=5).read()
+          import time
+          for attempt in range(20):
+              try:
+                  assert b'"ok": true' in urllib.request.urlopen('http://127.0.0.1:8097/health',timeout=3).read()
+                  break
+              except Exception:
+                  if attempt==19:raise
+                  time.sleep(1)
           print('TIMECODE score persistence: active')
           PY
