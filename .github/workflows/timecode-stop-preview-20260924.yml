@@ -13,5 +13,18 @@ jobs:
       - name: Cancel text draft delivery
         env:
           GH_TOKEN: ${{ github.token }}
+          BOOM_SSH_KEY: ${{ secrets.BOOM_SSH_KEY }}
         run: |
           curl -fsS -X POST -H "Authorization: Bearer $GH_TOKEN" -H "Accept: application/vnd.github+json" https://api.github.com/repos/mityademon-rgb/news/actions/runs/36007920176/cancel || true
+          mkdir -p ~/.ssh
+          chmod 700 ~/.ssh
+          printf '%s\\n' "$BOOM_SSH_KEY" > ~/.ssh/timecode_key
+          chmod 600 ~/.ssh/timecode_key
+          ssh-keyscan -T 8 -H 217.149.24.242 > ~/.ssh/known_hosts
+          ssh -i ~/.ssh/timecode_key -o BatchMode=yes root@217.149.24.242 'python3 -' <<'PY'
+          import sqlite3
+          path='/var/lib/timecode-bot/timecode.db'
+          with sqlite3.connect(path) as c:
+              count=c.execute("update quest_drafts set status='rejected' where id=1 and lab='kids' and status='draft'").rowcount
+          print('Text-only draft rejected:',count)
+          PY
