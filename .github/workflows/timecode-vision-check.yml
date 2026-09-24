@@ -32,10 +32,17 @@ jobs:
               return struct.pack('>I',len(data))+kind+data+struct.pack('>I',zlib.crc32(kind+data)&0xffffffff)
           image=b'\x89PNG\r\n\x1a\n'+chunk(b'IHDR',struct.pack('>IIBBBBB',32,32,8,2,0,0,0))
           image+=chunk(b'IDAT',zlib.compress(b''.join(b'\0'+b'\x9d\x68\xc8'*32 for _ in range(32))))+chunk(b'IEND',b'')
-          proc=subprocess.run(['curl','-4','-sS','--connect-timeout','8','--max-time','25','-H','Authorization: Bearer '+server.AI_KEY,'https://api.moonshot.ai/v1/models'],capture_output=True,text=True,timeout=30)
-          if proc.returncode:raise SystemExit('MODELS_TRANSPORT_ERROR')
-          models=json.loads(proc.stdout)
-          print('AVAILABLE_MODELS',json.dumps([x.get('id') for x in models.get('data',[]) if x.get('id','').startswith('kimi')]))
+          for model in ('kimi-k2.6','kimi-k3'):
+              payload={'model':model,'max_tokens':100,'thinking':{'type':'disabled'},'messages':[{'role':'user','content':[{'type':'text','text':'Назови цвет квадрата одним словом.'},{'type':'image_url','image_url':{'url':'data:image/png;base64,'+base64.b64encode(image).decode()}}]}]}
+              proc=subprocess.run(['curl','-4','-sS','--connect-timeout','8','--max-time','35','-H','Content-Type: application/json','-H','Authorization: Bearer '+server.AI_KEY,'--data-binary','@-','https://api.moonshot.ai/v1/chat/completions'],input=json.dumps(payload),capture_output=True,text=True,timeout=40)
+              try:result=json.loads(proc.stdout)
+              except Exception:print('VISION_BAD_RESPONSE',model,proc.returncode);continue
+              if result.get('choices'):
+                  print('VISION_WORKS',model)
+                  break
+              error=result.get('error',{})
+              print('VISION_REJECTED',model,str(error.get('type',''))[:60],str(error.get('message',''))[:150].replace(server.AI_KEY,'[redacted]'))
+          else:raise SystemExit(1)
 
           PY
           scp -i /tmp/deploy_key -o UserKnownHostsFile=/tmp/known_hosts /tmp/check_vision.py root@217.149.24.242:/tmp/timecode-vision-check.py
