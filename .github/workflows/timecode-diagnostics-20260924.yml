@@ -1,0 +1,21 @@
+name: TIMECODE deployment diagnostics
+on:
+  push:
+    branches: [boom-kadr-deploy]
+    paths: ['.github/workflows/timecode-diagnostics-20260924.yml']
+permissions:
+  contents: read
+jobs:
+  check:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check isolated service
+        env:
+          BOOM_SSH_KEY: ${{ secrets.BOOM_SSH_KEY }}
+        run: |
+          mkdir -p ~/.ssh
+          chmod 700 ~/.ssh
+          printf '%s\n' "$BOOM_SSH_KEY" > ~/.ssh/timecode_key
+          chmod 600 ~/.ssh/timecode_key
+          ssh-keyscan -T 8 -H 217.149.24.242 > ~/.ssh/known_hosts
+          timeout 20 ssh -i ~/.ssh/timecode_key -o BatchMode=yes root@217.149.24.242 'systemctl is-active timecode-bot.service; python3 -c "from pathlib import Path; p=Path(\"/opt/timecode-bot/timecode-bot\"); print([(name, int((p/name).stat().st_mtime)) for name in (\"server.py\",\"static/app.js\",\"static/style.css\")]); print(\"games\", \"function moonGame\" in (p/\"static/app.js\").read_text())"; curl -sf --max-time 3 http://127.0.0.1:8097/health'
