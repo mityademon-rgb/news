@@ -1,0 +1,51 @@
+name: Update TIMECODE regular lessons
+on:
+  push:
+    branches: [boom-kadr-deploy]
+    paths: ['.github/workflows/timecode-schedule-update.yml']
+permissions:
+  contents: read
+jobs:
+  update:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - name: Connect to existing server
+        env:
+          BOOM_SSH_KEY: ${{ secrets.BOOM_SSH_KEY }}
+        run: |
+          install -d -m 700 ~/.ssh
+          printf '%s\n' "$BOOM_SSH_KEY" > ~/.ssh/timecode_schedule
+          chmod 600 ~/.ssh/timecode_schedule
+          ssh-keyscan -T 8 -H 217.149.24.242 > ~/.ssh/known_hosts
+      - name: Back up DB and update only TIMECODE lessons
+        run: |
+          ssh -i ~/.ssh/timecode_schedule -o BatchMode=yes root@217.149.24.242 'python3 -' <<'PY'
+          import sqlite3,time,os
+          from pathlib import Path
+          db=Path('/var/lib/timecode-bot/timecode.db')
+          assert db.is_file()
+          c=sqlite3.connect(db,timeout=15)
+          current=c.execute('select lab,weekday,start,title,place,enabled from lessons order by id').fetchall()
+          expected=[('kids',1,'18:00','Как создают истории','ЦКД "МАРФИНО"',1)]
+          if current != expected:
+              raise SystemExit('Расписание изменилось после проверки; остановка без записи: '+repr(current))
+          backup=db.with_name('timecode.db.before-schedule-'+time.strftime('%Y%m%d%H%M%S'))
+          saved=sqlite3.connect(backup)
+          c.backup(saved)
+          saved.close()
+          os.chmod(backup,0o600)
+          venue='ЦКД МАРФИНО · МЕДИАЦЕНТР'
+          lessons=[
+              ('kids',1,'18:00','Занятие Kids Lab',venue,1),
+              ('media',1,'19:00','Занятие Media Lab',venue,1),
+              ('kids',6,'12:00','Занятие Kids Lab',venue,1),
+              ('media',6,'13:30','Занятие Media Lab',venue,1),
+          ]
+          with c:
+              c.execute('delete from lessons')
+              c.executemany('insert into lessons(lab,weekday,start,title,place,enabled) values(?,?,?,?,?,?)',lessons)
+          print('Backup:',backup)
+          print('TIMECODE lessons:',c.execute('select lab,weekday,start,title,place from lessons order by weekday,start').fetchall())
+          c.close()
+          PY
