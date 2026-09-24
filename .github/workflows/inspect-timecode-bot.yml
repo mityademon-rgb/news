@@ -32,6 +32,22 @@ jobs:
           for name in BOT_TOKEN ADMIN_IDS MOONSHOT_API_KEY BASE_URL JOIN_SECRET SECRET; do
             if grep -q "^$name=" /etc/timecode-bot.env 2>/dev/null; then echo "$name: present"; else echo "$name: absent"; fi
           done
+          echo '=== TELEGRAM API / WEBHOOK ==='
+          python3 - <<'PY'
+          import json,urllib.request,sqlite3
+          conf=dict(line.strip().split('=',1) for line in open('/etc/timecode-bot.env') if '=' in line)
+          token=conf['BOT_TOKEN']
+          for method in ('getMe','getWebhookInfo'):
+              try:
+                  with urllib.request.urlopen('https://api.telegram.org/bot'+token+'/'+method,timeout=8) as r: data=json.load(r)
+                  result=data.get('result') or {}
+                  if method=='getMe': print('bot username:',result.get('username'), 'ok:',data.get('ok'))
+                  else: print('webhook configured:',bool(result.get('url')), 'pending:',result.get('pending_update_count'), 'last error:',str(result.get('last_error_message',''))[:130])
+              except Exception as e: print(method+': request failed ('+type(e).__name__+')')
+          con=sqlite3.connect('/var/lib/timecode-bot/timecode.db')
+          print('registered users:',con.execute('select count(*) from users').fetchone()[0])
+          print('configured admin ID:',conf.get('ADMIN_IDS'))
+          PY
           echo '=== SERVICE LOG (REDACTED) ==='
           journalctl -u timecode-bot.service -n 50 --no-pager -o cat 2>&1 | sed -E 's/[0-9]{7,}:[A-Za-z0-9_-]{20,}/[TELEGRAM_TOKEN]/g; s/sk-[A-Za-z0-9_-]{15,}/[API_KEY]/g'
           REMOTE
