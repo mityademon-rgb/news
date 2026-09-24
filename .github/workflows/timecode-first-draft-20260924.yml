@@ -20,11 +20,12 @@ jobs:
           chmod 600 ~/.ssh/timecode_key
           ssh-keyscan -T 8 -H 217.149.24.242 > ~/.ssh/known_hosts
           timeout 30 ssh -o ServerAliveInterval=15 -o ServerAliveCountMax=12 -i ~/.ssh/timecode_key -o BatchMode=yes root@217.149.24.242 'python3 -' <<'PY'
-          import sqlite3,subprocess
-          c=sqlite3.connect('/var/lib/timecode-bot/timecode.db')
-          rows=c.execute('select id,lab,status,length(content) from quest_drafts order by id desc limit 5').fetchall()
-          print('quest drafts:',rows,flush=True)
-          p=subprocess.run(['journalctl','-u','timecode-bot.service','--since','-12 min','--no-pager'],capture_output=True,text=True)
-          safe=[line[-180:] for line in p.stdout.splitlines() if ('Quest generation:' in line or 'Telegram:' in line or 'Kimi:' in line)]
-          print('service errors:',safe[-5:],flush=True)
+          import os,subprocess,json
+          env={}
+          for line in open('/etc/timecode-bot.env',encoding='utf-8'):
+              if '=' in line and not line.lstrip().startswith('#'):
+                  key,value=line.strip().split('=',1);env[key]=value
+          result=subprocess.run(['curl','-4','-fsS','--connect-timeout','5','--max-time','12','https://api.telegram.org/bot'+env['BOT_TOKEN']+'/getMe'],capture_output=True,text=True,timeout=15)
+          body=json.loads(result.stdout) if result.returncode==0 else {}
+          print('Telegram IPv4 reachable:',bool(body.get('ok')),'error code:',result.returncode,flush=True)
           PY
