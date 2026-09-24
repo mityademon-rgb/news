@@ -16,7 +16,7 @@ jobs:
           chmod 600 /tmp/deploy_key
           ssh-keyscan -T 8 -H 217.149.24.242 >> /tmp/known_hosts 2>/dev/null
           cat > /tmp/check_vision.py <<'PY'
-          import os, sys, zlib, struct, base64
+          import os, sys, zlib, struct, base64, subprocess, json
           from pathlib import Path
           pid=int(os.popen('systemctl show -p MainPID --value timecode-bot.service').read().strip())
           if not pid: raise SystemExit('SERVICE_NOT_RUNNING')
@@ -32,10 +32,16 @@ jobs:
               return struct.pack('>I',len(data))+kind+data+struct.pack('>I',zlib.crc32(kind+data)&0xffffffff)
           image=b'\x89PNG\r\n\x1a\n'+chunk(b'IHDR',struct.pack('>IIBBBBB',32,32,8,2,0,0,0))
           image+=chunk(b'IDAT',zlib.compress(b''.join(b'\0'+b'\x9d\x68\xc8'*32 for _ in range(32))))+chunk(b'IEND',b'')
-          result=server.kimi_request('/chat/completions',{
-              'model':server.VISION_MODEL,'max_tokens':80,'thinking':{'type':'disabled'},
-              'messages':[{'role':'user','content':[{'type':'text','text':'На русском назови цвет квадрата одним словом.'},
-                {'type':'image_url','image_url':{'url':'data:image/png;base64,'+base64.b64encode(image).decode()}}]}]},timeout=30)
+          payload={'model':server.VISION_MODEL,'max_tokens':80,'thinking':{'type':'disabled'},'messages':[{'role':'user','content':[{'type':'text','text':'Назови цвет квадрата.'},{'type':'image_url','image_url':{'url':'data:image/png;base64,'+base64.b64encode(image).decode()}}]}]}
+          test=subprocess.run(['curl','-4','-sS','--connect-timeout','8','--max-time','35','-w','\\n%{http_code}','-H','Content-Type: application/json','-H','Authorization: Bearer '+server.AI_KEY,'--data-binary','@-','https://api.moonshot.ai/v1/chat/completions'],input=json.dumps(payload),text=True,capture_output=True,timeout=40)
+          body,_,status=test.stdout.rpartition('\\n')
+          if test.returncode or status!='200':
+              try:
+                  error=json.loads(body).get('error',{})
+                  print('VISION_API_ERROR',status,str(error.get('type',''))[:70],str(error.get('message',''))[:180].replace(server.AI_KEY,'[redacted]'))
+              except Exception:print('VISION_HTTP_ERROR',status,'TRANSPORT',test.returncode)
+              raise SystemExit(1)
+          result=json.loads(body)
           reply=result['choices'][0]['message']['content']
           if not reply:raise SystemExit('KIMI_EMPTY_RESPONSE')
           print('KIMI_VISION_OK')
