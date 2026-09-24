@@ -21,7 +21,7 @@ jobs:
           ssh -i ~/.ssh/timecode_key -o BatchMode=yes root@217.149.24.242 'python3 -' <<'PY'
           import pathlib, urllib.request, py_compile, os, shutil, sqlite3, datetime, subprocess
           path=pathlib.Path('/opt/timecode-bot/timecode-bot/server.py')
-          url='https://raw.githubusercontent.com/mityademon-rgb/media-center-bot/0fd9591a8acf822d25c8ad88fa2a969eabc75f1a/timecode-bot/server.py'
+          url='https://raw.githubusercontent.com/mityademon-rgb/media-center-bot/e4457c10106184ac763a0b5fadde1da7ef277832/timecode-bot/server.py'
           new=urllib.request.urlopen(url,timeout=25).read()
           assert b'if any(re.search' in new and 'История начинается'.encode() in new
           tmp=path.with_suffix('.py.new')
@@ -30,13 +30,21 @@ jobs:
           shutil.copy2(path,path.with_suffix('.py.before-mission-fix'))
           os.replace(tmp,path)
           app=pathlib.Path('/opt/timecode-bot/timecode-bot/static/app.js')
-          app_url='https://raw.githubusercontent.com/mityademon-rgb/media-center-bot/0fd9591a8acf822d25c8ad88fa2a969eabc75f1a/timecode-bot/static/app.js'
+          app_url='https://raw.githubusercontent.com/mityademon-rgb/media-center-bot/e4457c10106184ac763a0b5fadde1da7ef277832/timecode-bot/static/app.js'
           app_new=urllib.request.urlopen(app_url,timeout=25).read()
-          assert 'СКОРО В ЭФИРЕ'.encode() in app_new and b'state.mission?' in app_new
+          assert b'function framingGame' in app_new and b'function moonGame' in app_new and b'function wordGame' in app_new
           shutil.copy2(app,app.with_suffix('.js.before-timing-fix'))
           app_tmp=app.with_suffix('.js.new')
           app_tmp.write_bytes(app_new)
           os.replace(app_tmp,app)
+          css=pathlib.Path('/opt/timecode-bot/timecode-bot/static/style.css')
+          css_url='https://raw.githubusercontent.com/mityademon-rgb/media-center-bot/e4457c10106184ac763a0b5fadde1da7ef277832/timecode-bot/static/style.css'
+          css_new=urllib.request.urlopen(css_url,timeout=25).read()
+          assert b'.frame-stage' in css_new and b'.word-keys' in css_new
+          shutil.copy2(css,css.with_suffix('.css.before-games'))
+          css_tmp=css.with_suffix('.css.new')
+          css_tmp.write_bytes(css_new)
+          os.replace(css_tmp,css)
           db=pathlib.Path('/var/lib/timecode-bot/timecode.db')
           backup=db.with_name('timecode.db.before-mission-fix-'+datetime.datetime.now().strftime('%Y%m%d%H%M%S'))
           with sqlite3.connect(db) as c:
