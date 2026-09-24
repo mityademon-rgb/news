@@ -21,7 +21,7 @@ jobs:
           ssh -i ~/.ssh/timecode_key -o BatchMode=yes root@217.149.24.242 'python3 -' <<'PY'
           import pathlib, urllib.request, py_compile, os, shutil, sqlite3, datetime, subprocess
           path=pathlib.Path('/opt/timecode-bot/timecode-bot/server.py')
-          url='https://raw.githubusercontent.com/mityademon-rgb/media-center-bot/633d41dd9c80e8f5d24f0d4f8d09a46edd881763/timecode-bot/server.py'
+          url='https://raw.githubusercontent.com/mityademon-rgb/media-center-bot/0fd9591a8acf822d25c8ad88fa2a969eabc75f1a/timecode-bot/server.py'
           new=urllib.request.urlopen(url,timeout=25).read()
           assert b'if any(re.search' in new and 'История начинается'.encode() in new
           tmp=path.with_suffix('.py.new')
@@ -29,6 +29,14 @@ jobs:
           py_compile.compile(str(tmp),doraise=True)
           shutil.copy2(path,path.with_suffix('.py.before-mission-fix'))
           os.replace(tmp,path)
+          app=pathlib.Path('/opt/timecode-bot/timecode-bot/static/app.js')
+          app_url='https://raw.githubusercontent.com/mityademon-rgb/media-center-bot/0fd9591a8acf822d25c8ad88fa2a969eabc75f1a/timecode-bot/static/app.js'
+          app_new=urllib.request.urlopen(app_url,timeout=25).read()
+          assert 'СКОРО В ЭФИРЕ'.encode() in app_new and b'state.mission?' in app_new
+          shutil.copy2(app,app.with_suffix('.js.before-timing-fix'))
+          app_tmp=app.with_suffix('.js.new')
+          app_tmp.write_bytes(app_new)
+          os.replace(app_tmp,app)
           db=pathlib.Path('/var/lib/timecode-bot/timecode.db')
           backup=db.with_name('timecode.db.before-mission-fix-'+datetime.datetime.now().strftime('%Y%m%d%H%M%S'))
           with sqlite3.connect(db) as c:
