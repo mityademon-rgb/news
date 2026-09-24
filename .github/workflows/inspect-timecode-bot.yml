@@ -47,7 +47,7 @@ jobs:
           con=sqlite3.connect('/var/lib/timecode-bot/timecode.db')
           print('registered users:',con.execute('select id,role,joined from users').fetchall())
           print('configured admin ID:',conf.get('ADMIN_IDS'))
-          req=urllib.request.Request('https://api.telegram.org/bot'+token+'/sendMessage',data=json.dumps({'chat_id':int(conf['ADMIN_IDS']),'text':'TIMECODE: проверка связи. Бот работает; открой приложение ещё раз.'}).encode(),headers={'Content-Type':'application/json'})
+          req=urllib.request.Request('https://api.telegram.org/bot'+token+'/sendMessage',data=json.dumps({'chat_id':int(conf['ADMIN_IDS']),'text':'<b>TIMECODE на связи.</b>\nУтром и вечером здесь перекличка. Игры, уроки и расписание — в приложении.','parse_mode':'HTML','reply_markup':{'inline_keyboard':[[{'text':'Открыть TIMECODE ↗','web_app':{'url':conf['BASE_URL']}}],[{'text':'📣 Написать всем','callback_data':'admin:publish'},{'text':'❓ Вопросы','callback_data':'admin:questions'}]]}}).encode(),headers={'Content-Type':'application/json'})
           try:
               with urllib.request.urlopen(req,timeout=12) as response: message=json.load(response)
               print('test message delivered:',message.get('ok'),'error:',str(message.get('description',''))[:130])
