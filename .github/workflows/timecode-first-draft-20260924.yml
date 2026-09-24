@@ -20,9 +20,20 @@ jobs:
           chmod 600 ~/.ssh/timecode_key
           ssh-keyscan -T 8 -H 217.149.24.242 > ~/.ssh/known_hosts
           timeout 20 ssh -o ServerAliveInterval=10 -i ~/.ssh/timecode_key -o BatchMode=yes root@217.149.24.242 'python3 -' <<'PY'
-          import os,subprocess,time,socket
-          print('dns:',socket.getaddrinfo('api.moonshot.ai',443,proto=socket.IPPROTO_TCP)[0][4][0],flush=True)
-          r=subprocess.run(['curl','-sS','-o','/dev/null','-w','%{http_code}','--connect-timeout','4','--max-time','10','https://api.moonshot.ai/v1/models'],capture_output=True,text=True)
-          print('API connection:',r.returncode,'HTTP:',r.stdout,flush=True)
-          print('stderr:',r.stderr[:100],flush=True)
+          import os,json,urllib.request,urllib.error
+          env={}
+          for line in open('/etc/timecode-bot.env',encoding='utf-8'):
+              if '=' in line and not line.lstrip().startswith('#'):
+                  k,v=line.strip().split('=',1);env[k]=v
+          data={'model':env.get('KIMI_MODEL','kimi-k2.6'),'messages':[{'role':'user','content':'Ответь словом привет'}],'max_tokens':35,'response_format':{'type':'json_object'},'thinking':{'type':'disabled'}}
+          data['messages'][0]['content']='Ответь JSON объектом с полем answer равным привет.'
+          req=urllib.request.Request('https://api.moonshot.ai/v1/chat/completions',json.dumps(data).encode(),{'Authorization':'Bearer '+env.get('MOONSHOT_API_KEY',''),'Content-Type':'application/json'})
+          try:
+              with urllib.request.urlopen(req,timeout=18) as response:
+                  reply=json.load(response)
+              print('Kimi minimal call: OK, model:',reply.get('model','?'),'output-length:',len(str(reply.get('choices',[]))),flush=True)
+          except urllib.error.HTTPError as error:
+              info=json.loads(error.read().decode())
+              print('Kimi HTTP:',error.code,'type:',info.get('error',{}).get('type'),'message:',str(info.get('error',{}).get('message',''))[:150],flush=True)
+          except Exception as error:print('Kimi connection:',type(error).__name__,str(error)[:90],flush=True)
           PY
