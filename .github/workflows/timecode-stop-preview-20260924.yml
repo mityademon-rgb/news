@@ -18,7 +18,7 @@ jobs:
           curl -fsS -X POST -H "Authorization: Bearer $GH_TOKEN" -H "Accept: application/vnd.github+json" https://api.github.com/repos/mityademon-rgb/news/actions/runs/36007920176/cancel || true
           mkdir -p ~/.ssh
           chmod 700 ~/.ssh
-          printf '%s\\n' "$BOOM_SSH_KEY" > ~/.ssh/timecode_key
+          printf '%s\n' "$BOOM_SSH_KEY" > ~/.ssh/timecode_key
           chmod 600 ~/.ssh/timecode_key
           ssh-keyscan -T 8 -H 217.149.24.242 > ~/.ssh/known_hosts
           ssh -i ~/.ssh/timecode_key -o BatchMode=yes root@217.149.24.242 'python3 -' <<'PY'
