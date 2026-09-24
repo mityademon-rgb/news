@@ -1,0 +1,71 @@
+name: Deploy reviewed TIMECODE quest engine
+on:
+  push:
+    branches: [boom-kadr-deploy]
+    paths: ['.github/workflows/timecode-quests-20260924.yml']
+permissions:
+  contents: read
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Stage, validate and release isolated bot update
+        env:
+          BOOM_SSH_KEY: ${{ secrets.BOOM_SSH_KEY }}
+        run: |
+          set -euo pipefail
+          ref=e77d462c8f5594227a20205856ff704f5853f4f0
+          base=https://raw.githubusercontent.com/mityademon-rgb/media-center-bot/$ref/timecode-bot
+          mkdir -p /tmp/quest/static ~/.ssh
+          for file in server.py quest_engine.py static/app.js static/style.css; do
+            curl -fsSL --retry 3 --connect-timeout 10 --max-time 50 "$base/$file" -o "/tmp/quest/$file"
+          done
+          python3 -m py_compile /tmp/quest/server.py /tmp/quest/quest_engine.py
+          node --check /tmp/quest/static/app.js
+          grep -q 'quests.install' /tmp/quest/server.py
+          grep -q 'function questGame' /tmp/quest/static/app.js
+          grep -q '.quest-scene' /tmp/quest/static/style.css
+          chmod 700 ~/.ssh
+          printf '%s\n' "$BOOM_SSH_KEY" > ~/.ssh/timecode_key
+          chmod 600 ~/.ssh/timecode_key
+          ssh-keyscan -T 8 -H 217.149.24.242 > ~/.ssh/known_hosts
+          ssh -i ~/.ssh/timecode_key -o BatchMode=yes root@217.149.24.242 'mkdir -p /opt/timecode-bot/.quest-stage-20260924/static'
+          scp -i ~/.ssh/timecode_key -o BatchMode=yes /tmp/quest/server.py /tmp/quest/quest_engine.py root@217.149.24.242:/opt/timecode-bot/.quest-stage-20260924/
+          scp -i ~/.ssh/timecode_key -o BatchMode=yes /tmp/quest/static/app.js /tmp/quest/static/style.css root@217.149.24.242:/opt/timecode-bot/.quest-stage-20260924/static/
+          ssh -i ~/.ssh/timecode_key -o BatchMode=yes root@217.149.24.242 'python3 -' <<'PY'
+          import pathlib,os,shutil,subprocess,urllib.request,time,py_compile,sqlite3
+          root=pathlib.Path('/opt/timecode-bot')
+          app=root/'timecode-bot'
+          stage=root/'.quest-stage-20260924'
+          files=['server.py','quest_engine.py','static/app.js','static/style.css']
+          for name in ('server.py','quest_engine.py'):
+              py_compile.compile(str(stage/name),doraise=True)
+          db=pathlib.Path('/var/lib/timecode-bot/timecode.db')
+          if db.exists():
+              with sqlite3.connect(db) as connection:
+                  with sqlite3.connect(db.with_name('timecode.db.before-quests-20260924')) as target:
+                      connection.backup(target)
+          saved=[]
+          for name in files:
+              target=app/name
+              source=stage/name
+              before=stage/(name.replace('/','_')+'.before')
+              if target.exists():shutil.copy2(target,before)
+              saved.append((target,before))
+              os.replace(source,target)
+          def healthy():
+              subprocess.run(['systemctl','restart','timecode-bot.service'],check=True)
+              for _ in range(25):
+                  try:
+                      if b'"ok": true' in urllib.request.urlopen('http://127.0.0.1:8097/health',timeout=3).read():return True
+                  except Exception:pass
+                  time.sleep(1)
+              return False
+          if not healthy():
+              for target,before in saved:
+                  if before.exists():os.replace(before,target)
+                  else:target.unlink(missing_ok=True)
+              subprocess.run(['systemctl','restart','timecode-bot.service'],check=True)
+              raise SystemExit('Quest release rolled back after failed bot health check')
+          print('TIMECODE quest engine: active; other sites untouched')
+          PY
