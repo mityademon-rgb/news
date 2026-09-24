@@ -1,0 +1,39 @@
+name: Finish TIMECODE games styling
+on:
+  push:
+    branches: [boom-kadr-deploy]
+    paths: ['.github/workflows/timecode-style-finish-20260924.yml']
+permissions:
+  contents: read
+jobs:
+  style:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Transfer and check style
+        env:
+          BOOM_SSH_KEY: ${{ secrets.BOOM_SSH_KEY }}
+        run: |
+          set -euo pipefail
+          curl -fsSL --retry 2 --connect-timeout 10 --max-time 40 https://raw.githubusercontent.com/mityademon-rgb/media-center-bot/a083cb27b0998199fc791d3aced64afd75b875d1/timecode-bot/static/style.css -o /tmp/timecode-style.css
+          grep -q '\.frame-stage' /tmp/timecode-style.css
+          grep -q '\.word-keys' /tmp/timecode-style.css
+          mkdir -p ~/.ssh
+          chmod 700 ~/.ssh
+          printf '%s\n' "$BOOM_SSH_KEY" > ~/.ssh/timecode_key
+          chmod 600 ~/.ssh/timecode_key
+          ssh-keyscan -T 8 -H 217.149.24.242 > ~/.ssh/known_hosts
+          scp -i ~/.ssh/timecode_key -o BatchMode=yes /tmp/timecode-style.css root@217.149.24.242:/opt/timecode-bot/timecode-bot/static/style.css.new
+          ssh -i ~/.ssh/timecode_key -o BatchMode=yes root@217.149.24.242 'python3 -' <<'PY'
+          import pathlib, os, shutil, subprocess, urllib.request
+          p=pathlib.Path('/opt/timecode-bot/timecode-bot')
+          css=p/'static/style.css'
+          new=p/'static/style.css.new'
+          assert b'.frame-stage' in new.read_bytes() and b'.word-keys' in new.read_bytes()
+          shutil.copy2(css,css.with_suffix('.css.before-games'))
+          os.replace(new,css)
+          assert 'function moonGame' in (p/'static/app.js').read_text()
+          assert "Открыть лайфхак в TIMECODE" in (p/'server.py').read_text()
+          subprocess.run(['systemctl','restart','timecode-bot.service'],check=True)
+          print('service:',subprocess.check_output(['systemctl','is-active','timecode-bot.service'],text=True).strip())
+          print('games and style:',True)
+          PY
