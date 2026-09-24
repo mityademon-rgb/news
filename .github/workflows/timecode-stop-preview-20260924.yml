@@ -1,30 +1,43 @@
-name: Stop TIMECODE text quest preview
+name: Pause TIMECODE text quests
 on:
   push:
     branches: [boom-kadr-deploy]
     paths: ['.github/workflows/timecode-stop-preview-20260924.yml']
 permissions:
-  actions: write
   contents: read
 jobs:
-  cancel:
+  pause:
     runs-on: ubuntu-latest
     steps:
-      - name: Cancel text draft delivery
+      - name: Deploy safe visual-only editorial gate
         env:
-          GH_TOKEN: ${{ github.token }}
           BOOM_SSH_KEY: ${{ secrets.BOOM_SSH_KEY }}
         run: |
-          curl -fsS -X POST -H "Authorization: Bearer $GH_TOKEN" -H "Accept: application/vnd.github+json" https://api.github.com/repos/mityademon-rgb/news/actions/runs/36007920176/cancel || true
+          set -euo pipefail
+          curl -fsSL --retry 2 --connect-timeout 8 --max-time 40 https://raw.githubusercontent.com/mityademon-rgb/media-center-bot/49c030a19cb61d42aef3af5f32a9bd0f4cc17d46/timecode-bot/server.py -o /tmp/tc-server.py
+          python3 -m py_compile /tmp/tc-server.py
           mkdir -p ~/.ssh
           chmod 700 ~/.ssh
           printf '%s\n' "$BOOM_SSH_KEY" > ~/.ssh/timecode_key
           chmod 600 ~/.ssh/timecode_key
           ssh-keyscan -T 8 -H 217.149.24.242 > ~/.ssh/known_hosts
+          scp -i ~/.ssh/timecode_key -o BatchMode=yes /tmp/tc-server.py root@217.149.24.242:/opt/timecode-bot/timecode-bot/server.py.new
           ssh -i ~/.ssh/timecode_key -o BatchMode=yes root@217.149.24.242 'python3 -' <<'PY'
-          import sqlite3
-          path='/var/lib/timecode-bot/timecode.db'
-          with sqlite3.connect(path) as c:
-              count=c.execute("update quest_drafts set status='rejected' where id=1 and lab='kids' and status='draft'").rowcount
-          print('Text-only draft rejected:',count)
+          import pathlib,py_compile,shutil,os,subprocess,urllib.request,time,sqlite3
+          path=pathlib.Path('/opt/timecode-bot/timecode-bot/server.py')
+          new=path.with_suffix('.py.new')
+          py_compile.compile(str(new),doraise=True)
+          shutil.copy2(path,path.with_suffix('.py.before-visual-gate'))
+          os.replace(new,path)
+          with sqlite3.connect('/var/lib/timecode-bot/timecode.db') as c:
+              c.execute("update quest_drafts set status='rejected' where lab='kids' and status='draft'")
+          subprocess.run(['systemctl','restart','timecode-bot.service'],check=True)
+          for i in range(25):
+              try:
+                  assert b'"ok": true' in urllib.request.urlopen('http://127.0.0.1:8097/health',timeout=3).read()
+                  print('TIMECODE active; text-only quest disabled; no quest published')
+                  break
+              except Exception:
+                  if i==24:raise
+                  time.sleep(1)
           PY
