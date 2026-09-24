@@ -5519,3 +5519,258 @@ body.play-active #main { min-height: 100svh; background: #0d0c12; }
   .about-copy h2,
   .about-copy > p { overflow-wrap: anywhere; }
 }
+
+/* Lesson 05: every participant works both sides of the camera */
+.lesson-camera-brave {
+  --camera-red: #ff4038;
+  --camera-violet: #9b7cff;
+  --camera-cyan: #22b8c5;
+}
+
+.lesson-camera-brave .lesson-code,
+.lesson-camera-brave .scene-copy .eyebrow,
+.lesson-camera-brave .scene-meta span:last-child { color: var(--camera-red); }
+
+.magic-camera-cards {
+  grid-template-columns: 1fr;
+  align-content: start;
+  gap: 22px;
+}
+
+.magic-camera-cards .scene-copy {
+  display: grid;
+  grid-template-columns: minmax(260px, .72fr) minmax(0, 1.28fr);
+  align-items: end;
+  gap: clamp(24px, 5vw, 80px);
+}
+
+.magic-camera-cards .scene-copy .scene-meta { grid-column: 1 / -1; margin-bottom: 0; }
+.magic-camera-cards .scene-copy .eyebrow { align-self: end; margin-bottom: 5px; }
+.magic-camera-cards .scene-copy h2 { grid-column: 2; grid-row: 2 / span 2; max-width: 18ch; font-size: clamp(34px, 4vw, 62px); }
+.magic-camera-cards .magic-stage { min-height: 0; }
+
+.camera-card-deck {
+  width: 100%;
+  padding: 14px;
+  border: 1px solid rgba(255,255,255,.15);
+  border-radius: 24px;
+  background: rgba(8,9,13,.78);
+}
+
+.camera-card-toolbar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  min-height: 42px;
+  margin-bottom: 12px;
+  padding: 0 4px;
+  color: #aaa4af;
+  font: 900 11px/1 ui-monospace, SFMono-Regular, Menlo, monospace;
+  letter-spacing: .08em;
+  text-transform: uppercase;
+}
+
+.camera-card-toolbar b { color: var(--camera-red); font-size: 17px; }
+.camera-card-toolbar button {
+  min-height: 38px;
+  padding: 8px 13px;
+  border: 1px solid rgba(255,255,255,.18);
+  border-radius: 999px;
+  background: transparent;
+  color: var(--paper);
+  font-size: 11px;
+  font-weight: 850;
+  cursor: pointer;
+}
+
+.camera-card-grid {
+  display: grid;
+  grid-template-columns: repeat(5, minmax(0, 1fr));
+  gap: 10px;
+}
+
+.camera-task-card {
+  position: relative;
+  min-width: 0;
+  aspect-ratio: 1.2 / 1;
+  padding: 0;
+  border: 0;
+  border-radius: 17px;
+  background: transparent;
+  perspective: 900px;
+  cursor: pointer;
+}
+
+.camera-task-card-inner {
+  position: absolute;
+  inset: 0;
+  display: block;
+  transform-style: preserve-3d;
+  transition: transform .52s cubic-bezier(.2,.82,.2,1);
+}
+
+.camera-task-card.is-flipped .camera-task-card-inner { transform: rotateY(180deg); }
+.camera-task-front,
+.camera-task-back {
+  position: absolute;
+  inset: 0;
+  display: grid;
+  grid-template-rows: auto 1fr auto;
+  align-items: center;
+  overflow: hidden;
+  padding: 13px;
+  border: 1px solid rgba(255,255,255,.22);
+  border-radius: 17px;
+  backface-visibility: hidden;
+  text-align: left;
+}
+
+.camera-task-front {
+  background:
+    radial-gradient(circle at 80% 18%, rgba(255,255,255,.13), transparent 22%),
+    linear-gradient(145deg, #ff4038, #c52228);
+  color: #0d0c12;
+}
+
+.camera-task-card:nth-child(3n+2) .camera-task-front { background: linear-gradient(145deg, #aa8cff, #6750c8); }
+.camera-task-card:nth-child(3n) .camera-task-front { background: linear-gradient(145deg, #31c8d2, #148792); }
+.camera-task-front b,
+.camera-task-back b,
+.camera-task-front small,
+.camera-task-back small { font: 950 10px/1 ui-monospace, SFMono-Regular, Menlo, monospace; letter-spacing: .08em; }
+.camera-task-front strong { justify-self: center; font: 400 clamp(42px, 5vw, 72px)/1 "Rubik Mono BK", Impact, sans-serif; }
+.camera-task-front small,
+.camera-task-back small { align-self: end; }
+
+.camera-task-back {
+  transform: rotateY(180deg);
+  background: var(--paper);
+  color: var(--ink);
+}
+.camera-task-back b { color: var(--camera-red); }
+.camera-task-back strong { align-self: center; font-size: clamp(15px, 1.45vw, 21px); line-height: 1.05; letter-spacing: -.03em; overflow-wrap: anywhere; }
+.camera-task-back small { color: #686169; }
+.camera-task-card:hover .camera-task-front,
+.camera-task-card:focus-visible .camera-task-front { transform: translateY(-3px); box-shadow: 0 12px 24px rgba(255,64,56,.2); }
+.camera-task-card.is-used { cursor: pointer; }
+
+.camera-card-modal[hidden] { display: none; }
+.camera-card-modal {
+  position: fixed;
+  z-index: 90;
+  inset: 0;
+  display: grid;
+  place-items: center;
+  padding: clamp(14px, 4vw, 52px);
+  overflow-y: auto;
+  background: rgba(6,6,9,.88);
+  backdrop-filter: blur(16px);
+  animation: camera-modal-in .25s ease both;
+}
+
+@keyframes camera-modal-in {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
+.camera-card-modal-panel {
+  width: min(980px, 100%);
+  padding: clamp(22px, 4vw, 52px);
+  border: 1px solid rgba(255,255,255,.2);
+  border-radius: 28px;
+  background:
+    radial-gradient(circle at 92% 8%, rgba(255,64,56,.18), transparent 30%),
+    #15121a;
+  box-shadow: 0 35px 100px rgba(0,0,0,.55);
+  color: var(--paper);
+}
+
+.camera-card-modal-head { display: flex; align-items: center; justify-content: space-between; gap: 20px; }
+.camera-card-modal-head span { color: var(--camera-red); font: 950 11px/1 ui-monospace, SFMono-Regular, Menlo, monospace; letter-spacing: .12em; }
+.camera-card-modal-head button {
+  display: grid;
+  width: 42px;
+  height: 42px;
+  place-items: center;
+  padding: 0;
+  border: 1px solid rgba(255,255,255,.2);
+  border-radius: 50%;
+  background: transparent;
+  color: var(--paper);
+  font-size: 28px;
+  cursor: pointer;
+}
+
+.camera-card-modal-panel h3 {
+  max-width: 14ch;
+  margin: 18px 0 clamp(24px, 4vw, 42px);
+  font-size: clamp(42px, 6vw, 82px);
+  line-height: .9;
+  letter-spacing: -.065em;
+}
+
+.camera-role-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 12px; }
+.camera-role-grid section { min-width: 0; padding: clamp(18px, 3vw, 30px); border-radius: 19px; background: var(--paper); color: var(--ink); }
+.camera-role-grid section + section { background: var(--camera-red); }
+.camera-role-grid span { display: block; margin-bottom: 13px; font: 950 11px/1 ui-monospace, SFMono-Regular, Menlo, monospace; letter-spacing: .09em; }
+.camera-role-grid p { margin: 0; font-size: clamp(18px, 2vw, 25px); font-weight: 830; line-height: 1.32; }
+
+.camera-card-rule {
+  display: grid;
+  grid-template-columns: auto auto 1px auto auto;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  margin-top: 14px;
+  padding: 13px 16px;
+  border-radius: 14px;
+  background: rgba(255,255,255,.06);
+  color: #aaa4af;
+  font-size: 13px;
+}
+.camera-card-rule b { color: var(--paper); }
+.camera-card-rule i { width: 1px; height: 20px; background: rgba(255,255,255,.22); }
+.camera-card-accept {
+  width: 100%;
+  min-height: 58px;
+  margin-top: 14px;
+  border: 0;
+  border-radius: 16px;
+  background: var(--paper);
+  color: var(--ink);
+  font-weight: 950;
+  cursor: pointer;
+}
+
+body.camera-card-open { overflow: hidden; }
+
+@media (max-width: 900px) {
+  .camera-card-grid { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+  .camera-task-card { aspect-ratio: 1.15 / 1; }
+}
+
+@media (max-width: 760px) {
+  .magic-camera-cards .scene-copy { display: block; }
+  .magic-camera-cards .scene-copy .scene-meta { margin-bottom: 14px; }
+  .magic-camera-cards .scene-copy h2 { max-width: 100%; font-size: clamp(32px, 9.5vw, 44px); }
+  .camera-card-deck { padding: 9px; border-radius: 17px; }
+  .camera-card-toolbar { min-height: 40px; }
+  .camera-card-toolbar button { padding-inline: 10px; font-size: 10px; }
+  .camera-card-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 8px; }
+  .camera-task-card { min-height: 145px; aspect-ratio: auto; }
+  .camera-task-front,
+  .camera-task-back { padding: 11px; border-radius: 14px; }
+  .camera-task-front strong { font-size: 48px; }
+  .camera-task-back strong { font-size: 15px; }
+  .camera-card-modal { align-items: start; padding: 10px; }
+  .camera-card-modal-panel { margin: max(8px, env(safe-area-inset-top)) 0 max(8px, env(safe-area-inset-bottom)); padding: 20px 15px; border-radius: 20px; }
+  .camera-card-modal-panel h3 { max-width: 100%; margin: 16px 0 22px; font-size: clamp(38px, 12vw, 55px); }
+  .camera-role-grid { grid-template-columns: 1fr; }
+  .camera-role-grid section { padding: 17px; }
+  .camera-role-grid p { font-size: 17px; }
+  .camera-card-rule { grid-template-columns: 1fr 1fr; gap: 4px 9px; justify-content: stretch; text-align: left; }
+  .camera-card-rule i { display: none; }
+  .camera-card-rule b:nth-of-type(2),
+  .camera-card-rule b:nth-of-type(2) + span { margin-top: 5px; }
+}
