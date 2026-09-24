@@ -880,6 +880,189 @@ window.TIMECODE_LESSONS = [
     ]
   },
   {
+    id: "camera-brave",
+    number: "05",
+    title: "Камера, я здесь!",
+    eyebrow: "Практика в кадре",
+    summary: "Десять закрытых карточек: каждый выставляет кадр, снимает партнёра и сам становится ведущим.",
+    duration: "80 мин",
+    color: "red",
+    accent: "#ff4038",
+    status: "ready",
+    cover: "./assets/lesson04-video-cover.webp",
+    coverAlt: "Участники медиалаборатории снимают друг друга в студии",
+    tags: ["работа в кадре", "оператор", "практика"],
+    goals: ["Закончить короткий дубль без страха", "Самостоятельно выставить человека в кадре", "Попробовать роли ведущего и оператора"],
+    materials: ["Камеры или смартфоны", "Микрофон TIMECODE", "Штативы по возможности", "Свободное место для десяти коротких дублей"],
+    lifehacks: [
+      {
+        hashtags: ["on-camera"],
+        category: "Работа в кадре",
+        title: "Объектив — это один человек",
+        text: "Не пытайтесь выступать перед всем интернетом. Расскажите мысль одному знакомому человеку за камерой.",
+        action: "Перед дублем назовите про себя того, кому сейчас говорите."
+      },
+      {
+        hashtags: ["on-camera", "script"],
+        category: "Работа в кадре · Сценарий",
+        title: "Запоминайте мысль, а не текст",
+        text: "Заученная фраза часто исчезает сразу после команды REC. Три опорных слова удерживают смысл и оставляют живую речь.",
+        action: "Запишите: начало, главный факт, финальная фраза."
+      },
+      {
+        hashtags: ["shooting"],
+        category: "Съёмка",
+        title: "Сначала кадр, потом REC",
+        text: "Оператор отвечает не только за кнопку. До записи он проверяет глаза, воздух над головой, фон и звук.",
+        action: "Попросите ведущего замереть и проверьте четыре края экрана."
+      },
+      {
+        hashtags: ["shooting", "on-camera"],
+        category: "Съёмка · Работа в кадре",
+        title: "Не спасайте паузу словом «эээ»",
+        text: "Короткая тишина выглядит увереннее, чем попытка срочно заполнить её случайным звуком.",
+        action: "Потеряли мысль — вдохните, посмотрите в объектив и продолжайте."
+      }
+    ],
+    scenes: [
+      {
+        type: "cover",
+        kicker: "KIDS LAB · Урок 05",
+        title: "Камера, я здесь!",
+        text: "Сегодня никто не прячется за оператором. Каждый выставит кадр, снимет партнёра и сам закончит короткий дубль.",
+        image: "./assets/lesson04-video-cover.webp",
+        imageAlt: "Команда готовится к короткой студийной съёмке"
+      },
+      {
+        type: "magic",
+        layout: "promise",
+        kicker: "Результат занятия",
+        title: "Не идеальный ведущий. Смелый первый дубль.",
+        accent: "Встал → посмотрел в объектив → сказал мысль → закончил"
+      },
+      {
+        type: "magic",
+        layout: "answer-cards",
+        kicker: "Работаем парами",
+        title: "У каждого две обязательные роли",
+        items: [
+          ["Ведущий", "Открывает карточку, получает тему и говорит в кадре до 30 секунд"],
+          ["Оператор", "Выбирает крупность, выставляет партнёра, проверяет фон и записывает дубль"]
+        ]
+      },
+      {
+        type: "magic",
+        layout: "steps",
+        kicker: "Один круг",
+        title: "Сняли — сразу поменялись местами",
+        items: [
+          ["01", "Первый участник открывает карточку и становится ведущим"],
+          ["02", "Партнёр сам выставляет кадр и снимает его задание"],
+          ["03", "Меняетесь ролями и открываете новую карточку"]
+        ]
+      },
+      {
+        type: "magic",
+        layout: "check",
+        kicker: "Оператор · до кнопки REC",
+        title: "Четыре быстрые проверки",
+        items: [
+          ["Глаза", "Не слишком высоко и не слишком низко в кадре"],
+          ["Голова", "Сверху есть немного воздуха, но не пустой потолок"],
+          ["Фон", "Из головы ведущего ничего не растёт"],
+          ["Звук", "Микрофон рядом, посторонние молчат"]
+        ]
+      },
+      {
+        type: "magic",
+        layout: "statement",
+        kicker: "Ведущий · после команды REC",
+        title: "Забыл фразу — не убегай",
+        accent: "Пауза → вдох → взгляд в объектив → продолжаем"
+      },
+      {
+        type: "magic",
+        layout: "game-intro",
+        kicker: "Игра · Десять заданий",
+        title: "Выберите закрытую карточку",
+        text: "Карточка назначит тему ведущему и задачу оператору. На подготовку — 20 секунд. На дубль — не больше 30 секунд."
+      },
+      {
+        type: "magic",
+        layout: "camera-cards",
+        kicker: "Съёмочная игра",
+        title: "Открывайте по одной. Сразу снимайте.",
+        cards: [
+          {
+            title: "Новость из студии",
+            presenter: "За 20–30 секунд расскажи, что сегодня происходит в TIMECODE и зачем вы собрались.",
+            operator: "Сними средний план по пояс. Проверь воздух над головой и спокойный фон."
+          },
+          {
+            title: "Один необычный предмет",
+            presenter: "Покажи предмет из студии и объясни, чем он интересен или для чего нужен.",
+            operator: "Построй кадр так, чтобы одновременно были хорошо видны лицо и предмет."
+          },
+          {
+            title: "Совет новичку",
+            presenter: "Дай один честный совет человеку, который впервые оказался перед камерой.",
+            operator: "Сними поясной план на уровне глаз. Не обрезай кисти, если ведущий жестикулирует."
+          },
+          {
+            title: "Срочное включение",
+            presenter: "Начни словами «Мы находимся…» и сообщи одно реальное событие, которое происходит рядом.",
+            operator: "Сними общий или средний план так, чтобы место события тоже рассказывало историю."
+          },
+          {
+            title: "Моё открытие",
+            presenter: "Расскажи, что нового ты понял на последних занятиях и где это уже пригодилось.",
+            operator: "Сними средне-крупный план. Камера неподвижна, объектив находится на уровне глаз."
+          },
+          {
+            title: "Объясни за 30 секунд",
+            presenter: "Выбери одно знакомое правило съёмки и объясни его человеку, который никогда не держал камеру.",
+            operator: "Выбери крупность сам. Главное — лицо читается, руки не обрезаны случайно."
+          },
+          {
+            title: "Мне нравится — потому что",
+            presenter: "Назови фильм, программу, канал или блог, который тебе нравится, и приведи одну конкретную причину.",
+            operator: "Оставь немного воздуха со стороны взгляда и убери из кадра всё лишнее."
+          },
+          {
+            title: "Самый трудный момент",
+            presenter: "Расскажи, что на съёмке даётся тебе труднее всего и что может помочь.",
+            operator: "Сними спокойный крупный план. Не приближай изображение пальцами — подойди камерой."
+          },
+          {
+            title: "Представь TIMECODE",
+            presenter: "Представь нашу лабораторию человеку, который о ней ничего не знает. Только три короткие фразы.",
+            operator: "Сними уверенный средний план и проверь, чтобы логотип или пространство студии попали в фон."
+          },
+          {
+            title: "Финал программы",
+            presenter: "Заверши воображаемый выпуск: напомни, о чём он был, и попрощайся со зрителями.",
+            operator: "Сними ведущего по пояс. После последней фразы держи кадр ещё две секунды и только потом нажимай STOP."
+          }
+        ]
+      },
+      {
+        type: "magic",
+        layout: "statement",
+        kicker: "Сегодня без просмотра",
+        title: "Не оцениваем себя сразу после дубля",
+        text: "Сохраняем все записи. Спокойно посмотрим их на отдельном занятии, когда каждый уже попробует обе роли.",
+        accent: "Сегодняшняя победа — не спрятаться и закончить запись"
+      },
+      {
+        type: "finish",
+        kicker: "Практическая смена закрыта",
+        title: "Ты был и перед камерой, и за камерой",
+        text: "Ведущий отвечает за понятную мысль. Оператор отвечает за то, как зритель её увидит и услышит.",
+        takeaway: "Выставил → снял → поменялся → вышел в кадр"
+      }
+    ]
+  },
+  {
     id: "adult-story-pitch",
     number: "A01",
     track: "adult",
@@ -1572,6 +1755,83 @@ window.TIMECODE_TEACHER_GUIDES = {
       "Не разрешать снимать всё одним непрерывным общим планом.",
       "Не монтировать за участников во время упражнения.",
       "Не оценивать актёрскую игру раньше понятности экранного действия."
+    ]
+  },
+
+  "camera-brave": {
+    lessonNumber: "05",
+    title: "Камера, я здесь!",
+    audience: "KIDS LAB · 12+",
+    duration: "80 минут",
+    result: "Каждый участник самостоятельно выставляет партнёра в кадре, записывает его короткое выступление, затем меняется ролями и сам заканчивает дубль перед камерой.",
+    preparation: [
+      "Подготовить камеры или смартфоны из расчёта один на пару.",
+      "Проверить заряд, свободную память, звук и ориентацию кадра.",
+      "Разделить группу на пары; при нечётном количестве собрать одно трио с ротацией ролей.",
+      "Заранее договориться: записи на занятии не пересматриваем и публично не оцениваем.",
+      "Открыть экран с десятью карточками и включить полноэкранный режим."
+    ],
+    blocks: [
+      {
+        time: "0–8 мин",
+        title: "Объясняем результат без лекции",
+        screens: "Кадры 01–02",
+        teacher: "Сразу скажите: сегодня не ищем лучшего ведущего. Задача каждого — закончить один дубль перед камерой и самостоятельно снять партнёра. Не обсуждайте дикцию, внешность и артистизм.",
+        message: "Смелость в кадре начинается не с таланта, а с законченной попытки."
+      },
+      {
+        time: "8–17 мин",
+        title: "Распределяем пары и показываем смену ролей",
+        screens: "Кадры 03–04",
+        teacher: "На одной паре покажите весь круг: ведущий открывает карточку, оператор выставляет кадр, записывает, после чего участники меняются местами и берут новое задание. Не назначайте постоянных операторов.",
+        message: "Каждый обязан понять камеру с обеих сторон."
+      },
+      {
+        time: "17–25 мин",
+        title: "Операторская проверка и выход из паузы",
+        screens: "Кадры 05–06",
+        teacher: "Покажите четыре проверки на реальном человеке. Затем один раз специально забудьте фразу перед камерой и продемонстрируйте: пауза, вдох, взгляд в объектив, продолжение.",
+        message: "Забыть слово не страшно; страшнее бросить мысль и убежать из кадра."
+      },
+      {
+        time: "25–30 мин",
+        title: "Запускаем карточную игру",
+        screens: "Кадр 07",
+        teacher: "Объявите правила: карточку выбирают вслепую, на подготовку двадцать секунд, дубль длится не больше тридцати секунд. Переснимать можно только при технической ошибке — нет звука, человек выпал из кадра, запись не включилась.",
+        message: "Мы тренируем завершённое действие, а не бесконечные попытки стать идеальными."
+      },
+      {
+        time: "30–68 мин",
+        title: "Десять карточек: ведущий и оператор",
+        screens: "Кадр 08",
+        teacher: "Вызывайте пары по очереди. После открытия карточки вслух назовите отдельно задачу ведущего и задачу оператора. Пока одна пара снимается, следующая готовится. После первого дубля участники меняются ролями и открывают новую карточку.",
+        message: "Оператор принимает решение о кадре; ведущий удерживает одну понятную мысль."
+      },
+      {
+        time: "68–75 мин",
+        title: "Сохраняем материал без немедленного просмотра",
+        screens: "Кадр 09",
+        teacher: "Проверьте, что у каждого есть запись в обеих ролях. Соберите файлы или зафиксируйте, на чьём телефоне они находятся. Не устраивайте общий просмотр на эмоциях сразу после съёмки.",
+        message: "Сегодня участник привыкает к камере; анализ появится позже и будет отдельным навыком."
+      },
+      {
+        time: "75–80 мин",
+        title: "Закрываем смену",
+        screens: "Кадр 10",
+        teacher: "Попросите каждого поднять руку дважды: кто сегодня снимал и кто сегодня говорил в кадре. Если поднялись все — результат занятия достигнут.",
+        message: "В TIMECODE нет тех, кто всегда только за камерой или всегда только перед ней."
+      }
+    ],
+    checkpoints: [
+      "Каждый участник записал партнёра и сам закончил короткий дубль.",
+      "Оператор выбрал крупность и проверил границы кадра до начала записи.",
+      "Ведущий смотрел в объектив, выразил одну мысль и завершил выступление."
+    ],
+    avoid: [
+      "Не показывать неудачные дубли всей группе без согласия ребёнка.",
+      "Не сравнивать детей по внешности, голосу, артистизму или скорости речи.",
+      "Не закреплять роли за сильными участниками: каждый обязан поменяться местами.",
+      "Не разрешать десять пересъёмок ради идеального результата."
     ]
   },
 
@@ -2990,6 +3250,28 @@ window.TIMECODE_TEACHER_GUIDES = {
         <div class="sequence-actions"><button type="button" data-sequence-reset>Сбросить</button><button type="button" class="sequence-play" data-sequence-play disabled>Собрать и включить ▶</button></div>
         <p class="sequence-feedback" data-sequence-feedback aria-live="polite">Сначала выберите все шесть кадров.</p>
       </div>`;
+    } else if (layout === "camera-cards") {
+      stage = `<div class="camera-card-deck" data-camera-card-deck>
+        <div class="camera-card-toolbar"><span><b data-camera-card-count>0</b> / ${scene.cards.length} открыто</span><button type="button" data-camera-card-reset>Вернуть карточки</button></div>
+        <div class="camera-card-grid">${scene.cards.map((card, index) => `<button type="button" class="camera-task-card" data-camera-card="${index}" aria-label="Открыть карточку ${index + 1}">
+          <span class="camera-task-card-inner">
+            <span class="camera-task-front"><b>${String(index + 1).padStart(2, "0")}</b><strong>?</strong><small>ОТКРЫТЬ</small></span>
+            <span class="camera-task-back"><b>ЗАДАНИЕ ${String(index + 1).padStart(2, "0")}</b><strong>${escapeHtml(card.title)}</strong><small>✓ ОТКРЫТО</small></span>
+          </span>
+        </button>`).join("")}</div>
+        <div class="camera-card-modal" data-camera-card-modal hidden role="dialog" aria-modal="true" aria-labelledby="camera-card-modal-title">
+          <div class="camera-card-modal-panel">
+            <div class="camera-card-modal-head"><span data-camera-card-number></span><button type="button" data-camera-card-close aria-label="Закрыть задание">×</button></div>
+            <h3 id="camera-card-modal-title" data-camera-card-title></h3>
+            <div class="camera-role-grid">
+              <section><span>🎙 ВЕДУЩИЙ</span><p data-camera-presenter></p></section>
+              <section><span>🎥 ОПЕРАТОР</span><p data-camera-operator></p></section>
+            </div>
+            <div class="camera-card-rule"><b>20 секунд</b><span>на подготовку</span><i></i><b>до 30 секунд</b><span>на один дубль</span></div>
+            <button type="button" class="camera-card-accept" data-camera-card-close>Задание принято — снимаем</button>
+          </div>
+        </div>
+      </div>`;
     } else if (layout === "story-builder") {
       stage = `<div class="story-builder" data-story-builder>
         <div class="story-builder-groups">${scene.groups.map((group, groupIndex) => `<fieldset><legend><span>0${groupIndex + 1}</span>${escapeHtml(group.label)}</legend>${group.options.map((option, optionIndex) => `<button type="button" data-story-option data-group="${groupIndex}" data-option="${optionIndex}" data-value="${escapeHtml(option)}">${escapeHtml(option)}</button>`).join("")}</fieldset>`).join("")}</div>
@@ -3152,6 +3434,45 @@ window.TIMECODE_TEACHER_GUIDES = {
         result.textContent = scene.example || selections.join(" ");
         storyBuilder.classList.add("is-complete");
         markAnswered();
+      });
+    }
+
+    const cameraDeck = document.querySelector("[data-camera-card-deck]");
+    if (cameraDeck) {
+      const cards = Array.from(cameraDeck.querySelectorAll("[data-camera-card]"));
+      const modal = cameraDeck.querySelector("[data-camera-card-modal]");
+      const counter = cameraDeck.querySelector("[data-camera-card-count]");
+      const opened = new Set();
+      const closeModal = () => {
+        modal.hidden = true;
+        document.body.classList.remove("camera-card-open");
+      };
+      cards.forEach((button) => {
+        button.addEventListener("click", () => {
+          const index = Number(button.dataset.cameraCard);
+          const task = scene.cards[index];
+          opened.add(index);
+          button.classList.add("is-flipped", "is-used");
+          counter.textContent = String(opened.size);
+          modal.querySelector("[data-camera-card-number]").textContent = `КАРТОЧКА ${String(index + 1).padStart(2, "0")}`;
+          modal.querySelector("[data-camera-card-title]").textContent = task.title;
+          modal.querySelector("[data-camera-presenter]").textContent = task.presenter;
+          modal.querySelector("[data-camera-operator]").textContent = task.operator;
+          window.setTimeout(() => {
+            modal.hidden = false;
+            document.body.classList.add("camera-card-open");
+            modal.querySelector("[data-camera-card-close]")?.focus();
+          }, 280);
+          if (opened.size === scene.cards.length) markAnswered();
+        });
+      });
+      cameraDeck.querySelectorAll("[data-camera-card-close]").forEach((button) => button.addEventListener("click", closeModal));
+      cameraDeck.querySelector("[data-camera-card-reset]")?.addEventListener("click", () => {
+        opened.clear();
+        counter.textContent = "0";
+        cards.forEach((button) => button.classList.remove("is-flipped", "is-used"));
+        closeModal();
+        showToast("Все карточки снова закрыты");
       });
     }
 
