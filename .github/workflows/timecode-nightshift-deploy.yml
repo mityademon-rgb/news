@@ -1,0 +1,31 @@
+name: Deploy TIMECODE Night Shift preview
+on:
+  push:
+    branches: [boom-kadr-deploy]
+    paths: ['.github/workflows/timecode-nightshift-deploy.yml']
+permissions:
+  contents: read
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Deploy editor-only visual story
+        env:
+          BOOM_SSH_KEY: ${{ secrets.BOOM_SSH_KEY }}
+        run: |
+          set -euo pipefail
+          test -n "$BOOM_SSH_KEY"
+          mkdir -p ~/.ssh /tmp/timecode-night
+          printf '%s\n' "$BOOM_SSH_KEY" > ~/.ssh/timecode_key
+          chmod 600 ~/.ssh/timecode_key
+          ssh-keyscan -T 8 -H 217.149.24.242 >> ~/.ssh/known_hosts
+          for file in app.js index.html nightshift.js nightshift.css; do
+            curl --fail --silent --show-error --location --retry 3 --max-time 40 "https://raw.githubusercontent.com/mityademon-rgb/media-center-bot/1ee86e193595184b33160734237d062a385905de/timecode-bot/static/$file" -o "/tmp/timecode-night/$file"
+            test -s "/tmp/timecode-night/$file"
+          done
+          curl --fail --silent --show-error --location --retry 3 --max-time 40 'https://raw.githubusercontent.com/mityademon-rgb/media-center-bot/1ee86e193595184b33160734237d062a385905de/timecode-bot/server.py' -o /tmp/timecode-night/server.py
+          node --check /tmp/timecode-night/app.js
+          node --check /tmp/timecode-night/nightshift.js
+          python3 -m py_compile /tmp/timecode-night/server.py
+          scp -i ~/.ssh/timecode_key -o BatchMode=yes /tmp/timecode-night/app.js /tmp/timecode-night/index.html /tmp/timecode-night/nightshift.js /tmp/timecode-night/nightshift.css /tmp/timecode-night/server.py root@217.149.24.242:/tmp/
+          ssh -i ~/.ssh/timecode_key -o BatchMode=yes root@217.149.24.242 'set -eu; target=/opt/timecode-bot/timecode-bot/static; server=/opt/timecode-bot/timecode-bot/server.py; test -f "$target/app.js"; cp -p "$target/app.js" "$target/app.js.before-nightshift-20260924"; cp -p "$target/index.html" "$target/index.html.before-nightshift-20260924"; cp -p "$server" "$server.before-nightshift-20260924"; for file in app.js index.html nightshift.js nightshift.css; do install -m 0644 "/tmp/$file" "$target/$file"; done; install -m 0644 /tmp/server.py "$server"; systemctl restart timecode-bot.service; systemctl is-active --quiet timecode-bot.service; for i in 1 2 3 4 5 6 7 8; do if curl -fsS --max-time 3 http://127.0.0.1:8097/health | grep -q timecode-bot && curl -fsS --max-time 3 http://127.0.0.1:8097/nightshift.js | grep -q NIGHT_KEY; then echo "Night Shift admin preview active"; exit 0; fi; sleep 2; done; journalctl -u timecode-bot.service -n 25 --no-pager; exit 1'
