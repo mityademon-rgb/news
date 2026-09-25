@@ -1,0 +1,30 @@
+name: Inspect TIMECODE daily tip
+on:
+  push:
+    branches: [boom-kadr-deploy]
+    paths: ['.github/workflows/timecode-tip-inspect.yml']
+permissions:
+  contents: read
+jobs:
+  inspect:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - name: Connect
+        env:
+          BOOM_SSH_KEY: ${{ secrets.BOOM_SSH_KEY }}
+        run: |
+          install -d -m 700 ~/.ssh
+          printf '%s\n' "$BOOM_SSH_KEY" > ~/.ssh/timecode
+          chmod 600 ~/.ssh/timecode
+          ssh-keyscan -T 8 -H 217.149.24.242 > ~/.ssh/known_hosts
+      - name: Read today's published tip without credentials
+        run: |
+          ssh -i ~/.ssh/timecode -o BatchMode=yes root@217.149.24.242 'python3 -' <<'PY'
+          import sqlite3
+          db='file:/var/lib/timecode-bot/timecode.db?mode=ro'
+          with sqlite3.connect(db,uri=True) as c:
+              r=c.execute("select day,title,body,source from daily_content where day='2026-09-25' and kind='tip'").fetchone()
+              print('TIP',repr(r))
+              print('SENT',c.execute("select slot from sent where day='2026-09-25' and slot='tip'").fetchone())
+          PY
