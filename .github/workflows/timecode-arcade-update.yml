@@ -1,0 +1,34 @@
+name: Update TIMECODE arcade
+on:
+  push:
+    branches: [boom-kadr-deploy]
+    paths: ['.github/workflows/timecode-arcade-update.yml']
+permissions:
+  contents: read
+jobs:
+  update:
+    runs-on: ubuntu-latest
+    timeout-minutes: 8
+    steps:
+      - name: Connect to existing server
+        env:
+          BOOM_SSH_KEY: ${{ secrets.BOOM_SSH_KEY }}
+        run: |
+          install -d -m 700 ~/.ssh
+          printf '%s\n' "$BOOM_SSH_KEY" > ~/.ssh/timecode
+          chmod 600 ~/.ssh/timecode
+          ssh-keyscan -T 8 -H 217.149.24.242 > ~/.ssh/known_hosts
+      - name: Update TIMECODE static games
+        run: |
+          ssh -i ~/.ssh/timecode -o BatchMode=yes root@217.149.24.242 'bash -s' <<'REMOTE'
+          set -Eeuo pipefail
+          test -d /opt/timecode-bot/.git
+          test "$(git -C /opt/timecode-bot branch --show-current)" = feature/timecode-media-bot
+          test -f /opt/timecode-bot/timecode-bot/static/arcade.js
+          git -C /opt/timecode-bot pull --ff-only origin feature/timecode-media-bot
+          node --check /opt/timecode-bot/timecode-bot/static/arcade.js
+          node --check /opt/timecode-bot/timecode-bot/static/app.js
+          grep -q 'ПРОПАЛ РЕКВИЗИТ' /opt/timecode-bot/timecode-bot/static/arcade.js
+          curl -fsS --max-time 8 http://127.0.0.1:8097/arcade.js | grep -q 'ПРОПАЛ РЕКВИЗИТ'
+          systemctl is-active --quiet timecode-bot.service
+          REMOTE
