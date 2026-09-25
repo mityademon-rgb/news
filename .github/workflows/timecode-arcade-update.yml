@@ -59,12 +59,19 @@ jobs:
           }
           for old,new in changes.items():
             s=s.replace(old,new)
+          needle="function render(){if(!state)return login();renderDock();"
+          replacement="function render(){document.body.classList.toggle('arcade-playing',['miccord','battleship'].includes(game));if(!state)return login();renderDock();"
+          if needle in s:
+            s=s.replace(needle,replacement,1)
+          elif replacement not in s:
+            raise SystemExit('Неожиданная версия app.js: компактный режим не установлен')
           p.write_text(s)
           PY
           node --check arcade.js
           node --check app.js
           grep -q 'ПРОПАЛ РЕКВИЗИТ' arcade.js
-          grep -q 'position:sticky' arcade.css
+          grep -q 'arcade-playing .cord-board' arcade.css
+          grep -q 'arcade-playing' app.js
           curl -fsS --max-time 8 http://127.0.0.1:8097/arcade.js | grep -q 'ПРОПАЛ РЕКВИЗИТ'
           systemctl is-active --quiet timecode-bot.service
           REMOTE
