@@ -1,0 +1,67 @@
+name: Deploy TIMECODE games and glossary
+on:
+  push:
+    branches: [boom-kadr-deploy]
+    paths: [.github/workflows/timecode-games-deploy.yml]
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Download bot branch
+        uses: actions/checkout@v4
+        with:
+          repository: mityademon-rgb/media-center-bot
+          ref: 1636e845a7ebd18d4cc8746fc92cf97d0f981444
+          path: bot
+      - name: Check and pack only TIMECODE files
+        run: |
+          set -euo pipefail
+          node --check bot/timecode-bot/static/app.js
+          node --check bot/timecode-bot/static/arcade.js
+          node --check bot/timecode-bot/static/glossary.js
+          python3 -m py_compile bot/timecode-bot/server.py
+          tar -C bot -czf /tmp/timecode-update.tar.gz             timecode-bot/server.py             timecode-bot/static/app.js timecode-bot/static/index.html             timecode-bot/static/arcade.js timecode-bot/static/arcade.css             timecode-bot/static/glossary.js timecode-bot/static/glossary.css
+      - name: Install bot files and verify application route
+        env:
+          BOOM_SSH_KEY: ${{ secrets.BOOM_SSH_KEY }}
+        run: |
+          set -euo pipefail
+          printf '%s\n' "$BOOM_SSH_KEY" > /tmp/key
+          chmod 600 /tmp/key
+          ssh-keyscan -T 8 -H 217.149.24.242 >> /tmp/known_hosts 2>/dev/null
+          scp -i /tmp/key -o UserKnownHostsFile=/tmp/known_hosts /tmp/timecode-update.tar.gz root@217.149.24.242:/tmp/timecode-update.tar.gz
+          ssh -i /tmp/key -o UserKnownHostsFile=/tmp/known_hosts root@217.149.24.242 'bash -s' <<'REMOTE'
+          set -euo pipefail
+          cd /opt/timecode-bot
+          test -f timecode-bot/server.py
+          test -f timecode-bot/static/index.html
+          test -f /tmp/timecode-update.tar.gz
+          backup="$(mktemp -d /opt/timecode-bot/backup-games-XXXXXXXX)"
+          tar -czf "$backup/before.tar.gz" timecode-bot/server.py timecode-bot/static/app.js timecode-bot/static/index.html
+          for f in arcade.js arcade.css glossary.js glossary.css; do
+            if test -f "timecode-bot/static/$f"; then cp -p "timecode-bot/static/$f" "$backup/$f"; fi
+          done
+          rollback() {
+            tar -xzf "$backup/before.tar.gz" -C /opt/timecode-bot
+            for f in arcade.js arcade.css glossary.js glossary.css; do
+              if test -f "$backup/$f"; then cp "$backup/$f" "timecode-bot/static/$f"; else rm -f "timecode-bot/static/$f"; fi
+            done
+            systemctl restart timecode-bot || true
+          }
+          trap rollback ERR
+          tar -xzf /tmp/timecode-update.tar.gz -C /opt/timecode-bot
+          python3 -m py_compile timecode-bot/server.py
+          systemctl restart timecode-bot
+          for i in 1 2 3 4 5 6 7 8 9 10; do
+            if curl -fsS --max-time 3 http://127.0.0.1:8097/health >/dev/null; then break; fi
+            sleep 2
+          done
+          curl -fsS --max-time 8 http://127.0.0.1:8097/health
+          for asset in /arcade.js /arcade.css /glossary.js /glossary.css; do
+            curl -fsS --max-time 8 "http://127.0.0.1:8097$asset" >/dev/null
+            echo "ASSET_OK $asset"
+          done
+          curl -fsS --max-time 8 --resolve timecode-lab.ru:443:217.149.24.234 https://timecode-lab.ru/tc/ | grep -q 'glossary.js'
+          echo 'PUBLIC_MINIAPP_OK'
+          trap - ERR
+          REMOTE
