@@ -1,0 +1,100 @@
+name: TIMECODE evening editorial and teacher button
+on:
+  push:
+    branches: [boom-kadr-deploy]
+    paths: ['.github/workflows/timecode-evening-editorial.yml']
+permissions:
+  contents: read
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    timeout-minutes: 9
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          repository: mityademon-rgb/media-center-bot
+          ref: feature/timecode-media-bot
+          path: source
+      - name: Connect
+        env:
+          BOOM_SSH_KEY: ${{ secrets.BOOM_SSH_KEY }}
+        run: |
+          install -d -m 700 ~/.ssh
+          printf '%s\n' "$BOOM_SSH_KEY" > ~/.ssh/timecode
+          chmod 600 ~/.ssh/timecode
+          ssh-keyscan -T 8 -H 217.149.24.242 > ~/.ssh/known_hosts
+      - name: Backup and stage
+        run: |
+          ssh -i ~/.ssh/timecode -o BatchMode=yes root@217.149.24.242 'bash -s' <<'REMOTE'
+          set -Eeuo pipefail
+          cd /opt/timecode-bot/timecode-bot
+          backup=/opt/timecode-bot/evening-backup-$(date +%Y%m%d%H%M%S)
+          mkdir -m 700 "$backup"
+          cp -p server.py notification_delivery.py "$backup/"
+          printf '%s\n' "$backup" > /opt/timecode-bot/evening-latest-backup-path
+          REMOTE
+          scp -i ~/.ssh/timecode -o BatchMode=yes source/timecode-bot/notification_delivery.py root@217.149.24.242:/tmp/timecode-evening-delivery.py
+          scp -i ~/.ssh/timecode -o BatchMode=yes source/timecode-bot/server.py root@217.149.24.242:/tmp/timecode-evening-source.py
+      - name: Apply safely and check service
+        run: |
+          ssh -i ~/.ssh/timecode -o BatchMode=yes root@217.149.24.242 'bash -s' <<'REMOTE'
+          set -Eeuo pipefail
+          cd /opt/timecode-bot/timecode-bot
+          backup=$(cat /opt/timecode-bot/evening-latest-backup-path)
+          rollback() {
+            cp -p "$backup/server.py" server.py
+            cp -p "$backup/notification_delivery.py" notification_delivery.py
+            systemctl restart timecode-bot.service || true
+          }
+          trap rollback ERR
+          python3 - <<'PY'
+          from pathlib import Path
+          target=Path('server.py');current=target.read_text();source=Path('/tmp/timecode-evening-source.py').read_text()
+          start="    if uid in ADMINS and text in ('/publish','📣 Написать всем'):"
+          end="    if uid in ADMINS and text.startswith('/quest '):"
+          if current.count(end)!=1 or source.count(start)!=1 or source.count(end)!=1:
+              raise SystemExit('Unexpected server version at admin command')
+          if current.count(start)==0:
+              current=current.replace(end,source[source.index(start):source.index(end)]+end,1)
+          elif current.count(start)!=1:
+              raise SystemExit('Duplicate admin command')
+          target.write_text(current)
+          Path('notification_delivery.py').write_bytes(Path('/tmp/timecode-evening-delivery.py').read_bytes())
+          PY
+          python3 -m py_compile server.py notification_delivery.py
+          systemctl restart timecode-bot.service
+          sleep 2
+          systemctl is-active --quiet timecode-bot.service
+          curl -fsS --max-time 8 http://127.0.0.1:8097/health -o /dev/null
+          trap - ERR
+          REMOTE
+      - name: Notify configured teachers of publish button
+        run: |
+          ssh -i ~/.ssh/timecode -o BatchMode=yes root@217.149.24.242 'bash -s' <<'REMOTE'
+          set -Eeuo pipefail
+          cd /opt/timecode-bot/timecode-bot
+          python3 - <<'PY'
+          import os,shlex
+          config={}
+          for line in open('/etc/timecode-bot.env'):
+              line=line.strip()
+              if not line or line.startswith('#'):continue
+              if line.startswith('export '):line=line[7:]
+              key,sep,value=line.partition('=')
+              if sep and key in ('BOT_TOKEN','ADMIN_IDS'):
+                  parts=shlex.split(value,comments=True)
+                  config[key]=parts[0] if parts else ''
+          token=config.get('BOT_TOKEN','')
+          admins=[int(x) for x in config.get('ADMIN_IDS','').split(',') if x.strip().isdigit()]
+          if not token or not admins:raise SystemExit('No token or configured teacher IDs')
+          import server
+          server.TOKEN=token
+          buttons=[[{'text':'📣 Написать всем','callback_data':'admin:publish'}]]
+          success=0
+          for uid in admins:
+              result=server.send(uid,'📣 <b>Кнопка преподавателя</b>\nНажми «Написать всем» и отправь сообщение. Бот разошлёт его участникам лично. Кнопка также появится после /start; команда /publish работает в любой момент.',buttons)
+              success+=bool(result.get('ok'))
+          print('Configured teachers:',len(admins),'notification delivered:',success)
+          if success==0:raise SystemExit('No teacher received the button')
+          PY
+          REMOTE
