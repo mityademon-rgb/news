@@ -10,6 +10,12 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 8
     steps:
+      - name: Checkout TIMECODE game files
+        uses: actions/checkout@v4
+        with:
+          repository: mityademon-rgb/media-center-bot
+          ref: feature/timecode-media-bot
+          path: source
       - name: Connect to existing server
         env:
           BOOM_SSH_KEY: ${{ secrets.BOOM_SSH_KEY }}
@@ -18,17 +24,47 @@ jobs:
           printf '%s\n' "$BOOM_SSH_KEY" > ~/.ssh/timecode
           chmod 600 ~/.ssh/timecode
           ssh-keyscan -T 8 -H 217.149.24.242 > ~/.ssh/known_hosts
-      - name: Update TIMECODE static games
+      - name: Copy two game files and back up existing files
         run: |
           ssh -i ~/.ssh/timecode -o BatchMode=yes root@217.149.24.242 'bash -s' <<'REMOTE'
           set -Eeuo pipefail
-          test -d /opt/timecode-bot/.git
-          test "$(git -C /opt/timecode-bot branch --show-current)" = feature/timecode-media-bot
-          test -f /opt/timecode-bot/timecode-bot/static/arcade.js
-          git -C /opt/timecode-bot pull --ff-only origin feature/timecode-media-bot
-          node --check /opt/timecode-bot/timecode-bot/static/arcade.js
-          node --check /opt/timecode-bot/timecode-bot/static/app.js
-          grep -q 'ПРОПАЛ РЕКВИЗИТ' /opt/timecode-bot/timecode-bot/static/arcade.js
+          static=/opt/timecode-bot/timecode-bot/static
+          test -f "$static/app.js"
+          backup=/opt/timecode-bot/arcade-backup-$(date +%Y%m%d%H%M%S)
+          mkdir -m 700 "$backup"
+          cp -p "$static/app.js" "$backup/"
+          for file in arcade.js arcade.css; do
+            if test -f "$static/$file"; then cp -p "$static/$file" "$backup/"; fi
+          done
+          printf '%s\n' "$backup" > /opt/timecode-bot/arcade-latest-backup-path
+          REMOTE
+          scp -i ~/.ssh/timecode -o BatchMode=yes source/timecode-bot/static/arcade.js source/timecode-bot/static/arcade.css root@217.149.24.242:/opt/timecode-bot/timecode-bot/static/
+      - name: Adjust existing game card and verify
+        run: |
+          ssh -i ~/.ssh/timecode -o BatchMode=yes root@217.149.24.242 'bash -s' <<'REMOTE'
+          set -Eeuo pipefail
+          cd /opt/timecode-bot/timecode-bot/static
+          python3 - <<'PY'
+          from pathlib import Path
+          p=Path('app.js')
+          s=p.read_text()
+          changes={
+            'Морской бой: съёмочная экспедиция':'Поиск на съёмочной площадке',
+            'Тактика · 8 × 8':'Поиск · 4 попытки',
+            'Найди четыре корабля на карте. Каждый выстрел — новый кадр экспедиции.':'Найди камеру и микрофон по подсказкам. Четыре попытки на оба предмета.',
+            'МОРСКОЙ БОЙ / КАЖДЫЙ РАЗ НОВАЯ КАРТА':'ПОИСК РЕКВИЗИТА / НОВАЯ РАСКЛАДКА',
+            'ФЛОТ В КАДРЕ.':'ГДЕ КАМЕРА?',
+            'Восемь на восемь. Четыре корабля. Сколько попыток понадобится, чтобы найти все?':'Камера вверху справа, микрофон внизу слева. Найди оба за четыре попытки.',
+            'Найти флот ↗':'Искать предметы ↗',
+          }
+          for old,new in changes.items():
+            s=s.replace(old,new)
+          p.write_text(s)
+          PY
+          node --check arcade.js
+          node --check app.js
+          grep -q 'ПРОПАЛ РЕКВИЗИТ' arcade.js
+          grep -q 'position:sticky' arcade.css
           curl -fsS --max-time 8 http://127.0.0.1:8097/arcade.js | grep -q 'ПРОПАЛ РЕКВИЗИТ'
           systemctl is-active --quiet timecode-bot.service
           REMOTE
