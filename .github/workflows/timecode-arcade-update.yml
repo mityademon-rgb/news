@@ -59,12 +59,12 @@ jobs:
           }
           for old,new in changes.items():
             s=s.replace(old,new)
-          needle="function render(){if(!state)return login();renderDock();"
-          replacement="function render(){document.body.classList.toggle('arcade-playing',['miccord','battleship'].includes(game));if(!state)return login();renderDock();"
-          if needle in s:
+          needle="function render(){"
+          replacement="function render(){document.body.classList.toggle('arcade-playing',['miccord','battleship'].includes(game));"
+          if 'arcade-playing' not in s:
+            if s.count(needle)!=1:
+              raise SystemExit('Не удалось найти единственную функцию render')
             s=s.replace(needle,replacement,1)
-          elif replacement not in s:
-            raise SystemExit('Неожиданная версия app.js: компактный режим не установлен')
           p.write_text(s)
           PY
           node --check arcade.js
