@@ -1,0 +1,67 @@
+name: Update TIMECODE daily delivery
+on:
+  push:
+    branches: [boom-kadr-deploy]
+    paths: ['.github/workflows/timecode-delivery-update.yml']
+permissions:
+  contents: read
+jobs:
+  update:
+    runs-on: ubuntu-latest
+    timeout-minutes: 8
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          repository: mityademon-rgb/media-center-bot
+          ref: feature/timecode-media-bot
+          path: source
+      - name: Connect to TIMECODE server
+        env:
+          BOOM_SSH_KEY: ${{ secrets.BOOM_SSH_KEY }}
+        run: |
+          install -d -m 700 ~/.ssh
+          printf '%s\n' "$BOOM_SSH_KEY" > ~/.ssh/timecode
+          chmod 600 ~/.ssh/timecode
+          ssh-keyscan -T 8 -H 217.149.24.242 > ~/.ssh/known_hosts
+      - name: Back up and upload delivery module
+        run: |
+          ssh -i ~/.ssh/timecode -o BatchMode=yes root@217.149.24.242 'bash -s' <<'REMOTE'
+          set -Eeuo pipefail
+          cd /opt/timecode-bot/timecode-bot
+          test -f server.py
+          backup=/opt/timecode-bot/delivery-backup-$(date +%Y%m%d%H%M%S)
+          mkdir -m 700 "$backup"
+          cp -p server.py "$backup/"
+          if test -f notification_delivery.py; then cp -p notification_delivery.py "$backup/"; fi
+          echo "$backup" > /opt/timecode-bot/delivery-latest-backup-path
+          REMOTE
+          scp -i ~/.ssh/timecode -o BatchMode=yes source/timecode-bot/notification_delivery.py root@217.149.24.242:/opt/timecode-bot/timecode-bot/
+      - name: Activate and verify with rollback
+        run: |
+          ssh -i ~/.ssh/timecode -o BatchMode=yes root@217.149.24.242 'bash -s' <<'REMOTE'
+          set -Eeuo pipefail
+          cd /opt/timecode-bot/timecode-bot
+          backup=$(cat /opt/timecode-bot/delivery-latest-backup-path)
+          rollback() {
+            cp -p "$backup/server.py" server.py
+            if test -f "$backup/notification_delivery.py"; then cp -p "$backup/notification_delivery.py" notification_delivery.py; else rm -f notification_delivery.py; fi
+            systemctl restart timecode-bot.service || true
+          }
+          trap rollback ERR
+          python3 - <<'PY'
+          from pathlib import Path
+          p=Path('server.py');s=p.read_text()
+          hook='import notification_delivery\nnotification_delivery.install(globals())\n'
+          if hook not in s:
+              marker="if __name__=='__main__':"
+              if s.count(marker)!=1:raise SystemExit('Missing server entry point')
+              s=s.replace(marker,hook+'\n'+marker,1)
+              p.write_text(s)
+          PY
+          python3 -m py_compile server.py notification_delivery.py
+          systemctl restart timecode-bot.service
+          sleep 2
+          systemctl is-active --quiet timecode-bot.service
+          curl -fsS --max-time 8 http://127.0.0.1:8097/health -o /dev/null
+          trap - ERR
+          REMOTE
