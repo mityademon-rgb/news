@@ -1,0 +1,51 @@
+name: Restore TIMECODE app route
+on:
+  push:
+    branches: [boom-kadr-deploy]
+    paths: [.github/workflows/timecode-route-restore.yml]
+jobs:
+  fix:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Restore only the missing TC location
+        env:
+          BOOM_SSH_KEY: ${{ secrets.BOOM_SSH_KEY }}
+        run: |
+          set -euo pipefail
+          printf '%s\n' "$BOOM_SSH_KEY" > /tmp/key
+          chmod 600 /tmp/key
+          ssh-keyscan -T 8 -H 217.149.24.242 >> /tmp/known_hosts 2>/dev/null
+          cat > /tmp/restore_tc.py <<'PY'
+          from pathlib import Path
+          import shutil
+          import subprocess
+          p=Path('/etc/nginx/conf.d/boom-kadr.conf')
+          original=p.read_text()
+          anchor='server_name timecode-lab.ru;'
+          start=original.find(anchor)
+          assert start!=-1 and 'listen 217.149.24.234:443 ssl;' in original[max(0,start-180):start]
+          point=original.find('    location / {',start)
+          assert point!=-1 and point-start<1800
+          if 'location ^~ /tc/' in original[start:point]:
+              print('ROUTE_ALREADY_PRESENT')
+          else:
+              replacement='''    location = /tc { return 301 /tc/; }
+              location ^~ /tc/ {
+                  proxy_pass http://127.0.0.1:8097/;
+                  proxy_set_header Host $host;
+                  proxy_set_header X-Forwarded-Proto https;
+                  proxy_set_header X-Real-IP $remote_addr;
+              }
+              
+              '''
+              backup=p.with_name(p.name+'.backup-timecode-route')
+              shutil.copy2(p,backup)
+              p.write_text(original[:point]+replacement+original[point:])
+              if subprocess.run(['nginx','-t']).returncode:
+                  shutil.copy2(backup,p)
+                  raise SystemExit('NGINX_CONFIG_RESTORED_AFTER_FAILED_TEST')
+              subprocess.run(['systemctl','reload','nginx'],check=True)
+              print('ROUTE_RESTORED')
+          PY
+          scp -i /tmp/key -o UserKnownHostsFile=/tmp/known_hosts /tmp/restore_tc.py root@217.149.24.242:/tmp/restore_tc.py
+          ssh -i /tmp/key -o UserKnownHostsFile=/tmp/known_hosts root@217.149.24.242 'python3 /tmp/restore_tc.py; curl -ksS --max-time 8 --resolve timecode-lab.ru:443:217.149.24.234 https://timecode-lab.ru/tc/ | head -c 110'
