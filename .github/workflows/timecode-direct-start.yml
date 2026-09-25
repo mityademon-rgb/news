@@ -1,0 +1,49 @@
+name: Fix TIMECODE direct start
+on:
+  push:
+    branches: [boom-kadr-deploy]
+    paths: ['.github/workflows/timecode-direct-start.yml']
+permissions:
+  contents: read
+jobs:
+  update:
+    runs-on: ubuntu-latest
+    timeout-minutes: 6
+    steps:
+      - name: Connect
+        env:
+          BOOM_SSH_KEY: ${{ secrets.BOOM_SSH_KEY }}
+        run: |
+          install -d -m 700 ~/.ssh
+          printf '%s\n' "$BOOM_SSH_KEY" > ~/.ssh/timecode
+          chmod 600 ~/.ssh/timecode
+          ssh-keyscan -T 8 -H 217.149.24.242 > ~/.ssh/known_hosts
+      - name: Remove invitation gate and verify
+        run: |
+          ssh -i ~/.ssh/timecode -o BatchMode=yes root@217.149.24.242 'bash -s' <<'REMOTE'
+          set -Eeuo pipefail
+          cd /opt/timecode-bot/timecode-bot
+          backup=/opt/timecode-bot/start-backup-$(date +%Y%m%d%H%M%S)
+          mkdir -m 700 "$backup"
+          cp -p server.py "$backup/server.py"
+          echo "$backup" > /opt/timecode-bot/start-latest-backup-path
+          rollback() { cp -p "$backup/server.py" server.py; systemctl restart timecode-bot.service || true; }
+          trap rollback ERR
+          python3 - <<'PY'
+          from pathlib import Path
+          p=Path('server.py');s=p.read_text()
+          import re
+          pattern=r"(?m)^\s{8}if uid not in ADMINS and JOIN and start!=JOIN:\n\s{12}send\(uid,'Доступ по приглашению медиацентра\. Попроси у преподавателя ссылку TIMECODE\.'\);return\n"
+          s,n=re.subn(pattern,'',s,count=1)
+          if n!=1:raise SystemExit('Invitation gate differs; no change applied')
+          p.write_text(s)
+          PY
+          python3 -m py_compile server.py notification_delivery.py
+          systemctl restart timecode-bot.service
+          sleep 2
+          systemctl is-active --quiet timecode-bot.service
+          curl -fsS --max-time 8 http://127.0.0.1:8097/health -o /dev/null
+          grep -q "first_join=not allowed(uid)" server.py
+          ! grep -q 'Доступ по приглашению медиацентра' server.py
+          trap - ERR
+          REMOTE
