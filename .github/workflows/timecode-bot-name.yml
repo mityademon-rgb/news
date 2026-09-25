@@ -1,0 +1,33 @@
+name: Read TIMECODE bot username
+on:
+  push:
+    branches: [boom-kadr-deploy]
+    paths: ['.github/workflows/timecode-bot-name.yml']
+permissions:
+  contents: read
+jobs:
+  inspect:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - name: Connect
+        env:
+          BOOM_SSH_KEY: ${{ secrets.BOOM_SSH_KEY }}
+        run: |
+          install -d -m 700 ~/.ssh
+          printf '%s\n' "$BOOM_SSH_KEY" > ~/.ssh/timecode
+          chmod 600 ~/.ssh/timecode
+          ssh-keyscan -T 8 -H 217.149.24.242 > ~/.ssh/known_hosts
+      - name: Read public bot username
+        run: |
+          ssh -i ~/.ssh/timecode -o BatchMode=yes root@217.149.24.242 'python3 -' <<'PY'
+          import json,urllib.request
+          values={}
+          for line in open('/etc/timecode-bot.env'):
+              if '=' in line:
+                  k,v=line.strip().split('=',1)
+                  if k=='BOT_TOKEN':values[k]=v.strip().strip('"').strip("'")
+          token=values['BOT_TOKEN']
+          data=json.load(urllib.request.urlopen('https://api.telegram.org/bot'+token+'/getMe',timeout=10))
+          print('BOT_USERNAME='+data['result']['username'])
+          PY
