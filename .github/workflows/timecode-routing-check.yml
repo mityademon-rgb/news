@@ -1,0 +1,29 @@
+name: Inspect TIMECODE routing
+on:
+  push:
+    branches: [boom-kadr-deploy]
+    paths: [.github/workflows/timecode-routing-check.yml]
+jobs:
+  inspect:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check existing public route and local service
+        env:
+          BOOM_SSH_KEY: ${{ secrets.BOOM_SSH_KEY }}
+        run: |
+          set -euo pipefail
+          printf '%s\n' "$BOOM_SSH_KEY" > /tmp/key
+          chmod 600 /tmp/key
+          ssh-keyscan -T 8 -H 217.149.24.242 >> /tmp/known_hosts 2>/dev/null
+          ssh -i /tmp/key -o UserKnownHostsFile=/tmp/known_hosts root@217.149.24.242 'python3 - <<"PY"
+          from pathlib import Path
+          p=Path("/etc/nginx/conf.d/boom-kadr.conf")
+          text=p.read_text()
+          print("ROUTE_IN_CONF", "location ^~ /tc/" in text)
+          pos=text.find("server_name timecode-lab.ru;",text.find("listen 217.149.24.234:443"))
+          print("TLS_SERVER_FOUND",pos>=0)
+          if pos>=0: print("TLS_LOCATIONS", [line.strip() for line in text[pos:pos+3000].splitlines() if "location " in line or "proxy_pass " in line])
+          PY
+          printf "LOCAL_HEALTH "; curl -fsS --max-time 5 http://127.0.0.1:8097/health || true
+          printf "\nPUBLIC_TC "; curl -k -sS -o /dev/null -w "%{http_code} %{redirect_url}\n" --max-time 8 --resolve timecode-lab.ru:443:217.149.24.234 https://timecode-lab.ru/tc/
+          printf "PUBLIC_ROOT "; curl -k -sS -o /dev/null -w "%{http_code} %{redirect_url}\n" --max-time 8 --resolve timecode-lab.ru:443:217.149.24.234 https://timecode-lab.ru/' 
