@@ -1,0 +1,76 @@
+name: Update TIMECODE teacher broadcast and tips
+on:
+  push:
+    branches: [boom-kadr-deploy]
+    paths: ['.github/workflows/timecode-teacher-broadcast.yml']
+permissions:
+  contents: read
+jobs:
+  update:
+    runs-on: ubuntu-latest
+    timeout-minutes: 9
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          repository: mityademon-rgb/media-center-bot
+          ref: feature/timecode-media-bot
+          path: source
+      - name: Connect to existing server
+        env:
+          BOOM_SSH_KEY: ${{ secrets.BOOM_SSH_KEY }}
+        run: |
+          install -d -m 700 ~/.ssh
+          printf '%s\n' "$BOOM_SSH_KEY" > ~/.ssh/timecode
+          chmod 600 ~/.ssh/timecode
+          ssh-keyscan -T 8 -H 217.149.24.242 > ~/.ssh/known_hosts
+      - name: Back up and stage changed files
+        run: |
+          ssh -i ~/.ssh/timecode -o BatchMode=yes root@217.149.24.242 'bash -s' <<'REMOTE'
+          set -Eeuo pipefail
+          cd /opt/timecode-bot/timecode-bot
+          backup=/opt/timecode-bot/broadcast-backup-$(date +%Y%m%d%H%M%S)
+          mkdir -m 700 "$backup"
+          cp -p server.py notification_delivery.py "$backup/"
+          printf '%s\n' "$backup" > /opt/timecode-bot/broadcast-latest-backup-path
+          REMOTE
+          scp -i ~/.ssh/timecode -o BatchMode=yes source/timecode-bot/notification_delivery.py root@217.149.24.242:/opt/timecode-bot/timecode-bot/
+          scp -i ~/.ssh/timecode -o BatchMode=yes source/timecode-bot/server.py root@217.149.24.242:/tmp/timecode-broadcast-source.py
+      - name: Apply only teacher controls and verify
+        run: |
+          ssh -i ~/.ssh/timecode -o BatchMode=yes root@217.149.24.242 'bash -s' <<'REMOTE'
+          set -Eeuo pipefail
+          cd /opt/timecode-bot/timecode-bot
+          backup=$(cat /opt/timecode-bot/broadcast-latest-backup-path)
+          rollback() {
+            cp -p "$backup/server.py" server.py
+            cp -p "$backup/notification_delivery.py" notification_delivery.py
+            systemctl restart timecode-bot.service || true
+          }
+          trap rollback ERR
+          python3 - <<'PY'
+          from pathlib import Path
+          target=Path('server.py');current=target.read_text();source=Path('/tmp/timecode-broadcast-source.py').read_text()
+          sections=[
+           ("    if uid in ADMINS and (text.startswith('/send ') or caption.startswith('/send')):","    if uid not in ADMINS and text.startswith('/ask '):"),
+           ("    if uid in ADMINS and stage=='admin_publish':","    if uid in ADMINS and stage.startswith('admin_question:'):"),
+           ("    if uid in ADMINS and data=='admin:publish':","    if uid in ADMINS and data=='admin:questions':"),
+          ]
+          for start,end in sections:
+              if source.count(start)!=1 or source.count(end)!=1 or current.count(start)!=1 or current.count(end)!=1:
+                  raise SystemExit('Unexpected server version at '+start)
+              fresh=source[source.index(start):source.index(end)]
+              old=current[current.index(start):current.index(end)]
+              current=current.replace(old,fresh,1)
+          current=current.replace('Для общего чата: /send Текст','Для всех подписчиков: /send Текст')
+          target.write_text(current)
+          PY
+          python3 -m py_compile server.py notification_delivery.py
+          grep -q 'sent,failed=publish_to_all(msg,body)' server.py
+          grep -q 'def publish_to_all' notification_delivery.py
+          systemctl restart timecode-bot.service
+          sleep 2
+          systemctl is-active --quiet timecode-bot.service
+          curl -fsS --max-time 8 http://127.0.0.1:8097/health -o /dev/null
+          rm -f /tmp/timecode-broadcast-source.py
+          trap - ERR
+          REMOTE
