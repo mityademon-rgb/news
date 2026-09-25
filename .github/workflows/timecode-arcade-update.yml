@@ -69,9 +69,9 @@ jobs:
           PY
           node --check arcade.js
           node --check app.js
-          grep -q 'ПРОПАЛ РЕКВИЗИТ' arcade.js
+          grep -q 'ПОИСК РЕКВИЗИТА' arcade.js
           grep -q 'arcade-playing .cord-board' arcade.css
           grep -q 'arcade-playing' app.js
-          curl -fsS --max-time 8 http://127.0.0.1:8097/arcade.js | grep -q 'ПРОПАЛ РЕКВИЗИТ'
+          curl -fsS --max-time 8 http://127.0.0.1:8097/arcade.js | grep -q 'ПОИСК РЕКВИЗИТА'
           systemctl is-active --quiet timecode-bot.service
           REMOTE
