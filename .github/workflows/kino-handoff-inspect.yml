@@ -1,0 +1,37 @@
+name: Inspect KT16 handoff state
+on:
+  push:
+    branches: [boom-kadr-deploy]
+    paths: ['.github/workflows/kino-handoff-inspect.yml']
+permissions:
+  contents: read
+jobs:
+  inspect:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - name: Configure existing connection
+        env:
+          BOOM_SSH_KEY: ${{ secrets.BOOM_SSH_KEY }}
+        run: |
+          install -d -m 700 ~/.ssh
+          printf '%s\n' "$BOOM_SSH_KEY" > ~/.ssh/kino
+          chmod 600 ~/.ssh/kino
+          ssh-keyscan -T 8 -H 217.149.24.242 > ~/.ssh/known_hosts
+      - name: Read service and deployment state
+        run: |
+          ssh -i ~/.ssh/kino -o BatchMode=yes root@217.149.24.242 'bash -s' <<'REMOTE'
+          set -euo pipefail
+          printf 'HOST='; hostname
+          printf 'SERVICE='; systemctl is-active kino-group.service
+          printf 'BRANCH='; git -C /opt/kino-group branch --show-current
+          printf 'HEAD='; git -C /opt/kino-group rev-parse --short HEAD
+          printf 'STATUS_START\n'; git -C /opt/kino-group status --short; printf 'STATUS_END\n'
+          printf 'HEALTH_LOCAL='; curl -fsS --max-time 8 http://127.0.0.1:8087/health
+          printf '\nDB='; test -f /opt/kino-group/kino-group/data/group.db && echo present || echo missing
+          printf 'UPLOADS='; test -d /opt/kino-group/kino-group/uploads && echo present || echo missing
+          printf 'ENV_FILE='; test -f /etc/kino-group.env && echo present || echo missing
+          printf 'NGINX='; test -f /etc/nginx/conf.d/kino-group.conf && echo present || echo missing
+          REMOTE
+          printf 'HEALTH_PUBLIC='
+          curl -fsS --max-time 12 https://group.217-149-24-234.nip.io/health
