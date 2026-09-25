@@ -19,11 +19,14 @@ jobs:
           from pathlib import Path
           p=Path("/etc/nginx/conf.d/boom-kadr.conf")
           text=p.read_text()
-          print("ROUTE_IN_CONF", "location ^~ /tc/" in text)
+          print("ROUTE_IN_CONF", "location ^~ /tc/" in text)\n          a=text.find("location ^~ /tc/")\n          print("ROUTE_SNIPPET",text[a:a+280].replace("\\n"," "))
           pos=text.find("server_name timecode-lab.ru;",text.find("listen 217.149.24.234:443"))
           print("TLS_SERVER_FOUND",pos>=0)
           if pos>=0: print("TLS_LOCATIONS", [line.strip() for line in text[pos:pos+3000].splitlines() if "location " in line or "proxy_pass " in line])
           PY
           printf "LOCAL_HEALTH "; curl -fsS --max-time 5 http://127.0.0.1:8097/health || true
           printf "\nPUBLIC_TC "; curl -k -sS -o /dev/null -w "%{http_code} %{redirect_url}\n" --max-time 8 --resolve timecode-lab.ru:443:217.149.24.234 https://timecode-lab.ru/tc/
+          printf "APP_ASSET "; curl -k -sS -o /dev/null -w "%{http_code} %{content_type}\\n" --max-time 8 --resolve timecode-lab.ru:443:217.149.24.234 https://timecode-lab.ru/tc/app.js
+          printf "APP_EXPECTED "; curl -sS --max-time 5 http://127.0.0.1:8097/ | head -c 130; echo
+          printf "APP_PUBLIC "; curl -k -sS --max-time 8 --resolve timecode-lab.ru:443:217.149.24.234 https://timecode-lab.ru/tc/ | head -c 130; echo
           printf "PUBLIC_ROOT "; curl -k -sS -o /dev/null -w "%{http_code} %{redirect_url}\n" --max-time 8 --resolve timecode-lab.ru:443:217.149.24.234 https://timecode-lab.ru/' 
