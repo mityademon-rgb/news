@@ -72,6 +72,7 @@ jobs:
           grep -q 'ПОИСК РЕКВИЗИТА' arcade.js
           grep -q 'arcade-playing .cord-board' arcade.css
           grep -q 'arcade-playing' app.js
-          curl -fsS --max-time 8 http://127.0.0.1:8097/arcade.js | grep -q 'ПОИСК РЕКВИЗИТА'
+          curl -fsS --max-time 8 http://127.0.0.1:8097/arcade.js -o /tmp/timecode-arcade-check.js
+          grep -q 'ПОИСК РЕКВИЗИТА' /tmp/timecode-arcade-check.js
           systemctl is-active --quiet timecode-bot.service
           REMOTE
