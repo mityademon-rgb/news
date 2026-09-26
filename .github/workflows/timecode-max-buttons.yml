@@ -1,0 +1,60 @@
+name: TIMECODE MAX mission buttons
+on:
+  push:
+    branches: [boom-kadr-deploy]
+    paths: ['.github/workflows/timecode-max-buttons.yml']
+permissions:
+  contents: read
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    timeout-minutes: 7
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          repository: mityademon-rgb/media-center-bot
+          ref: feature/timecode-media-bot
+          path: source
+      - name: SSH setup
+        env:
+          BOOM_SSH_KEY: ${{ secrets.BOOM_SSH_KEY }}
+        run: |
+          install -d -m 700 ~/.ssh
+          printf '%s\n' "$BOOM_SSH_KEY" > ~/.ssh/timecode
+          chmod 600 ~/.ssh/timecode
+          ssh-keyscan -T 8 -H 217.149.24.242 > ~/.ssh/known_hosts
+      - name: Deploy MAX-only callback routing
+        run: |
+          scp -i ~/.ssh/timecode -o BatchMode=yes source/timecode-bot/max_transport.py root@217.149.24.242:/tmp/timecode-max-buttons.py
+          ssh -i ~/.ssh/timecode -o BatchMode=yes root@217.149.24.242 'bash -s' <<'REMOTE'
+          set -Eeuo pipefail
+          cd /opt/timecode-bot/timecode-bot
+          backup=$(mktemp -d /opt/timecode-bot/max-buttons-XXXXXXXX)
+          cp -p server.py "$backup/server.py"
+          cp -p max_transport.py "$backup/max_transport.py"
+          rollback() { cp -p "$backup/server.py" server.py; cp -p "$backup/max_transport.py" max_transport.py; systemctl restart timecode-bot.service || true; }
+          trap rollback ERR
+          python3 - <<'PY'
+          from pathlib import Path
+          p=Path('server.py');s=p.read_text()
+          old="    if q['id']!='max':api('answerCallbackQuery',{'callback_query_id':q['id']})\n"
+          new="""    if q['id']!='max':api('answerCallbackQuery',{'callback_query_id':q['id']})
+              if q['id']=='max' and data in ('max:start:mission','max:start:instant'):
+                  bot_message({'chat':{'id':uid,'type':'private'},'from':{'id':uid},'text':'/start '+data.rsplit(':',1)[1]})
+                  return
+          """
+          assert s.count(old)==1
+          p.write_text(s.replace(old,new,1))
+          PY
+          cp /tmp/timecode-max-buttons.py max_transport.py
+          python3 -m py_compile server.py max_transport.py
+          systemctl restart timecode-bot.service
+          healthy=0
+          for i in 1 2 3 4 5 6 7; do
+            if curl -fsS --max-time 3 http://127.0.0.1:8097/health -o /dev/null; then healthy=1;break;fi
+            sleep 2
+          done
+          test "$healthy" = 1
+          trap - ERR
+          echo 'MAX buttons route within MAX; service healthy'
+          REMOTE
