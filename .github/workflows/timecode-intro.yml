@@ -1,0 +1,89 @@
+name: TIMECODE launch animation
+on:
+  push:
+    branches: [boom-kadr-deploy]
+    paths: ['.github/workflows/timecode-intro.yml']
+permissions:
+  contents: read
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          repository: mityademon-rgb/media-center-bot
+          ref: feature/timecode-media-bot
+          path: source
+      - name: Prepare SSH
+        env:
+          BOOM_SSH_KEY: ${{ secrets.BOOM_SSH_KEY }}
+        run: |
+          install -d -m 700 ~/.ssh
+          printf '%s\n' "$BOOM_SSH_KEY" > ~/.ssh/timecode
+          chmod 600 ~/.ssh/timecode
+          ssh-keyscan -T 8 -H 217.149.24.242 > ~/.ssh/known_hosts
+      - name: Stage intro
+        run: |
+          ssh -i ~/.ssh/timecode -o BatchMode=yes root@217.149.24.242 'mkdir -p /tmp/timecode-intro/static'
+          scp -i ~/.ssh/timecode -o BatchMode=yes source/timecode-bot/server.py root@217.149.24.242:/tmp/timecode-intro/new-server.py
+          for item in index.html intro.js intro.css intro.mp4; do
+            scp -i ~/.ssh/timecode -o BatchMode=yes "source/timecode-bot/static/$item" "root@217.149.24.242:/tmp/timecode-intro/static/$item"
+          done
+      - name: Patch deployed app with rollback and verify
+        run: |
+          ssh -i ~/.ssh/timecode -o BatchMode=yes root@217.149.24.242 'bash -s' <<'REMOTE'
+          set -Eeuo pipefail
+          cd /opt/timecode-bot/timecode-bot
+          backup=$(mktemp -d /opt/timecode-bot/intro-backup-XXXXXXXX)
+          cp -p server.py "$backup/server.py"
+          cp -p static/index.html "$backup/index.html"
+          rollback() {
+            cp -p "$backup/server.py" server.py
+            cp -p "$backup/index.html" static/index.html
+            rm -f static/intro.js static/intro.css static/intro.mp4
+            systemctl restart timecode-bot.service || true
+          }
+          trap rollback ERR
+          python3 - <<'PY'
+          from pathlib import Path
+          old=Path('server.py').read_text()
+          new=Path('/tmp/timecode-intro/new-server.py').read_text()
+          start="        if path=='/intro.mp4':\n"
+          end="        self.send_response(200);self.send_header('Content-Type',"
+          if old.count(end)!=1 or new.count(start)!=1 or new.count(end)!=1:raise RuntimeError('Static route changed')
+          old=old.replace("'/screenplay.js','/screenplay.css')", "'/screenplay.js','/screenplay.css','/intro.js','/intro.css','/intro.mp4')",1)
+          if "'/intro.mp4')" not in old:raise RuntimeError('Static allowlist changed')
+          old=old.replace("'webp':'image/webp'}[file.suffix[1:]]", "'webp':'image/webp','mp4':'video/mp4'}[file.suffix[1:]]",1)
+          if "'mp4':'video/mp4'" not in old:raise RuntimeError('MIME table changed')
+          old=old.replace(end,new[new.index(start):new.index(end,new.index(start))]+end,1)
+          Path('server.py').write_text(old)
+          path=Path('static/index.html')
+          doc=path.read_text()
+          newer=Path('/tmp/timecode-intro/static/index.html').read_text()
+          css='<link rel="stylesheet" href="intro.css">'
+          clip='<div id="intro" aria-label="Заставка TIMECODE">'
+          if doc.count('<link rel="stylesheet" href="screenplay.css">')!=1 or newer.count(clip)!=1 or doc.count('<body>')!=1:raise RuntimeError('App HTML changed')
+          doc=doc.replace('<link rel="stylesheet" href="screenplay.css">','<link rel="stylesheet" href="screenplay.css">'+css,1)
+          doc=doc.replace('<body>', '<body>'+newer[newer.index(clip):newer.index('<div class="grain">')],1)
+          path.write_text(doc)
+          PY
+          for item in intro.js intro.css intro.mp4; do cp "/tmp/timecode-intro/static/$item" "static/$item"; done
+          python3 -m py_compile server.py
+          systemctl restart timecode-bot.service
+          healthy=0
+          for attempt in 1 2 3 4 5 6 7 8; do
+            if curl -fsS --max-time 3 http://127.0.0.1:8097/health -o /dev/null; then healthy=1;break;fi
+            sleep 2
+          done
+          test "$healthy" = 1
+          systemctl is-active --quiet timecode-bot.service
+          test "$(curl -fsS --max-time 8 -H 'Range: bytes=0-99' -o /tmp/timecode-intro-range -w '%{http_code}' http://127.0.0.1:8097/intro.mp4)" = 206
+          test "$(wc -c </tmp/timecode-intro-range)" = 100
+          curl -kfsS --max-time 8 https://timecode-lab.ru/tc/intro.js -o /dev/null
+          curl -kfsS --max-time 8 https://timecode-lab.ru/tc/intro.mp4 -o /dev/null
+          curl -kfsS --max-time 8 https://timecode-lab.ru/tc/ -o /tmp/timecode-intro-home
+          grep -q 'id="intro"' /tmp/timecode-intro-home
+          trap - ERR
+          echo 'TIMECODE intro deployed; HTTP range and public app verified'
+          REMOTE
