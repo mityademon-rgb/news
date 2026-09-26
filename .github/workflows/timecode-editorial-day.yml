@@ -1,0 +1,86 @@
+name: TIMECODE editorial morning and evening
+on:
+  push:
+    branches: [boom-kadr-deploy]
+    paths: ['.github/workflows/timecode-editorial-day.yml']
+permissions:
+  contents: read
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    timeout-minutes: 9
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          repository: mityademon-rgb/media-center-bot
+          ref: feature/timecode-media-bot
+          path: source
+      - name: SSH setup
+        env:
+          BOOM_SSH_KEY: ${{ secrets.BOOM_SSH_KEY }}
+        run: |
+          install -d -m 700 ~/.ssh
+          printf '%s\n' "$BOOM_SSH_KEY" > ~/.ssh/timecode
+          chmod 600 ~/.ssh/timecode
+          ssh-keyscan -T 8 -H 217.149.24.242 > ~/.ssh/known_hosts
+      - name: Stage revised source
+        run: |
+          scp -i ~/.ssh/timecode -o BatchMode=yes source/timecode-bot/server.py root@217.149.24.242:/tmp/timecode-editorial-server.py
+          scp -i ~/.ssh/timecode -o BatchMode=yes source/timecode-bot/notification_delivery.py root@217.149.24.242:/tmp/timecode-editorial-notification.py
+      - name: Patch, restart and verify
+        run: |
+          ssh -i ~/.ssh/timecode -o BatchMode=yes root@217.149.24.242 'bash -s' <<'REMOTE'
+          set -Eeuo pipefail
+          cd /opt/timecode-bot/timecode-bot
+          backup=$(mktemp -d /opt/timecode-bot/editorial-day-backup-XXXXXXXX)
+          cp -p server.py notification_delivery.py "$backup/"
+          rollback() {
+            cp -p "$backup/server.py" server.py
+            cp -p "$backup/notification_delivery.py" notification_delivery.py
+            systemctl restart timecode-bot.service || true
+          }
+          trap rollback ERR
+          python3 - <<'PY'
+          from pathlib import Path
+          actual=Path('server.py');old=actual.read_text();source=Path('/tmp/timecode-editorial-server.py').read_text()
+          changes=[
+            ("    if period=='am' and today()=='2026-09-26' and '10:25'<=clock<'11:20':return True\n",''),
+            ("    return ('07:30'<=clock<'09:00') if period=='am' else ('18:00'<=clock<'20:00')","    return (('09:00'<=clock<'09:50') if now().weekday()>=5 else ('07:30'<=clock<'09:00')) if period=='am' else ('18:00'<=clock<'20:00')"),
+            ("            if clock=='07:30':run_slot('morning',morning)","            if clock==('09:00' if t.weekday()>=5 else '07:30'):run_slot('morning',morning)"),
+            ("            if clock=='08:30':run_slot('morning-reminder',lambda:reminder('am'))","            if clock==('09:30' if t.weekday()>=5 else '08:30'):run_slot('morning-reminder',lambda:reminder('am'))"),
+            ("            if clock=='09:00':run_slot('morning-close',lambda:close_checkin('am'))","            if clock==('09:50' if t.weekday()>=5 else '09:00'):run_slot('morning-close',lambda:close_checkin('am'))"),
+            ("            if today()=='2026-09-26' and clock=='11:25':run_slot('digest-am-recovery',lambda:digest('am'))\n",''),
+            ('Утренний сбор завершён в 09:00. Завтра снова увидимся!','Утренний сбор завершён. В 10:00 выйдет наш выпуск.'),
+            ('Напиши одной фразой, что сегодня важного, или нажми «Пропустить».','Напиши одной фразой, что тебя сегодня волнует или радует. Можно пропустить.'),
+            ('<b>3/3. Что сегодня важного?</b> Одной фразой, если хочешь.','<b>3/3. Что тебя сегодня волнует или радует?</b> Одной фразой, если хочешь.'),
+            ('Утренние ответы принимаю с 07:30 до 09:00.','Утренние ответы принимаю с 09:00 до 09:50 в выходные и с 07:30 до 09:00 в будни.'),
+          ]
+          for before,after in changes:
+              if before not in old:raise SystemExit('Missing expected server anchor: '+before[:70])
+              if after and after not in source:raise SystemExit('Missing revised source: '+after[:70])
+              old=old.replace(before,after,1)
+          actual.write_text(old)
+          actual=Path('notification_delivery.py');old=actual.read_text();source=Path('/tmp/timecode-editorial-notification.py').read_text()
+          def patch_region(old_start,new_start,end):
+              global old
+              if old.count(old_start)!=1 or source.count(new_start)!=1 or old.count(end)!=1 or source.count(end)!=1:
+                  raise SystemExit('Unexpected notification module section: '+old_start)
+              old=old[:old.index(old_start)]+source[source.index(new_start):source.index(end)]+old[old.index(end):]
+          patch_region('    original_morning=', '    original_evening=', '    def audience():')
+          patch_region('    def morning():','    def morning():','    def tip():')
+          actual.write_text(old)
+          PY
+          python3 -m py_compile server.py notification_delivery.py
+          systemctl restart timecode-bot.service
+          healthy=0
+          for attempt in 1 2 3 4 5 6 7; do
+            if curl -fsS --max-time 4 http://127.0.0.1:8097/health -o /dev/null; then healthy=1;break; fi
+            sleep 2
+          done
+          test "$healthy" = 1
+          systemctl is-active --quiet timecode-bot.service
+          curl -kfsS --max-time 6 https://timecode-lab.ru/tc/health
+          systemctl is-active --quiet timecode-health-guard.timer
+          trap - ERR
+          echo 'Editorial morning and evening installed; public app and health guard active'
+          REMOTE
