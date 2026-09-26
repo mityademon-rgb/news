@@ -1,0 +1,89 @@
+name: Restore today's TIMECODE check-in and lesson invite
+on:
+  push:
+    branches: [boom-kadr-deploy]
+    paths: ['.github/workflows/timecode-checkin-recovery.yml']
+permissions:
+  contents: read
+jobs:
+  recover:
+    runs-on: ubuntu-latest
+    timeout-minutes: 8
+    steps:
+      - name: Patch today's check-in and notify
+        env:
+          BOOM_SSH_KEY: ${{ secrets.BOOM_SSH_KEY }}
+        run: |
+          install -d -m 700 ~/.ssh
+          printf '%s\n' "$BOOM_SSH_KEY" > ~/.ssh/timecode
+          chmod 600 ~/.ssh/timecode
+          ssh-keyscan -T 8 -H 217.149.24.242 > ~/.ssh/known_hosts
+          ssh -i ~/.ssh/timecode -o BatchMode=yes root@217.149.24.242 'bash -s' <<'REMOTE'
+          set -Eeuo pipefail
+          cd /opt/timecode-bot/timecode-bot
+          backup=/opt/timecode-bot/checkin-recovery-backup-$(date +%Y%m%d%H%M%S)
+          mkdir -m 700 "$backup"
+          cp -p server.py "$backup/"
+          python3 - <<'PY'
+          from pathlib import Path
+          p=Path('server.py');s=p.read_text()
+          opening="def checkin_open(period):\n    clock=now().strftime('%H:%M')\n"
+          extra="    if period=='am' and today()=='2026-09-26' and '10:25'<=clock<'11:20':return True\n"
+          if s.count(opening)!=1:raise SystemExit('Unknown check-in code')
+          if extra not in s:s=s.replace(opening,opening+extra,1)
+          old="            if clock=='10:00':run_slot('digest-am',lambda:digest('am'))\n"
+          later="            if today()=='2026-09-26' and clock=='11:25':run_slot('digest-am-recovery',lambda:digest('am'))\n"
+          if s.count(old)!=1:raise SystemExit('Unknown scheduler code')
+          if later not in s:s=s.replace(old,old+later,1)
+          p.write_text(s)
+          PY
+          python3 -m py_compile server.py
+          systemctl restart timecode-bot.service
+          systemctl is-active --quiet timecode-bot.service
+          curl -fsS --max-time 6 http://127.0.0.1:8097/health -o /dev/null
+          python3 - <<'PY'
+          import os,shlex
+          from pathlib import Path
+          for line in Path('/etc/timecode-bot.env').read_text().splitlines():
+              line=line.strip()
+              if not line or line.startswith('#'):continue
+              if line.startswith('export '):line=line[7:]
+              key,sep,value=line.partition('=')
+              if sep and key in ('BOT_TOKEN','PUBLIC_CHAT_ID'):
+                  parts=shlex.split(value,comments=True)
+                  if parts:os.environ[key]=parts[0]
+          import server
+          server.TOKEN=os.environ.get('BOT_TOKEN','')
+          server.GROUP=os.environ.get('PUBLIC_CHAT_ID','')
+          server.DB=Path('/var/lib/timecode-bot/timecode.db')
+          server.init()
+          if server.today()!='2026-09-26':raise SystemExit('Unexpected date')
+          me=server.api('getMe')
+          if not me.get('ok'):raise SystemExit('Telegram preflight failed; no invitation sent')
+          with server.conn() as c:
+              ids=[r['id'] for r in c.execute('select id from users where enabled=1')]
+              overrides=c.execute('select * from overrides where day=?',(server.today(),)).fetchall()
+              regular=c.execute('select * from lessons where weekday=5 and enabled=1').fetchall()
+          times=[]
+          for lab in ('kids','media'):
+              event=next((o for o in overrides if o['lab']==lab),None)
+              if event is None:event=next((r for r in regular if r['lab']==lab),None)
+              if event and ('cancelled' not in event.keys() or not event['cancelled']):
+                  times.append(('Kids Lab' if lab=='kids' else 'Media Lab')+' — '+event['start'])
+          if not times:raise SystemExit('No active lessons today; no invitation sent')
+          if not server.claim('morning-recovery-invite',server.today()):
+              print('Recovery invite already claimed; nothing resent')
+              raise SystemExit(0)
+          msg=('🎬 <b>Сегодня занятия!</b>\n'+server.esc('; '.join(times))+
+               '. Дмитрий Витальевич ждёт вас.\n\n'
+               '☀️ Утреннюю перекличку открываю сейчас. Как выспались, как настроение и что хотите сделать сегодня? Ответить можно до 11:20. Начнём?')
+          keys=[[{'text':'😌 Выспался','callback_data':'morning:sleep:Выспался'},
+                 {'text':'😐 Так себе','callback_data':'morning:sleep:Так себе'}],
+                [{'text':'🥱 Мало спал','callback_data':'morning:sleep:Мало спал'},
+                 {'text':'Пропустить','callback_data':'morning:skip'}]]
+          ok=sum(bool(server.send(uid,msg,keys).get('ok')) for uid in ids)
+          group_ok=bool(server.send(server.GROUP,msg).get('ok')) if server.GROUP else False
+          print('Invitation delivered personally:',ok,'of',len(ids),'adult group:',group_ok)
+          if not ok:raise SystemExit('Telegram delivered to nobody')
+          PY
+          REMOTE
