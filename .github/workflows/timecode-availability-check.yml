@@ -26,11 +26,11 @@ jobs:
           systemctl show timecode-bot.service -p ActiveState -p SubState -p NRestarts -p ExecMainStatus
           curl -sS --max-time 8 -o /dev/null -w 'local-health: %{http_code}\n' http://127.0.0.1:8097/health || true
           curl -k -sS --max-time 8 -o /dev/null -w 'public-health: %{http_code}\n' --resolve timecode-lab.ru:443:217.149.24.234 https://timecode-lab.ru/tc/health || true
-          journalctl -u timecode-bot.service -n 55 --no-pager | sed -E 's#(bot[0-9]+:)[A-Za-z0-9_-]+#\1[redacted]#g' || true
+          journalctl -u timecode-bot.service -n 8 --no-pager | sed -E 's#(bot[0-9]+:)[A-Za-z0-9_-]+#\1[redacted]#g' || true
           python3 - <<'PY'
           import sqlite3
           db=sqlite3.connect('/var/lib/timecode-bot/timecode.db')
-          for table in ('slots','slot_claims','runs'):
+          for table in ('sent',):
               if db.execute("select 1 from sqlite_master where name=?",(table,)).fetchone():
                   print(table,db.execute('select * from '+table+' order by rowid desc limit 12').fetchall())
           PY
