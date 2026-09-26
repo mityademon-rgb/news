@@ -1,0 +1,45 @@
+name: TIMECODE editorial Kimi preview
+on:
+  push:
+    branches: [boom-kadr-deploy]
+    paths: ['.github/workflows/timecode-editorial-preview.yml']
+permissions:
+  contents: read
+jobs:
+  preview:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - name: SSH setup
+        env:
+          BOOM_SSH_KEY: ${{ secrets.BOOM_SSH_KEY }}
+        run: |
+          install -d -m 700 ~/.ssh
+          printf '%s\n' "$BOOM_SSH_KEY" > ~/.ssh/timecode
+          chmod 600 ~/.ssh/timecode
+          ssh-keyscan -T 8 -H 217.149.24.242 > ~/.ssh/known_hosts
+      - name: Preview safely with invented participants
+        run: |
+          ssh -i ~/.ssh/timecode -o BatchMode=yes root@217.149.24.242 'bash -s' <<'REMOTE'
+          set -Eeuo pipefail
+          cd /opt/timecode-bot/timecode-bot
+          set -a
+          source /etc/timecode-bot.env
+          set +a
+          python3 - <<'PY'
+          import server,json
+          facts=[
+            ('УТРО', [{'name':'Саша','sleep':'Выспался','mood':'Отлично','words':'буду снимать интервью'},{'name':'Даня','sleep':'Так себе','mood':'Не очень','words':'переживаю за контрольную'}]),
+            ('ВЕЧЕР', [{'name':'Саша','mood':'Хороший','words':'смонтировал короткий ролик','satisfied':'Да'},{'name':'Даня','mood':'Обычный','words':'нашёл потерянный микрофон','satisfied':'Да'}])
+          ]
+          for period,answers in facts:
+              system=('Ты Кими, ведущий школьного медиацентра TIMECODE. Напиши один связный живой '
+                      'рассказ от первого лица бота о реальных ответах детей: интересный заход, '
+                      'имена и факты участников внутри истории, переходы и вывод. Никаких пунктов, '
+                      'статистики, выдуманных событий или насмешек над детьми. '
+                      +('Утренний выпуск: в финале обещай лайфхак в 15:00.' if period=='УТРО' else 'Вечерний выпуск: закончи пожеланием хорошего вечера.')+
+                      ' 300–650 знаков, JSON {"text":"..."}.')
+              response=server.ai_json(system,json.dumps({'answers':answers},ensure_ascii=False),500)
+              print(period+': '+str((response or {}).get('text','AI unavailable'))[:900])
+          PY
+          REMOTE
