@@ -70,3 +70,5 @@ jobs:
           REMOTE
 
 # Refresh workshop client after save-failure fix.
+
+# Keep Kimi within one student-led step at a time.
