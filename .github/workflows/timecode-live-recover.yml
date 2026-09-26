@@ -1,0 +1,56 @@
+name: TIMECODE recover unresponsive bot
+on:
+  push:
+    branches: [boom-kadr-deploy]
+    paths: ['.github/workflows/timecode-live-recover.yml']
+permissions:
+  contents: read
+jobs:
+  recover:
+    runs-on: ubuntu-latest
+    timeout-minutes: 6
+    steps:
+      - name: SSH setup
+        env:
+          BOOM_SSH_KEY: ${{ secrets.BOOM_SSH_KEY }}
+        run: |
+          install -d -m 700 ~/.ssh
+          printf '%s\n' "$BOOM_SSH_KEY" > ~/.ssh/timecode
+          chmod 600 ~/.ssh/timecode
+          ssh-keyscan -T 8 -H 217.149.24.242 > ~/.ssh/known_hosts
+      - name: Inspect database and recover service
+        run: |
+          ssh -i ~/.ssh/timecode -o BatchMode=yes root@217.149.24.242 'bash -s' <<'REMOTE'
+          set -Eeuo pipefail
+          echo 'Storage and database:'
+          df -h / /var/lib/timecode-bot /opt/timecode-bot
+          df -i / /var/lib/timecode-bot
+          ls -ld /var/lib/timecode-bot /opt/timecode-bot/timecode-bot
+          ls -lh /var/lib/timecode-bot/*.db* 2>/dev/null || true
+          python3 - <<'PY'
+          from pathlib import Path
+          import shlex,sqlite3
+          env=Path('/etc/timecode-bot.env').read_text().splitlines()
+          for line in env:
+              if line.startswith('export '):line=line[7:]
+              if line.startswith('DATABASE='):
+                  value=shlex.split(line.partition('=')[2])
+                  db=Path(value[0]) if value else None
+                  print('Configured DB:',db,'exists:',db.exists() if db else None)
+                  if db and db.exists():
+                      try:
+                          c=sqlite3.connect(f'file:{db}?mode=ro',uri=True,timeout=3)
+                          print('DB users:',c.execute('select count(*) from users').fetchone()[0])
+                      except Exception as e:print('DB read error:',str(e)[:150])
+          PY
+          systemctl restart timecode-bot.service
+          for attempt in 1 2 3 4 5 6 7 8; do
+            if curl -fsS --max-time 4 http://127.0.0.1:8097/health; then echo 'Local bot recovered'; break; fi
+            sleep 2
+          done
+          systemctl show timecode-bot.service -p ActiveState -p SubState -p MainPID -p NRestarts
+          curl -fsS --max-time 8 http://127.0.0.1:8097/health
+          curl -kfsS --max-time 8 https://timecode-lab.ru/tc/health
+          curl -kfsS --max-time 8 https://timecode-lab.ru/tc/screenplay.js -o /dev/null
+          echo 'Public app recovered'
+          REMOTE
