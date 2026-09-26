@@ -50,3 +50,5 @@ jobs:
           PY
           systemctl is-active --quiet timecode-bot.service
           REMOTE
+
+# Recheck after MAX button update.
