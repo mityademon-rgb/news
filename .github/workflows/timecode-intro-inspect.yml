@@ -1,0 +1,34 @@
+name: TIMECODE inspect intro anchors
+on:
+  push:
+    branches: [boom-kadr-deploy]
+    paths: ['.github/workflows/timecode-intro-inspect.yml']
+permissions:
+  contents: read
+jobs:
+  inspect:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - name: SSH setup
+        env:
+          BOOM_SSH_KEY: ${{ secrets.BOOM_SSH_KEY }}
+        run: |
+          install -d -m 700 ~/.ssh
+          printf '%s\n' "$BOOM_SSH_KEY" > ~/.ssh/timecode
+          chmod 600 ~/.ssh/timecode
+          ssh-keyscan -T 8 -H 217.149.24.242 > ~/.ssh/known_hosts
+      - name: Read static route markers
+        run: |
+          ssh -i ~/.ssh/timecode -o BatchMode=yes root@217.149.24.242 'bash -s' <<'REMOTE'
+          cd /opt/timecode-bot/timecode-bot
+          python3 - <<'PY'
+          from pathlib import Path
+          s=Path('server.py').read_text()
+          start=s.index('        if path not in (')
+          end=s.index('    def do_POST',start)
+          print('LIVE STATIC ROUTE:',s[start:end][-1750:])
+          h=Path('static/index.html').read_text()
+          print('INTRO HTML ANCHORS:',h.count('<body>'),h.count('<link rel="stylesheet" href="screenplay.css">'))
+          PY
+          REMOTE
