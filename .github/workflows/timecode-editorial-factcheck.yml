@@ -40,6 +40,12 @@ jobs:
           start='    def digest(period):';end='    def tip():'
           if any(x.count(start)!=1 or x.count(end)!=1 for x in (old,new)):raise SystemExit('Digest patch anchor changed')
           path.write_text(old[:old.index(start)]+new[new.index(start):new.index(end)]+old[old.index(end):])
+          installed=path.read_text()
+          if '    def day_label():' not in installed:
+              label='    def day_label():';after='    def morning():'
+              if new.count(label)!=1 or new.count(after)!=1 or installed.count(after)!=1:raise SystemExit('Date helper anchors changed')
+              installed=installed.replace(after,new[new.index(label):new.index(after)]+after,1)
+              path.write_text(installed)
           PY
           python3 -m py_compile notification_delivery.py
           systemctl restart timecode-bot.service
