@@ -1,0 +1,82 @@
+name: TIMECODE grounded editorial stories
+on:
+  push:
+    branches: [boom-kadr-deploy]
+    paths: ['.github/workflows/timecode-editorial-factcheck.yml']
+permissions:
+  contents: read
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          repository: mityademon-rgb/media-center-bot
+          ref: feature/timecode-media-bot
+          path: source
+      - name: SSH setup
+        env:
+          BOOM_SSH_KEY: ${{ secrets.BOOM_SSH_KEY }}
+        run: |
+          install -d -m 700 ~/.ssh
+          printf '%s\n' "$BOOM_SSH_KEY" > ~/.ssh/timecode
+          chmod 600 ~/.ssh/timecode
+          ssh-keyscan -T 8 -H 217.149.24.242 > ~/.ssh/known_hosts
+      - name: Deploy fact check and preview without Telegram delivery
+        run: |
+          scp -i ~/.ssh/timecode -o BatchMode=yes source/timecode-bot/notification_delivery.py root@217.149.24.242:/tmp/timecode-editorial-factcheck.py
+          ssh -i ~/.ssh/timecode -o BatchMode=yes root@217.149.24.242 'bash -s' <<'REMOTE'
+          set -Eeuo pipefail
+          cd /opt/timecode-bot/timecode-bot
+          backup=$(mktemp /opt/timecode-bot/notification-factcheck-XXXXXXXX.py)
+          cp -p notification_delivery.py "$backup"
+          rollback() { cp -p "$backup" notification_delivery.py;systemctl restart timecode-bot.service || true; }
+          trap rollback ERR
+          python3 - <<'PY'
+          from pathlib import Path
+          path=Path('notification_delivery.py');old=path.read_text()
+          new=Path('/tmp/timecode-editorial-factcheck.py').read_text()
+          start='    def digest(period):';end='    def tip():'
+          if any(x.count(start)!=1 or x.count(end)!=1 for x in (old,new)):raise SystemExit('Digest patch anchor changed')
+          path.write_text(old[:old.index(start)]+new[new.index(start):new.index(end)]+old[old.index(end):])
+          PY
+          python3 -m py_compile notification_delivery.py
+          systemctl restart timecode-bot.service
+          healthy=0
+          for attempt in 1 2 3 4 5 6 7; do
+            if curl -fsS --max-time 4 http://127.0.0.1:8097/health -o /dev/null; then healthy=1;break;fi
+            sleep 2
+          done
+          test "$healthy" = 1
+          curl -kfsS --max-time 6 https://timecode-lab.ru/tc/health
+          trap - ERR
+          echo 'Production story fact check deployed; preview uses only invented names.'
+          set -a
+          source /etc/timecode-bot.env
+          set +a
+          python3 - <<'PY'
+          import datetime as dt,html,sqlite3
+          from zoneinfo import ZoneInfo
+          import server,notification_delivery as n
+          db=sqlite3.connect(':memory:');db.row_factory=sqlite3.Row
+          db.executescript("""create table users(id integer,name text,enabled integer);
+          create table morning_checkins(user_id integer,day text,step text,mood text,sleep text,important text,photo text);
+          create table evening_checkins(user_id integer,day text,step text,mood text,highlight text,satisfied text,photo text);
+          insert into users values(1,'Саша',1),(2,'Даня',1);
+          insert into morning_checkins values(1,'2026-09-27','done','Отлично','Выспался','буду снимать интервью','');
+          insert into morning_checkins values(2,'2026-09-27','done','Не очень','Так себе','переживаю за контрольную','');
+          insert into evening_checkins values(1,'2026-09-27','done','Хороший','смонтировал короткий ролик','Да','');
+          insert into evening_checkins values(2,'2026-09-27','done','Обычный','нашёл потерянный микрофон','Да','');""")
+          sent=[]
+          now=dt.datetime(2026,9,27,10,tzinfo=ZoneInfo('Europe/Moscow'))
+          s={'morning':lambda:None,'evening':lambda:None,'reminder':lambda x:None,
+             'make_daily':lambda x:None,'conn':lambda:db,'GROUP':'','send':lambda uid,msg,keys=None:sent.append(msg),
+             'AI_KEY':server.AI_KEY,'ai_json':server.ai_json,'now':lambda:now,'today':lambda:'2026-09-27',
+             'esc':html.escape,'api':lambda *x:None,'claim':lambda *x:True,'TZ':ZoneInfo('Europe/Moscow')}
+          n.install(s)
+          s['digest']('am');s['digest']('pm')
+          for line in sent:print('PREVIEW:',line[:900])
+          assert len(sent)==2 and '15:00' in sent[0]
+          PY
+          REMOTE
