@@ -1,0 +1,70 @@
+name: TIMECODE screenplay workshop
+on:
+  push:
+    branches: [boom-kadr-deploy]
+    paths: ['.github/workflows/timecode-screenplay.yml']
+permissions:
+  contents: read
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    timeout-minutes: 9
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          repository: mityademon-rgb/media-center-bot
+          ref: feature/timecode-media-bot
+          path: source
+      - name: Prepare SSH
+        env:
+          BOOM_SSH_KEY: ${{ secrets.BOOM_SSH_KEY }}
+        run: |
+          install -d -m 700 ~/.ssh
+          printf '%s\n' "$BOOM_SSH_KEY" > ~/.ssh/timecode
+          chmod 600 ~/.ssh/timecode
+          ssh-keyscan -T 8 -H 217.149.24.242 > ~/.ssh/known_hosts
+      - name: Stage screenplay files
+        run: |
+          ssh -i ~/.ssh/timecode -o BatchMode=yes root@217.149.24.242 'mkdir -p /tmp/timecode-screenplay'
+          for file in screenplay_coach.py deploy_screenplay.py; do
+            scp -i ~/.ssh/timecode -o BatchMode=yes "source/timecode-bot/$file" "root@217.149.24.242:/tmp/timecode-screenplay/$file"
+          done
+          for file in screenplay.js screenplay.css; do
+            scp -i ~/.ssh/timecode -o BatchMode=yes "source/timecode-bot/static/$file" "root@217.149.24.242:/tmp/timecode-screenplay/$file"
+          done
+      - name: Patch, restart and verify
+        run: |
+          ssh -i ~/.ssh/timecode -o BatchMode=yes root@217.149.24.242 'bash -s' <<'REMOTE'
+          set -Eeuo pipefail
+          cd /opt/timecode-bot/timecode-bot
+          backup=$(mktemp -d /opt/timecode-bot/screenplay-backup-XXXXXXXX)
+          cp -p server.py "$backup/server.py"
+          cp -p static/index.html "$backup/index.html"
+          for item in screenplay_coach.py static/screenplay.js static/screenplay.css; do
+            if [ -f "$item" ]; then cp -p "$item" "$backup/$(basename "$item")"; fi
+          done
+          rollback() {
+            cp -p "$backup/server.py" server.py
+            cp -p "$backup/index.html" static/index.html
+            for item in screenplay_coach.py static/screenplay.js static/screenplay.css; do
+              if [ -f "$backup/$(basename "$item")" ]; then cp -p "$backup/$(basename "$item")" "$item"; else rm -f "$item"; fi
+            done
+            systemctl restart timecode-bot.service || true
+          }
+          trap rollback ERR
+          python3 /tmp/timecode-screenplay/deploy_screenplay.py /tmp/timecode-screenplay
+          systemctl restart timecode-bot.service
+          healthy=0
+          for attempt in 1 2 3 4 5 6 7 8; do
+            if curl -fsS --max-time 3 http://127.0.0.1:8097/health -o /dev/null; then healthy=1; break; fi
+            sleep 2
+          done
+          test "$healthy" = 1
+          systemctl is-active --quiet timecode-bot.service
+          for asset in / /screenplay.js /screenplay.css; do
+            curl -fsS --max-time 6 "http://127.0.0.1:8097$asset" -o /dev/null
+          done
+          test "$(curl -s -o /dev/null -w '%{http_code}' http://127.0.0.1:8097/api/screenplay)" = 401
+          trap - ERR
+          echo 'Screenplay workshop deployed; protected API and assets healthy'
+          REMOTE
