@@ -40,7 +40,7 @@ jobs:
           python3 -m py_compile server.py
           systemctl restart timecode-bot.service
           systemctl is-active --quiet timecode-bot.service
-          curl -fsS --max-time 6 http://127.0.0.1:8097/health -o /dev/null
+          for attempt in 1 2 3 4 5; do\n            if curl -fsS --max-time 5 http://127.0.0.1:8097/health -o /dev/null; then break; fi\n            sleep 2\n          done\n          curl -fsS --max-time 6 http://127.0.0.1:8097/health -o /dev/null
           python3 - <<'PY'
           import os,shlex
           from pathlib import Path
