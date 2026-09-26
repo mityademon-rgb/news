@@ -31,8 +31,23 @@ jobs:
                                 '-pkeyopt','rsa_padding_mode:oaep','-pkeyopt','rsa_oaep_md:sha256'],
                                input=base64.b64decode(sealed),capture_output=True,check=True).stdout.decode()
           assert 80<=len(token)<=120 and all(c.isalnum() or c in '_-' for c in token)
+          ca=Path('/etc/timecode-max-ca.pem')
+          if not ca.exists():
+              candidate=Path('/tmp/timecode-max-root.pem')
+              subprocess.run(['curl','-kfsS','--connect-timeout','8','--max-time','18','-o',str(candidate),
+                              'https://gu-st.ru/content/Other/doc/russiantrustedca.pem'],
+                             check=True,capture_output=True)
+              der=subprocess.run(['openssl','x509','-in',str(candidate),'-outform','DER'],
+                                 check=True,capture_output=True).stdout
+              import hashlib
+              if hashlib.sha256(der).hexdigest()!='d26d2d0231b7c39f92cc738512ba54103519e4405d68b5bd703e9788ca8ecf31':
+                  raise RuntimeError('MAX CA fingerprint mismatch')
+              pem=subprocess.run(['openssl','x509','-in',str(candidate),'-outform','PEM'],
+                                 check=True,capture_output=True).stdout
+              ca.write_bytes(pem)
+              ca.chmod(0o644)
           def call(method,url,payload=None):
-              command=['curl','-4','-fsS','--connect-timeout','8','--max-time','18','-X',method,
+              command=['curl','-4','-fsS','--connect-timeout','8','--max-time','18','--cacert',str(ca),'-X',method,
                        '-H','Authorization: '+token,'-H','Content-Type: application/json',url]
               if payload is not None:command.extend(['--data-binary','@-'])
               result=subprocess.run(command,input=json.dumps(payload) if payload is not None else None,
@@ -44,9 +59,9 @@ jobs:
           env=Path('/etc/timecode-bot.env')
           previous=env.read_text()
           secret=secrets.token_urlsafe(40)
-          cleaned=[line for line in previous.splitlines() if not line.startswith(('MAX_BOT_TOKEN=','MAX_WEBHOOK_SECRET='))]
+          cleaned=[line for line in previous.splitlines() if not line.startswith(('MAX_BOT_TOKEN=','MAX_WEBHOOK_SECRET=','MAX_CA_FILE='))]
           env.write_text('\n'.join(cleaned)+('\n' if cleaned else '')+
-                         'MAX_BOT_TOKEN='+token+'\nMAX_WEBHOOK_SECRET='+secret+'\n')
+                         'MAX_BOT_TOKEN='+token+'\nMAX_WEBHOOK_SECRET='+secret+'\nMAX_CA_FILE='+str(ca)+'\n')
           env.chmod(0o600)
           try:
               subprocess.run(['systemctl','restart','timecode-bot.service'],check=True,capture_output=True)
