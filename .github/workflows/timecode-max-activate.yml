@@ -71,9 +71,14 @@ jobs:
           env.chmod(0o600)
           try:
               subprocess.run(['systemctl','restart','timecode-bot.service'],check=True,capture_output=True)
-              health=subprocess.run(['curl','-fsS','--max-time','6','http://127.0.0.1:8097/health'],
-                                    capture_output=True,text=True,check=True)
-              assert json.loads(health.stdout).get('ok')
+              import time
+              for attempt in range(12):
+                  health=subprocess.run(['curl','-fsS','--max-time','3','http://127.0.0.1:8097/health'],
+                                        capture_output=True,text=True)
+                  if health.returncode==0 and json.loads(health.stdout).get('ok'):break
+                  time.sleep(2)
+              else:
+                  raise RuntimeError('TIMECODE service did not become healthy')
               result=call('POST','https://platform-api2.max.ru/subscriptions',
                           {'url':'https://timecode-lab.ru/tc/api/max/webhook',
                            'update_types':['bot_started','message_created','message_callback'],
