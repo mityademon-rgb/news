@@ -1,0 +1,58 @@
+name: TIMECODE install health guard
+on:
+  push:
+    branches: [boom-kadr-deploy]
+    paths: ['.github/workflows/timecode-health-guard.yml']
+permissions:
+  contents: read
+jobs:
+  guard:
+    runs-on: ubuntu-latest
+    timeout-minutes: 7
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          repository: mityademon-rgb/media-center-bot
+          ref: feature/timecode-media-bot
+          path: source
+      - name: SSH setup
+        env:
+          BOOM_SSH_KEY: ${{ secrets.BOOM_SSH_KEY }}
+        run: |
+          install -d -m 700 ~/.ssh
+          printf '%s\n' "$BOOM_SSH_KEY" > ~/.ssh/timecode
+          chmod 600 ~/.ssh/timecode
+          ssh-keyscan -T 8 -H 217.149.24.242 > ~/.ssh/known_hosts
+      - name: Install service response guard
+        run: |
+          scp -i ~/.ssh/timecode -o BatchMode=yes source/timecode-bot/health_guard.sh root@217.149.24.242:/tmp/timecode-health-guard.sh
+          ssh -i ~/.ssh/timecode -o BatchMode=yes root@217.149.24.242 'bash -s' <<'REMOTE'
+          set -Eeuo pipefail
+          install -m 755 /tmp/timecode-health-guard.sh /usr/local/sbin/timecode-health-guard
+          cat > /etc/systemd/system/timecode-health-guard.service <<'UNIT'
+          [Unit]
+          Description=Check actual TIMECODE HTTP response and safely recover hung service
+          After=timecode-bot.service
+          [Service]
+          Type=oneshot
+          ExecStart=/usr/local/sbin/timecode-health-guard
+          UNIT
+          cat > /etc/systemd/system/timecode-health-guard.timer <<'UNIT'
+          [Unit]
+          Description=Check TIMECODE response every minute
+          [Timer]
+          OnBootSec=2min
+          OnUnitActiveSec=1min
+          AccuracySec=10s
+          Unit=timecode-health-guard.service
+          [Install]
+          WantedBy=timers.target
+          UNIT
+          systemctl daemon-reload
+          systemctl enable --now timecode-health-guard.timer
+          systemctl start timecode-health-guard.service
+          systemctl is-active --quiet timecode-health-guard.timer
+          curl -fsS --max-time 5 http://127.0.0.1:8097/health
+          curl -kfsS --max-time 5 https://timecode-lab.ru/tc/health
+          systemctl list-timers --all timecode-health-guard.timer --no-pager
+          REMOTE
