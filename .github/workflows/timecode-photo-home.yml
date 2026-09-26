@@ -1,0 +1,148 @@
+name: TIMECODE check-in photos and rotating home
+on:
+  push:
+    branches: [boom-kadr-deploy]
+    paths: ['.github/workflows/timecode-photo-home.yml']
+permissions:
+  contents: read
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    timeout-minutes: 9
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          repository: mityademon-rgb/media-center-bot
+          ref: feature/timecode-media-bot
+          path: source
+      - name: SSH setup
+        env:
+          BOOM_SSH_KEY: ${{ secrets.BOOM_SSH_KEY }}
+        run: |
+          install -d -m 700 ~/.ssh
+          printf '%s\n' "$BOOM_SSH_KEY" > ~/.ssh/timecode
+          chmod 600 ~/.ssh/timecode
+          ssh-keyscan -T 8 -H 217.149.24.242 > ~/.ssh/known_hosts
+      - name: Stage changed files
+        run: |
+          ssh -i ~/.ssh/timecode -o BatchMode=yes root@217.149.24.242 'bash -s' <<'REMOTE'
+          set -Eeuo pipefail
+          cd /opt/timecode-bot/timecode-bot
+          backup=/opt/timecode-bot/photo-home-backup-$(date +%Y%m%d%H%M%S)
+          mkdir -m 700 "$backup"
+          cp -p server.py notification_delivery.py static/index.html static/glossary.js "$backup/"
+          for item in home-discovery.js home-discovery.css games-day.webp; do
+            if [ -e "static/$item" ]; then cp -p "static/$item" "$backup/$item"; fi
+          done
+          printf '%s\n' "$backup" > /opt/timecode-bot/photo-home-latest-backup-path
+          REMOTE
+          for file in server.py notification_delivery.py; do
+            scp -i ~/.ssh/timecode -o BatchMode=yes "source/timecode-bot/$file" "root@217.149.24.242:/tmp/timecode-photo-$file"
+          done
+          for file in home-discovery.js home-discovery.css games-day.webp; do
+            scp -i ~/.ssh/timecode -o BatchMode=yes "source/timecode-bot/static/$file" "root@217.149.24.242:/tmp/timecode-photo-$file"
+          done
+      - name: Apply targeted changes, verify and invite completed respondents
+        run: |
+          ssh -i ~/.ssh/timecode -o BatchMode=yes root@217.149.24.242 'bash -s' <<'REMOTE'
+          set -Eeuo pipefail
+          cd /opt/timecode-bot/timecode-bot
+          backup=$(cat /opt/timecode-bot/photo-home-latest-backup-path)
+          rollback() {
+            cp -p "$backup/server.py" server.py
+            cp -p "$backup/notification_delivery.py" notification_delivery.py
+            cp -p "$backup/index.html" static/index.html
+            cp -p "$backup/glossary.js" static/glossary.js
+            for item in home-discovery.js home-discovery.css games-day.webp; do
+              if [ -e "$backup/$item" ]; then cp -p "$backup/$item" "static/$item"; else rm -f "static/$item"; fi
+            done
+            systemctl restart timecode-bot.service || true
+          }
+          trap rollback ERR
+          python3 - <<'PY'
+          from pathlib import Path
+          import re
+          p=Path('server.py');current=p.read_text();source=Path('/tmp/timecode-photo-server.py').read_text()
+          sections=[
+            ('def checkin_open(period):','def reminder(period):'),
+            ("    photo=msg.get('photo',[])[-1]['file_id'] if msg.get('photo') else ''","    if stage=='instant':"),
+            ("    if stage=='morning:important':","    if stage=='mission':"),
+            ("        if action=='important' and value=='skip':","    if data.startswith('evening:'):"),
+            ("        if action=='satisfied' and value in ('Да','Не очень','Нет'):","def photos_digest():"),
+          ]
+          for start,end in sections:
+              if any(x.count(start)!=1 or x.count(end)!=1 for x in (current,source)):
+                  raise SystemExit('Unexpected installed code at '+start)
+              current=current.replace(current[current.index(start):current.index(end)],
+                                      source[source.index(start):source.index(end)],1)
+          match=re.search(r"^        if path not in \(.*\):return self.out\(\{'error':'Не найдено'\},404\)$",current,re.M)
+          if not match:raise SystemExit('Static whitelist missing')
+          line=match.group()
+          if "'/home-discovery.js'" not in line:
+              newer=line.replace("):return self.out",",'/home-discovery.js','/home-discovery.css','/games-day.webp'):return self.out")
+              current=current.replace(line,newer,1)
+          mime="        self.send_response(200);self.send_header('Content-Type',{'html':"
+          if current.count(mime)!=1:raise SystemExit('Static MIME anchor missing')
+          if "if path.endswith('.webp'):" not in current:
+              extra=("        if path.endswith('.webp'):\n"
+                     "            self.send_response(200);self.send_header('Content-Type','image/webp');"
+                     "self.send_header('Content-Length',str(len(blob)));self.send_header('Cache-Control','no-store');"
+                     "self.end_headers();self.wfile.write(blob);return\n")
+              current=current.replace(mime,extra+mime,1)
+          p.write_text(current)
+          index=Path('static/index.html');s=index.read_text()
+          if 'home-discovery.css' not in s:
+              old='<link rel="stylesheet" href="glossary.css">'
+              if s.count(old)!=1:raise SystemExit('Stylesheet insertion anchor missing')
+              s=s.replace(old,old+'<link rel="stylesheet" href="home-discovery.css">')
+          if 'home-discovery.js' not in s:
+              old='<script src="app.js"></script>'
+              if s.count(old)!=1:raise SystemExit('Script insertion anchor missing')
+              s=s.replace(old,old+'<script src="home-discovery.js"></script>')
+          index.write_text(s)
+          glossary=Path('static/glossary.js');s=glossary.read_text()
+          old='item=glossaryEntries[day%glossaryEntries.length]'
+          if s.count(old)==1:s=s.replace(old,'item=dailyWord()||glossaryEntries[day%glossaryEntries.length]')
+          elif 'item=dailyWord()' not in s:raise SystemExit('Glossary rotation anchor missing')
+          glossary.write_text(s)
+          Path('notification_delivery.py').write_bytes(Path('/tmp/timecode-photo-notification_delivery.py').read_bytes())
+          for name in ('home-discovery.js','home-discovery.css','games-day.webp'):
+              Path('static',name).write_bytes(Path('/tmp/timecode-photo-'+name).read_bytes())
+          PY
+          python3 -m py_compile server.py notification_delivery.py
+          systemctl restart timecode-bot.service
+          for attempt in 1 2 3 4 5; do
+            if curl -fsS --max-time 5 http://127.0.0.1:8097/health -o /dev/null; then break; fi
+            sleep 2
+          done
+          systemctl is-active --quiet timecode-bot.service
+          for asset in / /home-discovery.js /home-discovery.css /games-day.webp; do
+            curl -fsS --max-time 6 "http://127.0.0.1:8097$asset" -o /dev/null
+          done
+          trap - ERR
+          python3 - <<'PY'
+          import os,shlex
+          from pathlib import Path
+          for line in Path('/etc/timecode-bot.env').read_text().splitlines():
+              line=line.strip()
+              if line.startswith('export '):line=line[7:]
+              if line.startswith('BOT_TOKEN='):
+                  parts=shlex.split(line.partition('=')[2],comments=True)
+                  if parts:os.environ['BOT_TOKEN']=parts[0]
+          import server
+          server.TOKEN=os.environ.get('BOT_TOKEN','')
+          server.DB=Path('/var/lib/timecode-bot/timecode.db')
+          if server.today()!='2026-09-26' or not server.checkin_open('am'):raise SystemExit('Outside photo invitation period')
+          with server.conn() as c:
+              rows=c.execute("select u.id from users u join morning_checkins m on m.user_id=u.id where m.day=? and m.step='done' and m.photo='' and u.stage='' and u.enabled=1",(server.today(),)).fetchall()
+          delivered=0
+          for row in rows:
+              uid=row['id']
+              msg='📸 Ещё один кадр к утренней перекличке? Пришли одно фото до 11:20: покажу его в выпуске всем подписчикам. Людей в кадре снимай с их согласия. Можно пропустить.'
+              result=server.send(uid,msg,[[{'text':'Без фото','callback_data':'morning:photo:skip'}]])
+              if result.get('ok'):
+                  with server.conn() as c:c.execute("update users set stage='morning:photo' where id=? and stage=''",(uid,))
+                  delivered+=1
+          print('Photo prompt sent to completed morning respondents:',delivered)
+          PY
+          REMOTE
