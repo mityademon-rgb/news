@@ -1,0 +1,49 @@
+name: TIMECODE Kimi researched tips and editions
+on:
+  push:
+    branches: [boom-kadr-deploy]
+    paths: ['.github/workflows/timecode-kimi-editorial.yml']
+permissions:
+  contents: read
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    timeout-minutes: 8
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          repository: mityademon-rgb/media-center-bot
+          ref: feature/timecode-media-bot
+          path: source
+      - name: Update editorial module
+        env:
+          BOOM_SSH_KEY: ${{ secrets.BOOM_SSH_KEY }}
+        run: |
+          install -d -m 700 ~/.ssh
+          printf '%s\n' "$BOOM_SSH_KEY" > ~/.ssh/timecode
+          chmod 600 ~/.ssh/timecode
+          ssh-keyscan -T 8 -H 217.149.24.242 > ~/.ssh/known_hosts
+          scp -i ~/.ssh/timecode -o BatchMode=yes source/timecode-bot/notification_delivery.py root@217.149.24.242:/tmp/timecode-new-editorial.py
+          ssh -i ~/.ssh/timecode -o BatchMode=yes root@217.149.24.242 'bash -s' <<'REMOTE'
+          set -Eeuo pipefail
+          cd /opt/timecode-bot/timecode-bot
+          backup=/opt/timecode-bot/editorial-backup-$(date +%Y%m%d%H%M%S)
+          mkdir -m 700 "$backup"
+          cp -p notification_delivery.py "$backup/"
+          rollback() {
+            cp -p "$backup/notification_delivery.py" notification_delivery.py
+            systemctl restart timecode-bot.service || true
+          }
+          trap rollback ERR
+          install -m 644 /tmp/timecode-new-editorial.py notification_delivery.py
+          python3 -m py_compile server.py notification_delivery.py
+          systemctl restart timecode-bot.service
+          for attempt in 1 2 3 4 5; do
+            if curl -fsS --max-time 5 http://127.0.0.1:8097/health -o /dev/null; then break; fi
+            sleep 2
+          done
+          systemctl is-active --quiet timecode-bot.service
+          curl -fsS --max-time 6 http://127.0.0.1:8097/health -o /dev/null
+          echo 'Updated Kimi research and morning/evening editions; service healthy'
+          trap - ERR
+          REMOTE
