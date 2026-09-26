@@ -1,0 +1,34 @@
+name: TIMECODE live app diagnosis
+on:
+  push:
+    branches: [boom-kadr-deploy]
+    paths: ['.github/workflows/timecode-live-diagnose.yml']
+permissions:
+  contents: read
+jobs:
+  check:
+    runs-on: ubuntu-latest
+    timeout-minutes: 6
+    steps:
+      - name: SSH setup
+        env:
+          BOOM_SSH_KEY: ${{ secrets.BOOM_SSH_KEY }}
+        run: |
+          install -d -m 700 ~/.ssh
+          printf '%s\n' "$BOOM_SSH_KEY" > ~/.ssh/timecode
+          chmod 600 ~/.ssh/timecode
+          ssh-keyscan -T 8 -H 217.149.24.242 > ~/.ssh/known_hosts
+      - name: Inspect bot, nginx and Telegram entry
+        run: |
+          ssh -i ~/.ssh/timecode -o BatchMode=yes root@217.149.24.242 'bash -s' <<'REMOTE'
+          set +e
+          date -Is
+          systemctl show timecode-bot.service -p ActiveState -p SubState -p MainPID -p NRestarts -p ExecMainStatus
+          journalctl -u timecode-bot.service --since '4 hours ago' --no-pager -n 80 | sed -E 's/bot[0-9]+:[A-Za-z0-9_-]+/bot[REDACTED]/g; s/(Bearer )[A-Za-z0-9._-]+/\1[REDACTED]/g'
+          free -m
+          ps -eo pid,pcpu,pmem,etime,args --sort=-pcpu | head -12
+          for url in http://127.0.0.1:8097/health http://127.0.0.1:8097/ http://127.0.0.1:8097/screenplay.js https://timecode-lab.ru/tc/health https://timecode-lab.ru/tc/ https://timecode-lab.ru/tc/screenplay.js; do
+            curl -k -sS -o /dev/null --max-time 8 -w '%{url_effective} => %{http_code} %{time_total}s\n' "$url"
+          done
+          nginx -t 2>&1
+          REMOTE
