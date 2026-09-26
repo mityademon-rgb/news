@@ -30,6 +30,9 @@ jobs:
           python3 - <<'PY'
           import sqlite3
           db=sqlite3.connect('/var/lib/timecode-bot/timecode.db')
+          row=db.execute("select value from settings where key='group_chat'").fetchone()
+          print('Adult chat configured in DB:',bool(row and row[0]))
+          print('Morning replies today:',db.execute("select count(*) from morning_checkins where day=date('now','+3 hours') and step='done'").fetchone()[0])
           for table in ('sent',):
               if db.execute("select 1 from sqlite_master where name=?",(table,)).fetchone():
                   print(table,db.execute('select * from '+table+' order by rowid desc limit 12').fetchall())
