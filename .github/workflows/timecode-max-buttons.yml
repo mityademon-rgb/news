@@ -38,11 +38,10 @@ jobs:
           from pathlib import Path
           p=Path('server.py');s=p.read_text()
           old="    if q['id']!='max':api('answerCallbackQuery',{'callback_query_id':q['id']})\n"
-          new="""    if q['id']!='max':api('answerCallbackQuery',{'callback_query_id':q['id']})
-              if q['id']=='max' and data in ('max:start:mission','max:start:instant'):
-                  bot_message({'chat':{'id':uid,'type':'private'},'from':{'id':uid},'text':'/start '+data.rsplit(':',1)[1]})
-                  return
-          """
+          new=old+(
+              "    if q['id']=='max' and data in ('max:start:mission','max:start:instant'):\\n"
+              "        bot_message({'chat':{'id':uid,'type':'private'},'from':{'id':uid},'text':'/start '+data.rsplit(':',1)[1]})\\n"
+              "        return\\n")
           assert s.count(old)==1
           p.write_text(s.replace(old,new,1))
           PY
