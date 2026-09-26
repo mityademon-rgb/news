@@ -1,0 +1,57 @@
+name: Rescue TIMECODE polling and app
+on:
+  push:
+    branches: [boom-kadr-deploy]
+    paths: ['.github/workflows/timecode-rescue-polling.yml']
+permissions:
+  contents: read
+jobs:
+  rescue:
+    runs-on: ubuntu-latest
+    timeout-minutes: 8
+    steps:
+      - name: Connect and repair
+        env:
+          BOOM_SSH_KEY: ${{ secrets.BOOM_SSH_KEY }}
+        run: |
+          install -d -m 700 ~/.ssh
+          printf '%s\n' "$BOOM_SSH_KEY" > ~/.ssh/timecode
+          chmod 600 ~/.ssh/timecode
+          ssh-keyscan -T 8 -H 217.149.24.242 > ~/.ssh/known_hosts
+          ssh -i ~/.ssh/timecode -o BatchMode=yes root@217.149.24.242 'bash -s' <<'REMOTE'
+          set -Eeuo pipefail
+          cd /opt/timecode-bot/timecode-bot
+          backup=/opt/timecode-bot/polling-backup-$(date +%Y%m%d%H%M%S)
+          mkdir -m 700 "$backup"
+          cp -p server.py "$backup/"
+          printf '%s\n' "$backup" > /opt/timecode-bot/polling-latest-backup-path
+          python3 - <<'PY'
+          from pathlib import Path
+          p=Path('server.py');text=p.read_text()
+          old="""            data=api('getUpdates',{'offset':offset,'timeout':25,'allowed_updates':['message','callback_query']})
+              for update in data.get('result',[]):"""
+          # Preserve the installed server, insert only the throttle.
+          anchor="            data=api('getUpdates',{'offset':offset,'timeout':25,'allowed_updates':['message','callback_query']})\n"
+          addition="            if not data.get('ok'):\n                time.sleep(5)\n                continue\n"
+          if text.count(anchor)!=1:raise SystemExit('Unknown polling code')
+          if addition not in text:text=text.replace(anchor,anchor+addition,1)
+          p.write_text(text)
+          PY
+          python3 -m py_compile server.py notification_delivery.py
+          systemctl restart timecode-bot.service
+          for attempt in 1 2 3 4 5; do
+            if curl -fsS --max-time 4 http://127.0.0.1:8097/health -o /dev/null; then break; fi
+            sleep 3
+          done
+          systemctl is-active --quiet timecode-bot.service
+          curl -fsS --max-time 6 http://127.0.0.1:8097/health -o /dev/null
+          curl -fsS --max-time 6 http://127.0.0.1:8097/ -o /dev/null
+          python3 - <<'PY'
+          import sqlite3,datetime
+          c=sqlite3.connect('/var/lib/timecode-bot/timecode.db')
+          day=datetime.datetime.now(datetime.timezone(datetime.timedelta(hours=3))).date().isoformat()
+          print('Today's claimed slots:',c.execute('select slot from sent where day=? order by slot',(day,)).fetchall())
+          print('Active users:',c.execute('select count(*) from users where enabled=1').fetchone()[0])
+          PY
+          echo 'TIMECODE local health and app OK'
+          REMOTE
