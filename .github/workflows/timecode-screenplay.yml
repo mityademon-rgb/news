@@ -68,3 +68,5 @@ jobs:
           trap - ERR
           echo 'Screenplay workshop deployed; protected API and assets healthy'
           REMOTE
+
+# Refresh workshop client after save-failure fix.
