@@ -1,0 +1,52 @@
+name: TIMECODE MAX live verification
+on:
+  push:
+    branches: [boom-kadr-deploy]
+    paths: ['.github/workflows/timecode-max-verify.yml']
+permissions:
+  contents: read
+jobs:
+  verify:
+    runs-on: ubuntu-latest
+    timeout-minutes: 6
+    steps:
+      - name: SSH setup
+        env:
+          BOOM_SSH_KEY: ${{ secrets.BOOM_SSH_KEY }}
+        run: |
+          install -d -m 700 ~/.ssh
+          printf '%s\n' "$BOOM_SSH_KEY" > ~/.ssh/timecode
+          chmod 600 ~/.ssh/timecode
+          ssh-keyscan -T 8 -H 217.149.24.242 > ~/.ssh/known_hosts
+      - name: Verify live service and protected MAX webhook
+        run: |
+          ssh -i ~/.ssh/timecode -o BatchMode=yes root@217.149.24.242 'bash -s' <<'REMOTE'
+          set -Eeuo pipefail
+          set -a
+          source /etc/timecode-bot.env
+          set +a
+          python3 - <<'PY'
+          import json,os,subprocess,urllib.request,ssl
+          url='https://timecode-lab.ru/tc/'
+          health=json.load(urllib.request.urlopen(url+'health',timeout=10))
+          assert health.get('ok')
+          html=urllib.request.urlopen(url,timeout=10).read().decode()
+          js=urllib.request.urlopen(url+'app.js',timeout=10).read().decode()
+          assert 'max-web-app.js' in html and 'maxInitData' in js
+          def post(header):
+              command=['curl','-fsS','--max-time','8','-o','/dev/null','-w','%{http_code}',
+                       '-H','Content-Type: application/json','-X','POST','--data-binary','{}']
+              if header:command+=['-H','X-Max-Bot-Api-Secret: '+header]
+              return subprocess.run(command+[url+'api/max/webhook'],capture_output=True,text=True).stdout.strip()
+          assert post('')=='403'
+          assert post(os.environ['MAX_WEBHOOK_SECRET'])=='200'
+          request=urllib.request.Request('https://platform-api2.max.ru/subscriptions',
+                                         headers={'Authorization':os.environ['MAX_BOT_TOKEN']})
+          with urllib.request.urlopen(request,timeout=12,
+                                      context=ssl.create_default_context(cafile=os.environ['MAX_CA_FILE'])) as response:
+              subs=json.load(response)
+          assert 'https://timecode-lab.ru/tc/api/max/webhook' in json.dumps(subs)
+          print('MAX VERIFIED: HTTPS app, 403 without webhook secret, 200 with secret, API subscription present')
+          PY
+          systemctl is-active --quiet timecode-bot.service
+          REMOTE
