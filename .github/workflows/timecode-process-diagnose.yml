@@ -1,0 +1,45 @@
+name: TIMECODE root cause inspection
+on:
+  push:
+    branches: [boom-kadr-deploy]
+    paths: ['.github/workflows/timecode-process-diagnose.yml']
+permissions:
+  contents: read
+jobs:
+  check:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - name: SSH setup
+        env:
+          BOOM_SSH_KEY: ${{ secrets.BOOM_SSH_KEY }}
+        run: |
+          install -d -m 700 ~/.ssh
+          printf '%s\n' "$BOOM_SSH_KEY" > ~/.ssh/timecode
+          chmod 600 ~/.ssh/timecode
+          ssh-keyscan -T 8 -H 217.149.24.242 > ~/.ssh/known_hosts
+      - name: Inspect process limits and database errors
+        run: |
+          ssh -i ~/.ssh/timecode -o BatchMode=yes root@217.149.24.242 'bash -s' <<'REMOTE'
+          set -Eeuo pipefail
+          pid=$(systemctl show -P MainPID timecode-bot.service)
+          echo 'Service user and limits:'
+          systemctl show timecode-bot.service -p User -p Group -p MemoryCurrent -p TasksCurrent -p LimitNOFILE
+          ps -o user,pid,pcpu,pmem,nlwp,etime,args -p "$pid"
+          echo "FD count: $(find /proc/$pid/fd -maxdepth 1 -type l | wc -l)"
+          echo 'Network test:'
+          curl -4 -sS -o /dev/null --connect-timeout 5 --max-time 7 -w 'Telegram HTTP %{http_code} / %{time_total}s\n' https://api.telegram.org || true
+          echo 'Database from service user:'
+          service_user=$(systemctl show -P User timecode-bot.service)
+          if [ -z "$service_user" ]; then service_user=root; fi
+          runuser -u "$service_user" -- python3 - <<'PY'
+          import sqlite3
+          db='/var/lib/timecode-bot/timecode.db'
+          c=sqlite3.connect(f'file:{db}?mode=ro',uri=True,timeout=4)
+          print('Users',c.execute('select count(*) from users').fetchone()[0])
+          PY
+          echo 'System limits/messages:'
+          dmesg -T | tail -25 | sed -E 's/bot[0-9]+:[A-Za-z0-9_-]+/bot[REDACTED]/g' || true
+          journalctl -u timecode-bot.service --since '2026-09-26 11:55:00' --until '2026-09-26 12:15:00' --no-pager | grep -E 'Scheduler:|Telegram:|Started|OOM|failed|Error' | tail -22 || true
+          for url in http://127.0.0.1:8097/health https://timecode-lab.ru/tc/health; do curl -kfsS --max-time 5 "$url"; done
+          REMOTE
