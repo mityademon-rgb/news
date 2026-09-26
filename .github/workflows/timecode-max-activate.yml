@@ -10,6 +10,11 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 10
     steps:
+      - uses: actions/checkout@v4
+        with:
+          repository: mityademon-rgb/media-center-bot
+          ref: feature/timecode-media-bot
+          path: source
       - name: SSH setup
         env:
           BOOM_SSH_KEY: ${{ secrets.BOOM_SSH_KEY }}
@@ -20,6 +25,7 @@ jobs:
           ssh-keyscan -T 8 -H 217.149.24.242 > ~/.ssh/known_hosts
       - name: Activate MAX without logging credentials
         run: |
+          scp -i ~/.ssh/timecode -o BatchMode=yes source/timecode-bot/max_transport.py root@217.149.24.242:/opt/timecode-bot/timecode-bot/max_transport.py
           ssh -i ~/.ssh/timecode -o BatchMode=yes root@217.149.24.242 'bash -s' <<'REMOTE'
           set -Eeuo pipefail
           python3 - <<'PY'
