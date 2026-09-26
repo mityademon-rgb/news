@@ -86,3 +86,5 @@ jobs:
           assert len(sent)==4 and '15:00' in sent[0] and '20:30' in sent[-1]
           PY
           REMOTE
+
+# Publish the connected fallback ending for temporary Kimi outages.
