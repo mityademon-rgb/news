@@ -83,6 +83,6 @@ jobs:
           n.install(s)
           s['digest']('am');s['digest']('pm')
           for line in sent:print('PREVIEW:',line[:900])
-          assert len(sent)==2 and '15:00' in sent[0]
+          assert len(sent)==4 and '15:00' in sent[0] and '20:30' in sent[-1]
           PY
           REMOTE
