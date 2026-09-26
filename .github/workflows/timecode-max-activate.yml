@@ -41,7 +41,7 @@ jobs:
           if not ca.exists():
               candidate=Path('/tmp/timecode-max-root.pem')
               subprocess.run(['curl','-kfsS','--connect-timeout','8','--max-time','18','-o',str(candidate),
-                              'https://gu-st.ru/content/Other/doc/russiantrustedca.pem'],
+                              'https://gu-st.ru/content/lending/russian_trusted_root_ca_pem.crt'],
                              check=True,capture_output=True)
               der=subprocess.run(['openssl','x509','-in',str(candidate),'-outform','DER'],
                                  check=True,capture_output=True).stdout
