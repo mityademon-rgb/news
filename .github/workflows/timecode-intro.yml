@@ -49,14 +49,10 @@ jobs:
           from pathlib import Path
           old=Path('server.py').read_text()
           new=Path('/tmp/timecode-intro/new-server.py').read_text()
-          start="        if path=='/intro.mp4':\n"
-          end="        self.send_response(200);self.send_header('Content-Type',"
-          if old.count(end)!=1 or new.count(start)!=1 or new.count(end)!=1:raise RuntimeError('Static route changed')
-          old=old.replace("'/screenplay.js','/screenplay.css')", "'/screenplay.js','/screenplay.css','/intro.js','/intro.css','/intro.mp4')",1)
-          if "'/intro.mp4')" not in old:raise RuntimeError('Static allowlist changed')
-          old=old.replace("'webp':'image/webp'}[file.suffix[1:]]", "'webp':'image/webp','mp4':'video/mp4'}[file.suffix[1:]]",1)
-          if "'mp4':'video/mp4'" not in old:raise RuntimeError('MIME table changed')
-          old=old.replace(end,new[new.index(start):new.index(end,new.index(start))]+end,1)
+          route="        if path not in ("
+          boundary="    def do_POST(self):"
+          if old.count(route)!=1 or new.count(route)!=1 or old.count(boundary)!=1 or new.count(boundary)!=1:raise RuntimeError('Static route changed')
+          old=old[:old.index(route)]+new[new.index(route):new.index(boundary)]+old[old.index(boundary):]
           Path('server.py').write_text(old)
           path=Path('static/index.html')
           doc=path.read_text()
