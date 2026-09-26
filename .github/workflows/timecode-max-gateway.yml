@@ -1,0 +1,71 @@
+name: TIMECODE MAX gateway and public encryption key
+on:
+  push:
+    branches: [boom-kadr-deploy]
+    paths: ['.github/workflows/timecode-max-gateway.yml']
+permissions:
+  contents: read
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    timeout-minutes: 12
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          repository: mityademon-rgb/media-center-bot
+          ref: feature/timecode-media-bot
+          path: source
+      - name: SSH setup
+        env:
+          BOOM_SSH_KEY: ${{ secrets.BOOM_SSH_KEY }}
+        run: |
+          install -d -m 700 ~/.ssh
+          printf '%s\n' "$BOOM_SSH_KEY" > ~/.ssh/timecode
+          chmod 600 ~/.ssh/timecode
+          ssh-keyscan -T 8 -H 217.149.24.242 > ~/.ssh/known_hosts
+      - name: Deploy MAX integration without exposing its token
+        run: |
+          ssh -i ~/.ssh/timecode -o BatchMode=yes root@217.149.24.242 'mkdir -p /tmp/timecode-max/source/static'
+          for file in server.py max_transport.py deploy_max.py; do
+            scp -i ~/.ssh/timecode -o BatchMode=yes "source/timecode-bot/$file" "root@217.149.24.242:/tmp/timecode-max/source/$file"
+          done
+          for file in index.html app.js; do
+            scp -i ~/.ssh/timecode -o BatchMode=yes "source/timecode-bot/static/$file" "root@217.149.24.242:/tmp/timecode-max/source/static/$file"
+          done
+          ssh -i ~/.ssh/timecode -o BatchMode=yes root@217.149.24.242 'bash -s' <<'REMOTE'
+          set -Eeuo pipefail
+          cd /opt/timecode-bot/timecode-bot
+          backup=$(mktemp -d /opt/timecode-bot/max-backup-XXXXXXXX)
+          cp -p server.py "$backup/server.py"
+          cp -p static/index.html "$backup/index.html"
+          cp -p static/app.js "$backup/app.js"
+          if [ -f max_transport.py ]; then cp -p max_transport.py "$backup/max_transport.py"; fi
+          rollback() {
+            cp -p "$backup/server.py" server.py
+            cp -p "$backup/index.html" static/index.html
+            cp -p "$backup/app.js" static/app.js
+            if [ -f "$backup/max_transport.py" ]; then cp -p "$backup/max_transport.py" max_transport.py; else rm -f max_transport.py; fi
+            systemctl restart timecode-bot.service || true
+          }
+          trap rollback ERR
+          cp /tmp/timecode-max/source/deploy_max.py deploy_max.py
+          python3 deploy_max.py /tmp/timecode-max/source
+          python3 -m py_compile server.py max_transport.py
+          systemctl restart timecode-bot.service
+          healthy=0
+          for attempt in 1 2 3 4 5 6 7 8; do
+            if curl -fsS --max-time 3 http://127.0.0.1:8097/health -o /dev/null; then healthy=1;break;fi
+            sleep 2
+          done
+          test "$healthy" = 1
+          systemctl is-active --quiet timecode-bot.service
+          curl -kfsS --max-time 6 https://timecode-lab.ru/tc/health -o /dev/null
+          if [ ! -f /etc/timecode-max-private.pem ]; then
+            openssl genpkey -algorithm RSA -pkeyopt rsa_keygen_bits:3072 -out /etc/timecode-max-private.pem 2>/dev/null
+            chmod 600 /etc/timecode-max-private.pem
+          fi
+          echo 'MAX_PUBLIC_KEY_START'
+          openssl pkey -in /etc/timecode-max-private.pem -pubout
+          echo 'MAX_PUBLIC_KEY_END'
+          trap - ERR
+          REMOTE
