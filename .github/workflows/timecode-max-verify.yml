@@ -46,7 +46,10 @@ jobs:
                                       context=ssl.create_default_context(cafile=os.environ['MAX_CA_FILE'])) as response:
               subs=json.load(response)
           assert 'https://timecode-lab.ru/tc/api/max/webhook' in json.dumps(subs)
-          print('MAX VERIFIED: HTTPS app, 403 without webhook secret, 200 with secret, API subscription present')
+          import sqlite3
+          db=sqlite3.connect('/var/lib/timecode-bot/timecode.db')
+          max_users=db.execute('select count(*) from users where id<0').fetchone()[0]
+          print('MAX VERIFIED: HTTPS app, 403 without webhook secret, 200 with secret, API subscription present; MAX users:',max_users)
           PY
           systemctl is-active --quiet timecode-bot.service
           REMOTE
