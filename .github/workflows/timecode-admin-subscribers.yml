@@ -1,0 +1,97 @@
+name: TIMECODE admin broadcast and subscribers
+on:
+  push:
+    branches: [boom-kadr-deploy]
+    paths: ['.github/workflows/timecode-admin-subscribers.yml']
+permissions:
+  contents: read
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    timeout-minutes: 12
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          repository: mityademon-rgb/media-center-bot
+          ref: feature/timecode-media-bot
+          path: source
+      - name: Verify admin flows
+        run: |
+          cd source/timecode-bot
+          python3 -m unittest discover -s tests -p test_server.py -k admin_publish
+          python3 -m unittest discover -s tests -p test_server.py -k subscriber_report
+          python3 -m unittest discover -s tests -p test_server.py -k admin_menu
+      - name: Deploy targeted admin handlers with rollback
+        env:
+          BOOM_SSH_KEY: ${{ secrets.BOOM_SSH_KEY }}
+        run: |
+          install -d -m 700 ~/.ssh
+          printf '%s\n' "$BOOM_SSH_KEY" > ~/.ssh/timecode
+          chmod 600 ~/.ssh/timecode
+          ssh-keyscan -T 8 -H 217.149.24.242 > ~/.ssh/known_hosts
+          for attempt in 1 2 3 4; do
+            if scp -i ~/.ssh/timecode -o BatchMode=yes -o ConnectionAttempts=5 -o ConnectTimeout=8 source/timecode-bot/server.py root@217.149.24.242:/tmp/timecode-admin-source.py; then break; fi
+            sleep 4
+          done
+          ssh -i ~/.ssh/timecode -o BatchMode=yes -o ConnectionAttempts=5 -o ConnectTimeout=8 root@217.149.24.242 'bash -s' <<'REMOTE'
+          set -Eeuo pipefail
+          cd /opt/timecode-bot/timecode-bot
+          backup=$(mktemp /opt/timecode-bot/admin-subscribers-XXXXXXXX.py)
+          cp -p server.py "$backup"
+          rollback() { cp -p "$backup" server.py; systemctl restart timecode-bot.service || true; }
+          trap rollback ERR
+          python3 - <<'PY'
+          from pathlib import Path
+          src=Path('/tmp/timecode-admin-source.py').read_text()
+          live=Path('server.py').read_text()
+          def insert(before,body):
+              global live
+              if live.count(before)!=1:raise RuntimeError('Unexpected live anchor: '+before[:45])
+              live=live.replace(before,body+before,1)
+          if 'def publish_to_all(' in live or 'def admin_buttons(' in live:
+              raise RuntimeError('Already deployed or handler conflict')
+          insert('def ask_admins(',src[src.index('def publish_to_all('):src.index('def ask_admins(')])
+          insert('def allowed(',src[src.index('def admin_buttons('):src.index('def allowed(')])
+          old="        if uid in ADMINS:keys += [[{'text':'📣 Написать всем'"
+          if live.count(old)!=1:raise RuntimeError('Start keyboard changed')
+          start=live.index(old);stop=live.index('\n',start)
+          live=live[:start]+"        if uid in ADMINS:keys += admin_buttons()"+live[stop:]
+          marker="        return\n    if uid in ADMINS and text in ('/publish','📣 Написать всем'):"
+          if live.count(marker)!=1:raise RuntimeError('Admin chat branch changed')
+          extra=src[src.index('        if uid in ADMINS:admin_menu(uid)'):src.index("    if uid in ADMINS and text in ('/publish'")]
+          live=live.replace(marker,extra+"    if uid in ADMINS and text in ('/publish','📣 Написать всем'):",1)
+          subscriber=src[src.index("    if uid in ADMINS and data.startswith('admin:subscribers:'):"):src.index("    if uid in ADMINS and data=='admin:questions':")]
+          insert("    if uid in ADMINS and data=='admin:questions':",subscriber)
+          Path('server.py').write_text(live)
+          PY
+          python3 -m py_compile server.py
+          systemctl restart timecode-bot.service
+          healthy=0
+          for attempt in 1 2 3 4 5 6 7 8; do
+            if curl -fsS --max-time 3 http://127.0.0.1:8097/health -o /dev/null; then healthy=1;break;fi
+            sleep 2
+          done
+          test "$healthy" = 1
+          systemctl is-active --quiet timecode-bot.service
+          python3 - <<'PY'
+          import os,sys,runpy
+          from pathlib import Path
+          for line in Path('/etc/timecode-bot.env').read_text().splitlines():
+              if '=' in line and not line.lstrip().startswith('#'):
+                  key,value=line.split('=',1)
+                  os.environ[key.strip()]=value.strip().strip('"').strip("'")
+          sys.path.insert(0,str(Path.cwd()))
+          bot=runpy.run_path('server.py',run_name='timecode_admin_notify')
+          ids=bot['ADMINS']
+          if len(ids)!=1:raise RuntimeError('Admin account count changed')
+          uid=next(iter(ids))
+          if not bot['allowed'](uid):raise RuntimeError('Admin not registered')
+          menu=bot['admin_menu'](uid)
+          report=bot['subscriber_report'](uid)
+          if not (menu or {}).get('ok') or not (report or {}).get('ok'):
+              raise RuntimeError('Admin menu or subscriber report was not delivered')
+          print('Admin keyboard and subscriber report delivered privately')
+          PY
+          trap - ERR
+          echo 'Admin broadcast function, persistent keyboard and subscriber list deployed'
+          REMOTE
