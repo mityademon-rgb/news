@@ -1,0 +1,65 @@
+name: TIMECODE new intro with sound
+on:
+  push:
+    branches: [boom-kadr-deploy]
+    paths: ['.github/workflows/timecode-intro-sound.yml']
+permissions:
+  contents: read
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          repository: mityademon-rgb/media-center-bot
+          ref: feature/timecode-media-bot
+          path: source
+      - name: Verify new clip and script
+        run: |
+          ffprobe -v error -select_streams a -show_entries stream=codec_name -of default=noprint_wrappers=1 source/timecode-bot/static/intro.mp4 | grep -q 'codec_name=aac'
+          node --check source/timecode-bot/static/intro.js
+      - name: Replace intro assets with rollback
+        env:
+          BOOM_SSH_KEY: ${{ secrets.BOOM_SSH_KEY }}
+        run: |
+          install -d -m 700 ~/.ssh
+          printf '%s\n' "$BOOM_SSH_KEY" > ~/.ssh/timecode
+          chmod 600 ~/.ssh/timecode
+          ssh-keyscan -T 8 -H 217.149.24.242 > ~/.ssh/known_hosts
+          for attempt in 1 2 3 4; do
+            if ssh -i ~/.ssh/timecode -o BatchMode=yes -o ConnectionAttempts=5 -o ConnectTimeout=8 root@217.149.24.242 'mkdir -p /tmp/timecode-new-intro'; then break; fi
+            sleep 4
+          done
+          for item in intro.mp4 intro.js intro.css; do
+            scp -i ~/.ssh/timecode -o BatchMode=yes -o ConnectionAttempts=5 -o ConnectTimeout=8 "source/timecode-bot/static/$item" "root@217.149.24.242:/tmp/timecode-new-intro/$item"
+          done
+          ssh -i ~/.ssh/timecode -o BatchMode=yes -o ConnectionAttempts=5 -o ConnectTimeout=8 root@217.149.24.242 'bash -s' <<'REMOTE'
+          set -Eeuo pipefail
+          cd /opt/timecode-bot/timecode-bot
+          backup=$(mktemp -d /opt/timecode-bot/intro-sound-backup-XXXXXXXX)
+          for item in index.html intro.js intro.css intro.mp4; do cp -p "static/$item" "$backup/$item"; done
+          rollback() { for item in index.html intro.js intro.css intro.mp4; do cp -p "$backup/$item" "static/$item"; done; }
+          trap rollback ERR
+          python3 - <<'PY'
+          from pathlib import Path
+          source=Path('static/index.html')
+          html=source.read_text()
+          anchor='<button id="intro-skip"'
+          if html.count(anchor)!=1 or 'id="intro-sound"' in html:raise RuntimeError('Unexpected intro HTML; keep old assets')
+          updated=html.replace(anchor,'<button id="intro-sound" type="button" aria-label="Включить звук заставки">🔊 Включить звук</button>'+anchor,1)
+          Path('/tmp/timecode-new-intro/index.html').write_text(updated)
+          clip=Path('/tmp/timecode-new-intro/intro.mp4').read_bytes()
+          if b'mp4a' not in clip or b'avc1' not in clip:raise RuntimeError('Video or audio track missing')
+          PY
+          for item in intro.mp4 intro.js intro.css; do cp -p "/tmp/timecode-new-intro/$item" "static/$item"; done
+          cp -p /tmp/timecode-new-intro/index.html static/index.html
+          test "$(curl -fsS -o /dev/null -w '%{http_code}' http://127.0.0.1:8097/health)" = 200
+          test "$(curl -ksS -o /dev/null -w '%{http_code}' https://timecode-lab.ru/tc/intro.mp4)" = 200
+          test "$(curl -ksS -H 'Range: bytes=0-99' -o /tmp/timecode-sound-range -w '%{http_code}' https://timecode-lab.ru/tc/intro.mp4)" = 206
+          curl -kfsS https://timecode-lab.ru/tc/ | grep -q 'id="intro-sound"'
+          curl -kfsS https://timecode-lab.ru/tc/intro.js | grep -q 'video.muted=false'
+          systemctl is-active --quiet timecode-bot.service
+          trap - ERR
+          echo 'New audio intro deployed; MAX and Telegram app route and Range verified'
+          REMOTE
