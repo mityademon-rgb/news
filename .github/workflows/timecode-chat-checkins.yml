@@ -56,7 +56,12 @@ jobs:
           if live.count(marker)!=1:raise RuntimeError('Bot init anchor changed')
           live=live.replace(marker,"        c.execute('update users set enabled=1 where enabled!=1')\n"+marker,1)
           replace_span('def subscriber_report(uid,page=0):','def allowed(uid):')
-          replace_span("    if text.startswith('/quiet'):","    if text.startswith('/lab'):")
+          old_quiet="    if text.startswith('/quiet'):"
+          new_quiet="    if text in ('/quiet','/live'):"
+          lab="    if text.startswith('/lab'):"
+          if live.count(old_quiet)!=1 or source.count(new_quiet)!=1 or source.count(lab)!=1 or live.count(lab)!=1:
+              raise RuntimeError('Old checkin opt-out anchor changed')
+          live=live[:live.index(old_quiet)]+source[source.index(new_quiet):source.index(lab)]+live[live.index(lab):]
           start="        send(uid,'<b>РЕДАКЦИЯ TIMECODE</b>"
           if source.count(start)!=1 or live.count(start)!=1:raise RuntimeError('Bot help changed')
           a=live.index(start);b=live.index('\n',a)
