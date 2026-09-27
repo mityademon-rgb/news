@@ -1,0 +1,98 @@
+name: TIMECODE script editor and intro autoplay
+on:
+  push:
+    branches: [boom-kadr-deploy]
+    paths: ['.github/workflows/timecode-script-editor-intro.yml']
+permissions:
+  contents: read
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    timeout-minutes: 12
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          repository: mityademon-rgb/media-center-bot
+          ref: feature/timecode-media-bot
+          path: source
+      - name: Check code and editor flow
+        run: |
+          cd source/timecode-bot
+          python3 -m py_compile server.py script_editor.py deploy_script_editor.py
+          node --check static/intro.js
+          node --check static/script_editor.js
+          python3 - <<'PY'
+          import base64,sqlite3,tempfile
+          from pathlib import Path
+          import script_editor
+          with tempfile.TemporaryDirectory() as d:
+              db=Path(d)/'test.db';c=sqlite3.connect(db);c.row_factory=sqlite3.Row
+              script_editor.install(c)
+              story=('Сцена. Девочка обнаружила камеру с записями будущего.\n'*7).encode()
+              result=script_editor.submit(c,{'filename':'test.txt','content_base64':base64.b64encode(story).decode()}, {'id':7,'name':'Ученик'},db,set(),'',lambda *a:{'good':'Удачное начало','improve':'Мало действия','fix':'Добавь препятствие'})
+              assert result['feedback']['fix']=='Добавь препятствие'
+              assert c.execute('select count(*) from script_reviews').fetchone()[0]==1
+          PY
+      - name: Deploy with rollback
+        env:
+          BOOM_SSH_KEY: ${{ secrets.BOOM_SSH_KEY }}
+        run: |
+          install -d -m 700 ~/.ssh
+          printf '%s\n' "$BOOM_SSH_KEY" > ~/.ssh/timecode
+          chmod 600 ~/.ssh/timecode
+          ssh-keyscan -T 8 -H 217.149.24.242 > ~/.ssh/known_hosts
+          for attempt in 1 2 3 4; do
+            if scp -i ~/.ssh/timecode -o BatchMode=yes -o ConnectionAttempts=5 -o ConnectTimeout=8 source/timecode-bot/deploy_script_editor.py source/timecode-bot/script_editor.py source/timecode-bot/server.py source/timecode-bot/static/intro.js source/timecode-bot/static/script_editor.js source/timecode-bot/static/script_editor.css root@217.149.24.242:/tmp/; then break; fi
+            sleep 4
+          done
+          ssh -i ~/.ssh/timecode -o BatchMode=yes -o ConnectionAttempts=5 -o ConnectTimeout=8 root@217.149.24.242 'bash -s' <<'REMOTE'
+          set -Eeuo pipefail
+          cd /opt/timecode-bot/timecode-bot
+          backup=$(mktemp -d /opt/timecode-bot/editor-backup-XXXXXXXX)
+          cp -p server.py static/index.html "$backup/"
+          cp -p static/intro.js "$backup/intro.js"
+          rollback() {
+            cp -p "$backup/server.py" server.py
+            cp -p "$backup/index.html" static/index.html
+            cp -p "$backup/intro.js" static/intro.js
+            rm -f script_editor.py static/script_editor.js static/script_editor.css
+            systemctl restart timecode-bot.service || true
+          }
+          trap rollback ERR
+          install -d -m 700 /tmp/timecode-editor-source/static
+          cp /tmp/server.py /tmp/script_editor.py /tmp/timecode-editor-source/
+          cp /tmp/intro.js /tmp/script_editor.js /tmp/script_editor.css /tmp/timecode-editor-source/static/
+          if ! command -v pdftotext >/dev/null; then
+            apt-get update -qq
+            DEBIAN_FRONTEND=noninteractive apt-get install -y -qq poppler-utils
+          fi
+          python3 /tmp/deploy_script_editor.py /tmp/timecode-editor-source
+          systemctl restart timecode-bot.service
+          healthy=0
+          for attempt in 1 2 3 4 5 6 7 8; do
+            if curl -fsS --max-time 3 http://127.0.0.1:8097/health -o /dev/null; then healthy=1;break;fi
+            sleep 2
+          done
+          test "$healthy" = 1
+          systemctl is-active --quiet timecode-bot.service
+          python3 - <<'PY'
+          import sqlite3
+          from pathlib import Path
+          with sqlite3.connect('/var/lib/timecode-bot/timecode.db') as c:
+              assert c.execute("select 1 from sqlite_master where type='table' and name='script_reviews'").fetchone()
+          assert 'autoplay playsinline' in Path('static/index.html').read_text()
+          assert 'script_editor.js' in Path('static/index.html').read_text()
+          print('Script editor database and intro confirmed')
+          PY
+          for path in / /script_editor.js /intro.js; do
+            curl -fsS --max-time 5 "http://127.0.0.1:8097$path" -o /dev/null
+          done
+          public_ok=0
+          for attempt in 1 2 3 4 5; do
+            if test "$(curl -ksS --max-time 5 -o /dev/null -w '%{http_code}' https://timecode-lab.ru/tc/)" = 200; then public_ok=1;break;fi
+            sleep 2
+          done
+          test "$public_ok" = 1
+          trap - ERR
+          echo 'Editor and intro are live'
+          REMOTE
