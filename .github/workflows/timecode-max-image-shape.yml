@@ -1,0 +1,50 @@
+name: TIMECODE MAX image shape
+on:
+  push:
+    branches: [boom-kadr-deploy]
+    paths: ['.github/workflows/timecode-max-image-shape.yml']
+permissions:
+  contents: read
+jobs:
+  inspect:
+    runs-on: ubuntu-latest
+    timeout-minutes: 8
+    steps:
+      - name: Inspect attachment schema only
+        env:
+          BOOM_SSH_KEY: ${{ secrets.BOOM_SSH_KEY }}
+        run: |
+          install -d -m 700 ~/.ssh
+          printf '%s\n' "$BOOM_SSH_KEY" > ~/.ssh/timecode
+          chmod 600 ~/.ssh/timecode
+          ssh-keyscan -T 8 -H 217.149.24.242 > ~/.ssh/known_hosts
+          ssh -i ~/.ssh/timecode -o BatchMode=yes -o ConnectionAttempts=5 root@217.149.24.242 'bash -s' <<'REMOTE'
+          cd /opt/timecode-bot/timecode-bot
+          python3 - <<'PY'
+          import os,sqlite3,sys
+          from pathlib import Path
+          for line in Path('/etc/timecode-bot.env').read_text().splitlines():
+              if '=' in line and not line.lstrip().startswith('#'):
+                  key,value=line.split('=',1);os.environ[key.strip()]=value.strip().strip('"').strip("'")
+          import max_transport
+          db=sqlite3.connect('/var/lib/timecode-bot/timecode.db')
+          try: mids=[row[0] for row in db.execute('select mid from max_processed_messages order by created_at desc limit 8')]
+          except sqlite3.OperationalError:mids=[]
+          for mid in mids:
+              try:
+                  message=max_transport.api('GET','/messages/'+mid,os.environ['MAX_BOT_TOKEN'])
+                  for attachment in (message.get('body') or {}).get('attachments') or []:
+                      if attachment.get('type')!='image':continue
+                      payload=attachment.get('payload') or {}
+                      print('image_payload_keys',sorted(payload))
+                      print('photos_type',type(payload.get('photos')).__name__)
+                      photos=payload.get('photos') or {}
+                      if isinstance(photos,dict):
+                          for photo in list(photos.values())[:1]:
+                              if isinstance(photo,dict):print('photo_child_keys',sorted(photo))
+                      print('has_top_token',bool(payload.get('token')),'has_top_url',bool(payload.get('url')))
+                      raise SystemExit(0)
+              except Exception:continue
+          print('no_recent_image_schema_available')
+          PY
+          REMOTE
