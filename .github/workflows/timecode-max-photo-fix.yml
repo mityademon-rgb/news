@@ -27,8 +27,8 @@ jobs:
           printf '%s\n' "$BOOM_SSH_KEY" > ~/.ssh/timecode
           chmod 600 ~/.ssh/timecode
           ssh-keyscan -T 8 -H 217.149.24.242 > ~/.ssh/known_hosts
-          scp -i ~/.ssh/timecode -o BatchMode=yes source/timecode-bot/server.py root@217.149.24.242:/tmp/timecode-max-photo-source.py
-          ssh -i ~/.ssh/timecode -o BatchMode=yes root@217.149.24.242 'bash -s' <<'REMOTE'
+          scp -i ~/.ssh/timecode -o BatchMode=yes -o ConnectionAttempts=5 -o ConnectTimeout=8 source/timecode-bot/server.py root@217.149.24.242:/tmp/timecode-max-photo-source.py
+          ssh -i ~/.ssh/timecode -o BatchMode=yes -o ConnectionAttempts=5 -o ConnectTimeout=8 root@217.149.24.242 'bash -s' <<'REMOTE'
           set -Eeuo pipefail
           cd /opt/timecode-bot/timecode-bot
           backup=$(mktemp /opt/timecode-bot/max-photo-server-XXXXXXXX.py)
