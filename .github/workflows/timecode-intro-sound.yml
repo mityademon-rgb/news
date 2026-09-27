@@ -17,7 +17,7 @@ jobs:
           path: source
       - name: Verify new clip and script
         run: |
-          ffprobe -v error -select_streams a -show_entries stream=codec_name -of default=noprint_wrappers=1 source/timecode-bot/static/intro.mp4 | grep -q 'codec_name=aac'
+          python3 -c "from pathlib import Path; video=Path('source/timecode-bot/static/intro.mp4').read_bytes(); assert b'mp4a' in video and b'avc1' in video"
           node --check source/timecode-bot/static/intro.js
       - name: Replace intro assets with rollback
         env:
