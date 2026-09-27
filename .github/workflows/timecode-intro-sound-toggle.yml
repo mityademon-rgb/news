@@ -1,0 +1,55 @@
+name: TIMECODE intro sound toggle
+on:
+  push:
+    branches: [boom-kadr-deploy]
+    paths: ['.github/workflows/timecode-intro-sound-toggle.yml']
+permissions:
+  contents: read
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          repository: mityademon-rgb/media-center-bot
+          ref: feature/timecode-media-bot
+          path: source
+      - name: Verify script
+        run: node --check source/timecode-bot/static/intro.js
+      - name: Update sound toggle
+        env:
+          BOOM_SSH_KEY: ${{ secrets.BOOM_SSH_KEY }}
+        run: |
+          install -d -m 700 ~/.ssh
+          printf '%s\n' "$BOOM_SSH_KEY" > ~/.ssh/timecode
+          chmod 600 ~/.ssh/timecode
+          ssh-keyscan -T 8 -H 217.149.24.242 > ~/.ssh/known_hosts
+          for attempt in 1 2 3 4; do
+            if scp -i ~/.ssh/timecode -o BatchMode=yes -o ConnectionAttempts=5 -o ConnectTimeout=8 source/timecode-bot/static/intro.js root@217.149.24.242:/tmp/timecode-intro-toggle.js; then break; fi
+            sleep 4
+          done
+          ssh -i ~/.ssh/timecode -o BatchMode=yes -o ConnectionAttempts=5 -o ConnectTimeout=8 root@217.149.24.242 'bash -s' <<'REMOTE'
+          set -Eeuo pipefail
+          cd /opt/timecode-bot/timecode-bot
+          backup=$(mktemp -d /opt/timecode-bot/sound-toggle-backup-XXXXXXXX)
+          cp -p static/index.html "$backup/index.html"
+          cp -p static/intro.js "$backup/intro.js"
+          rollback() { cp -p "$backup/index.html" static/index.html; cp -p "$backup/intro.js" static/intro.js; }
+          trap rollback ERR
+          python3 - <<'PY'
+          from pathlib import Path
+          p=Path('static/index.html')
+          html=p.read_text()
+          old='aria-label="Включить звук заставки">🔊 Включить звук'
+          if html.count(old)!=1:raise RuntimeError('Sound toggle HTML differs from expected version')
+          p.write_text(html.replace(old,'aria-label="Выключить звук заставки">🔇 Выключить звук'))
+          PY
+          cp -p /tmp/timecode-intro-toggle.js static/intro.js
+          curl -kfsS https://timecode-lab.ru/tc/ | grep -q '🔇 Выключить звук'
+          curl -kfsS https://timecode-lab.ru/tc/intro.js | grep -q 'video.muted=!video.muted'
+          test "$(curl -ksS -o /dev/null -w '%{http_code}' https://timecode-lab.ru/tc/intro.mp4)" = 200
+          systemctl is-active --quiet timecode-bot.service
+          trap - ERR
+          echo 'Sound on by default; toggle verified; app and video available'
+          REMOTE
