@@ -1,0 +1,106 @@
+name: TIMECODE required checkins and chat replies
+on:
+  push:
+    branches: [boom-kadr-deploy]
+    paths: ['.github/workflows/timecode-chat-checkins.yml']
+permissions:
+  contents: read
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    timeout-minutes: 12
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          repository: mityademon-rgb/media-center-bot
+          ref: feature/timecode-media-bot
+          path: source
+      - name: Verify bot behavior and app script
+        run: |
+          cd source/timecode-bot
+          python3 -m unittest discover -s tests -p test_server.py -k checkin_cannot
+          python3 -m unittest discover -s tests -p test_server.py -k student_
+          python3 -m unittest discover -s tests -p test_server.py -k subscriber_report
+          python3 -m unittest discover -s tests -p test_max_integration.py
+          node --check static/app.js
+      - name: Patch running bot and profile with rollback
+        env:
+          BOOM_SSH_KEY: ${{ secrets.BOOM_SSH_KEY }}
+        run: |
+          install -d -m 700 ~/.ssh
+          printf '%s\n' "$BOOM_SSH_KEY" > ~/.ssh/timecode
+          chmod 600 ~/.ssh/timecode
+          ssh-keyscan -T 8 -H 217.149.24.242 > ~/.ssh/known_hosts
+          for attempt in 1 2 3 4; do
+            if scp -i ~/.ssh/timecode -o BatchMode=yes -o ConnectionAttempts=5 -o ConnectTimeout=8 source/timecode-bot/server.py source/timecode-bot/static/app.js root@217.149.24.242:/tmp/; then break; fi
+            sleep 4
+          done
+          ssh -i ~/.ssh/timecode -o BatchMode=yes -o ConnectionAttempts=5 -o ConnectTimeout=8 root@217.149.24.242 'bash -s' <<'REMOTE'
+          set -Eeuo pipefail
+          cd /opt/timecode-bot/timecode-bot
+          backup=$(mktemp -d /opt/timecode-bot/chat-checkins-backup-XXXXXXXX)
+          cp -p server.py "$backup/server.py"
+          cp -p static/app.js "$backup/app.js"
+          rollback() { cp -p "$backup/server.py" server.py; cp -p "$backup/app.js" static/app.js; systemctl restart timecode-bot.service || true; }
+          trap rollback ERR
+          python3 - <<'PY'
+          from pathlib import Path
+          source=Path('/tmp/server.py').read_text()
+          live=Path('server.py').read_text()
+          def replace_span(start,end):
+              global live
+              if any(doc.count(start)!=1 or doc.count(end)!=1 for doc in (source,live)):
+                  raise RuntimeError('Bot handler anchor changed')
+              live=live[:live.index(start)]+source[source.index(start):source.index(end)]+live[live.index(end):]
+          marker="        if not GROUP:\n            row=c.execute(\"select value from settings where key='group_chat'\").fetchone()"
+          if live.count(marker)!=1:raise RuntimeError('Bot init anchor changed')
+          live=live.replace(marker,"        c.execute('update users set enabled=1 where enabled!=1')\n"+marker,1)
+          replace_span('def subscriber_report(uid,page=0):','def allowed(uid):')
+          replace_span("    if text.startswith('/quiet'):","    if text.startswith('/lab'):")
+          start="        send(uid,'<b>РЕДАКЦИЯ TIMECODE</b>"
+          if source.count(start)!=1 or live.count(start)!=1:raise RuntimeError('Bot help changed')
+          a=live.index(start);b=live.index('\n',a)
+          c=source.index(start);d=source.index('\n',c)
+          live=live[:a]+source[c:d]+live[b:]
+          replace_span("    question=(msg.get('caption') or text).strip()","def callback(q):")
+          replace_span("        if path=='/api/profile':","        if path=='/api/quest/choose':")
+          Path('server.py').write_text(live)
+          src_js=Path('/tmp/app.js').read_text()
+          live_js=Path('static/app.js').read_text()
+          js_begin='function profile(){'
+          js_end='function admin(){'
+          if any(doc.count(js_begin)!=1 or doc.count(js_end)!=1 for doc in (src_js,live_js)):
+              raise RuntimeError('Profile UI changed')
+          live_js=live_js[:live_js.index(js_begin)]+src_js[src_js.index(js_begin):src_js.index(js_end)]+live_js[live_js.index(js_end):]
+          Path('static/app.js').write_text(live_js)
+          PY
+          python3 -m py_compile server.py
+          systemctl restart timecode-bot.service
+          healthy=0
+          for attempt in 1 2 3 4 5 6 7 8; do
+            if curl -fsS --max-time 3 http://127.0.0.1:8097/health -o /dev/null; then healthy=1;break;fi
+            sleep 2
+          done
+          test "$healthy" = 1
+          systemctl is-active --quiet timecode-bot.service
+          python3 - <<'PY'
+          import sqlite3
+          from pathlib import Path
+          live=Path('server.py').read_text()
+          app=Path('static/app.js').read_text()
+          assert 'def chat_reply(question):' in live
+          assert 'profile-enabled' not in app
+          assert 'update users set enabled=0' not in live
+          with sqlite3.connect('/var/lib/timecode-bot/timecode.db') as db:
+              assert db.execute('select count(*) from users where enabled=0').fetchone()[0]==0
+          print('All existing subscribers restored to daily checkins; student chat handler installed')
+          PY
+          public_ok=0
+          for attempt in 1 2 3 4 5; do
+            if test "$(curl -ksS --max-time 5 -o /dev/null -w '%{http_code}' https://timecode-lab.ru/tc/)" = 200; then public_ok=1;break;fi
+            sleep 2
+          done
+          test "$public_ok" = 1
+          trap - ERR
+          echo 'TIMECODE checkins and chat replies deployed'
+          REMOTE
