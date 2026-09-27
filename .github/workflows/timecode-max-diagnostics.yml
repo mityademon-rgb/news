@@ -1,0 +1,40 @@
+name: TIMECODE MAX incident diagnostics
+on:
+  push:
+    branches: [boom-kadr-deploy]
+    paths: ['.github/workflows/timecode-max-diagnostics.yml']
+permissions:
+  contents: read
+jobs:
+  inspect:
+    runs-on: ubuntu-latest
+    timeout-minutes: 8
+    steps:
+      - name: Inspect running service
+        env:
+          BOOM_SSH_KEY: ${{ secrets.BOOM_SSH_KEY }}
+        run: |
+          install -d -m 700 ~/.ssh
+          printf '%s\n' "$BOOM_SSH_KEY" > ~/.ssh/timecode
+          chmod 600 ~/.ssh/timecode
+          ssh-keyscan -T 8 -H 217.149.24.242 > ~/.ssh/known_hosts
+          ssh -i ~/.ssh/timecode -o BatchMode=yes root@217.149.24.242 'bash -s' <<'REMOTE'
+          set -eu
+          echo "SERVICE $(systemctl is-active timecode-bot.service)"
+          python3 - <<'PY'
+          from pathlib import Path
+          p=Path('/opt/timecode-bot/timecode-bot/server.py').read_text()
+          start=p.index("if action=='important' and value=='skip':")
+          print('MORNING_SKIP:',repr(p[start:start+360]))
+          for f in ('index.html','intro.js'):
+              p=Path('/opt/timecode-bot/timecode-bot/static/'+f)
+              print(f,p.stat().st_size,repr(p.read_text()[:150]))
+          PY
+          for path in health / intro.js intro.mp4 app.js; do
+            curl -sS -o /dev/null -w "LOCAL $path %{http_code} %{size_download}\n" "http://127.0.0.1:8097/$path" || true
+          done
+          for path in / /intro.js /app.js /intro.mp4; do
+            curl -ksS -o /dev/null -w "PUBLIC $path %{http_code} %{size_download}\n" "https://timecode-lab.ru/tc$path" || true
+          done
+          journalctl -u timecode-bot.service --since '90 minutes ago' --no-pager -o cat | grep -E 'MAX update failed|Traceback|Exception|Error' | tail -15 || true
+          REMOTE
