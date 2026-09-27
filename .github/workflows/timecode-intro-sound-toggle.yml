@@ -46,9 +46,15 @@ jobs:
           p.write_text(html.replace(old,'aria-label="Выключить звук заставки">🔇 Выключить звук'))
           PY
           cp -p /tmp/timecode-intro-toggle.js static/intro.js
-          curl -kfsS https://timecode-lab.ru/tc/ | grep -q '🔇 Выключить звук'
-          curl -kfsS https://timecode-lab.ru/tc/intro.js | grep -q 'video.muted=!video.muted'
-          test "$(curl -ksS -o /dev/null -w '%{http_code}' https://timecode-lab.ru/tc/intro.mp4)" = 200
+          curl -fsS http://127.0.0.1:8097/ | grep -q '🔇 Выключить звук'
+          curl -fsS http://127.0.0.1:8097/intro.js | grep -q 'video.muted=!video.muted'
+          test "$(curl -sS -o /dev/null -w '%{http_code}' http://127.0.0.1:8097/intro.mp4)" = 200
+          public_ok=0
+          for attempt in 1 2 3 4 5; do
+            if test "$(curl -ksS --max-time 5 -o /dev/null -w '%{http_code}' https://timecode-lab.ru/tc/)" = 200; then public_ok=1; break; fi
+            sleep 2
+          done
+          test "$public_ok" = 1
           systemctl is-active --quiet timecode-bot.service
           trap - ERR
           echo 'Sound on by default; toggle verified; app and video available'
