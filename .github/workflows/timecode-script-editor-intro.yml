@@ -1,4 +1,5 @@
 name: TIMECODE script editor and intro autoplay
+# Student-facing copy focuses on Kimi; teacher delivery runs privately.
 on:
   push:
     branches: [boom-kadr-deploy]
@@ -51,11 +52,16 @@ jobs:
           backup=$(mktemp -d /opt/timecode-bot/editor-backup-XXXXXXXX)
           cp -p server.py static/index.html "$backup/"
           cp -p static/intro.js "$backup/intro.js"
+          for f in script_editor.py static/script_editor.js static/script_editor.css; do
+            if test -e "$f"; then install -D "$f" "$backup/$f"; fi
+          done
           rollback() {
             cp -p "$backup/server.py" server.py
             cp -p "$backup/index.html" static/index.html
             cp -p "$backup/intro.js" static/intro.js
-            rm -f script_editor.py static/script_editor.js static/script_editor.css
+            for f in script_editor.py static/script_editor.js static/script_editor.css; do
+              if test -e "$backup/$f"; then install -D "$backup/$f" "$f"; else rm -f "$f"; fi
+            done
             systemctl restart timecode-bot.service || true
           }
           trap rollback ERR
