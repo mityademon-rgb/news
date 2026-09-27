@@ -1,0 +1,67 @@
+name: TIMECODE visible admin broadcast button
+on:
+  push:
+    branches: [boom-kadr-deploy]
+    paths: ['.github/workflows/timecode-admin-menu-visible.yml']
+permissions:
+  contents: read
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    timeout-minutes: 8
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          repository: mityademon-rgb/media-center-bot
+          ref: feature/timecode-media-bot
+          path: source
+      - name: Check source
+        run: python3 -m py_compile source/timecode-bot/server.py
+      - name: Show broadcast button inside admin message
+        env:
+          BOOM_SSH_KEY: ${{ secrets.BOOM_SSH_KEY }}
+        run: |
+          install -d -m 700 ~/.ssh
+          printf '%s\n' "$BOOM_SSH_KEY" > ~/.ssh/timecode
+          chmod 600 ~/.ssh/timecode
+          ssh-keyscan -T 8 -H 217.149.24.242 > ~/.ssh/known_hosts
+          scp -i ~/.ssh/timecode -o BatchMode=yes -o ConnectionAttempts=5 -o ConnectTimeout=8 source/timecode-bot/server.py root@217.149.24.242:/tmp/timecode-admin-menu-source.py
+          ssh -i ~/.ssh/timecode -o BatchMode=yes -o ConnectionAttempts=5 -o ConnectTimeout=8 root@217.149.24.242 'bash -s' <<'REMOTE'
+          set -Eeuo pipefail
+          cd /opt/timecode-bot/timecode-bot
+          backup=$(mktemp /opt/timecode-bot/admin-menu-backup-XXXXXXXX.py)
+          cp -p server.py "$backup"
+          rollback() { cp -p "$backup" server.py; systemctl restart timecode-bot.service || true; }
+          trap rollback ERR
+          python3 - <<'PY'
+          from pathlib import Path
+          start='def admin_menu(uid):\n'
+          end='def subscriber_report(uid,page=0):\n'
+          old=Path('server.py').read_text()
+          new=Path('/tmp/timecode-admin-menu-source.py').read_text()
+          if old.count(start)!=1 or old.count(end)!=1 or new.count(start)!=1 or new.count(end)!=1:
+              raise RuntimeError('Admin menu anchors changed')
+          Path('server.py').write_text(old[:old.index(start)]+new[new.index(start):new.index(end)]+old[old.index(end):])
+          PY
+          python3 -m py_compile server.py
+          systemctl restart timecode-bot.service
+          healthy=0
+          for attempt in 1 2 3 4 5 6 7 8; do
+            if curl -fsS --max-time 3 http://127.0.0.1:8097/health -o /dev/null; then healthy=1;break;fi
+            sleep 2
+          done
+          test "$healthy" = 1
+          systemctl is-active --quiet timecode-bot.service
+          trap - ERR
+          set -a
+          . /etc/timecode-bot.env
+          set +a
+          python3 - <<'PY'
+          import server
+          assert server.ADMINS
+          for admin_id in server.ADMINS:
+              if admin_id>0:
+                  response=server.admin_menu(admin_id)
+                  print('Admin menu sent:',bool(response and response.get('ok')))
+          PY
+          REMOTE
