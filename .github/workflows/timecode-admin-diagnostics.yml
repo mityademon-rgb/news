@@ -37,6 +37,10 @@ jobs:
           print('telegram_count',sum(uid>0 for uid,*_ in rows))
           print('max_count',sum(uid<0 for uid,*_ in rows))
           print('admin_active_stage',[(role,stage) for uid,role,enabled,stage in rows if uid in admins or role=='admin'])
+          code=Path('/opt/timecode-bot/timecode-bot/server.py').read_text()
+          print('publish_function_present',code.count('def publish_to_all('))
+          print('admin_publish_callback_present',code.count("data=='admin:publish'"))
+          print('admin_start_button_present',code.count("'📣 Написать всем'"))
           print('service_active',__import__('subprocess').run(['systemctl','is-active','timecode-bot.service'],capture_output=True,text=True).stdout.strip())
           PY
           REMOTE
