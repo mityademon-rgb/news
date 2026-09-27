@@ -50,7 +50,7 @@ jobs:
           def replace_span(start,end):
               global live
               if any(doc.count(start)!=1 or doc.count(end)!=1 for doc in (source,live)):
-                  raise RuntimeError('Bot handler anchor changed')
+                  raise RuntimeError('Bot handler anchor changed '+repr(start)+' start '+str(source.count(start))+'/'+str(live.count(start))+' end '+str(source.count(end))+'/'+str(live.count(end)))
               live=live[:live.index(start)]+source[source.index(start):source.index(end)]+live[live.index(end):]
           marker="        if not GROUP:\n            row=c.execute(\"select value from settings where key='group_chat'\").fetchone()"
           if live.count(marker)!=1:raise RuntimeError('Bot init anchor changed')
