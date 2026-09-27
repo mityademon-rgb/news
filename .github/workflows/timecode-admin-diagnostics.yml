@@ -1,0 +1,42 @@
+name: TIMECODE admin access diagnostics
+on:
+  push:
+    branches: [boom-kadr-deploy]
+    paths: ['.github/workflows/timecode-admin-diagnostics.yml']
+permissions:
+  contents: read
+jobs:
+  inspect:
+    runs-on: ubuntu-latest
+    timeout-minutes: 8
+    steps:
+      - name: Inspect admin mapping without IDs
+        env:
+          BOOM_SSH_KEY: ${{ secrets.BOOM_SSH_KEY }}
+        run: |
+          install -d -m 700 ~/.ssh
+          printf '%s\n' "$BOOM_SSH_KEY" > ~/.ssh/timecode
+          chmod 600 ~/.ssh/timecode
+          ssh-keyscan -T 8 -H 217.149.24.242 > ~/.ssh/known_hosts
+          ssh -i ~/.ssh/timecode -o BatchMode=yes -o ConnectionAttempts=5 root@217.149.24.242 'bash -s' <<'REMOTE'
+          set -eu
+          python3 - <<'PY'
+          import sqlite3
+          from pathlib import Path
+          env={}
+          for line in Path('/etc/timecode-bot.env').read_text().splitlines():
+              if '=' in line and not line.lstrip().startswith('#'):
+                  k,v=line.split('=',1);env[k.strip()]=v.strip().strip('"').strip("'")
+          admins={int(v) for v in env.get('ADMIN_IDS','').split(',') if v.strip().isdigit()}
+          db=sqlite3.connect('/var/lib/timecode-bot/timecode.db')
+          rows=db.execute('select id,role,enabled,stage from users').fetchall()
+          print('configured_admin_count',len(admins))
+          print('configured_admin_in_users',sum(uid in admins for uid,*_ in rows))
+          print('admin_role_in_users',sum(role=='admin' for _,role,*_ in rows))
+          print('user_count',len(rows))
+          print('telegram_count',sum(uid>0 for uid,*_ in rows))
+          print('max_count',sum(uid<0 for uid,*_ in rows))
+          print('admin_active_stage',[(role,stage) for uid,role,enabled,stage in rows if uid in admins or role=='admin'])
+          print('service_active',__import__('subprocess').run(['systemctl','is-active','timecode-bot.service'],capture_output=True,text=True).stdout.strip())
+          PY
+          REMOTE
