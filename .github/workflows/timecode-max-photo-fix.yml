@@ -1,0 +1,68 @@
+name: TIMECODE MAX photo checkin fix
+on:
+  push:
+    branches: [boom-kadr-deploy]
+    paths: ['.github/workflows/timecode-max-photo-fix.yml']
+permissions:
+  contents: read
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          repository: mityademon-rgb/media-center-bot
+          ref: feature/timecode-media-bot
+          path: source
+      - name: Test MAX photo handling
+        run: |
+          cd source/timecode-bot
+          python3 -m unittest discover -s tests -p test_max_integration.py
+      - name: Deploy MAX handler only, keep app and intro intact
+        env:
+          BOOM_SSH_KEY: ${{ secrets.BOOM_SSH_KEY }}
+        run: |
+          install -d -m 700 ~/.ssh
+          printf '%s\n' "$BOOM_SSH_KEY" > ~/.ssh/timecode
+          chmod 600 ~/.ssh/timecode
+          ssh-keyscan -T 8 -H 217.149.24.242 > ~/.ssh/known_hosts
+          scp -i ~/.ssh/timecode -o BatchMode=yes source/timecode-bot/server.py root@217.149.24.242:/tmp/timecode-max-photo-source.py
+          ssh -i ~/.ssh/timecode -o BatchMode=yes root@217.149.24.242 'bash -s' <<'REMOTE'
+          set -Eeuo pipefail
+          cd /opt/timecode-bot/timecode-bot
+          backup=$(mktemp /opt/timecode-bot/max-photo-server-XXXXXXXX.py)
+          cp -p server.py "$backup"
+          rollback() { cp -p "$backup" server.py; systemctl restart timecode-bot.service || true; }
+          trap rollback ERR
+          python3 - <<'PY'
+          from pathlib import Path
+          live=Path('server.py').read_text()
+          source=Path('/tmp/timecode-max-photo-source.py').read_text()
+          start='def max_update(update):'
+          end='def code_rate_limit(ip):'
+          if any(x.count(start)!=1 or x.count(end)!=1 for x in (live,source)):
+              raise RuntimeError('MAX update handler anchors changed')
+          updated=live[:live.index(start)]+source[source.index(start):source.index(end)]+live[live.index(end):]
+          Path('server.py').write_text(updated)
+          PY
+          python3 -m py_compile server.py
+          systemctl restart timecode-bot.service
+          healthy=0
+          for attempt in 1 2 3 4 5 6 7 8; do
+            if curl -fsS --max-time 3 http://127.0.0.1:8097/health -o /dev/null; then healthy=1; break; fi
+            sleep 2
+          done
+          test "$healthy" = 1
+          systemctl is-active --quiet timecode-bot.service
+          test "$(curl -ksS -o /dev/null -w '%{http_code}' https://timecode-lab.ru/tc/)" = 200
+          test "$(curl -ksS -o /dev/null -w '%{http_code}' https://timecode-lab.ru/tc/intro.mp4)" = 200
+          python3 - <<'PY'
+          from pathlib import Path
+          p=Path('server.py').read_text()
+          assert 'max_processed_messages' in p
+          assert "a.get('type')=='image'" in p
+          print('MAX photo receiver active, duplicate deliveries suppressed, intro available')
+          PY
+          trap - ERR
+          REMOTE
