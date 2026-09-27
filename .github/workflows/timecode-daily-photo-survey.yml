@@ -1,0 +1,122 @@
+name: TIMECODE daily photos and weekly survey
+on:
+  push:
+    branches: [boom-kadr-deploy]
+    paths: ['.github/workflows/timecode-daily-photo-survey.yml']
+permissions:
+  contents: read
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    timeout-minutes: 12
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          repository: mityademon-rgb/media-center-bot
+          ref: feature/timecode-media-bot
+          path: source
+      - name: Test photo and survey routing
+        run: |
+          cd source/timecode-bot
+          python3 -m unittest discover -s tests -p test_server.py -k weekly_survey
+          python3 -m unittest discover -s tests -p test_server.py -k daily_photo
+          python3 -m unittest discover -s tests -p test_max_integration.py
+          python3 -m py_compile server.py max_transport.py
+      - name: Deploy targeted handlers with rollback
+        env:
+          BOOM_SSH_KEY: ${{ secrets.BOOM_SSH_KEY }}
+        run: |
+          install -d -m 700 ~/.ssh
+          printf '%s\n' "$BOOM_SSH_KEY" > ~/.ssh/timecode
+          chmod 600 ~/.ssh/timecode
+          ssh-keyscan -T 8 -H 217.149.24.242 > ~/.ssh/known_hosts
+          for attempt in 1 2 3 4; do
+            if scp -i ~/.ssh/timecode -o BatchMode=yes -o ConnectionAttempts=5 -o ConnectTimeout=8 source/timecode-bot/server.py source/timecode-bot/max_transport.py root@217.149.24.242:/tmp/; then break; fi
+            sleep 4
+          done
+          ssh -i ~/.ssh/timecode -o BatchMode=yes -o ConnectionAttempts=5 -o ConnectTimeout=8 root@217.149.24.242 'bash -s' <<'REMOTE'
+          set -Eeuo pipefail
+          cd /opt/timecode-bot/timecode-bot
+          backup=$(mktemp -d /opt/timecode-bot/photo-survey-backup-XXXXXXXX)
+          cp -p server.py "$backup/server.py"
+          cp -p max_transport.py "$backup/max_transport.py"
+          rollback() { cp -p "$backup/server.py" server.py; cp -p "$backup/max_transport.py" max_transport.py; systemctl restart timecode-bot.service || true; }
+          trap rollback ERR
+          python3 - <<'PY'
+          from pathlib import Path
+          source=Path('/tmp/server.py').read_text()
+          live=Path('server.py').read_text()
+          def change(start,end,source_start=None):
+              global live
+              source_start=source_start or start
+              if source.count(source_start)!=1 or source.count(end)!=1 or live.count(start)!=1 or live.count(end)!=1:
+                  raise RuntimeError('Handler anchor changed '+repr(start)+' start '+str(source.count(source_start))+'/'+str(live.count(start))+' end '+str(source.count(end))+'/'+str(live.count(end)))
+              live=live[:live.index(start)]+source[source.index(source_start):source.index(end)]+live[live.index(end):]
+          table_start='        create table if not exists daily_photos('
+          before='        create table if not exists lessons('
+          if live.count(before)!=1 or table_start in live:raise RuntimeError('Schema anchor changed')
+          live=live.replace(before,source[source.index(table_start):source.index(before)]+before,1)
+          change('def photo_comment(', 'def industry_search(')
+          change('def instant_photo():','def weekly():')
+          old_photo="            if t.weekday() in (1,4) and clock=='16:00':run_slot('instant-photo',instant_photo)"
+          old_digest="            if t.weekday() in (1,4) and clock=='20:30':run_slot('photos-digest',photos_digest)"
+          if live.count(old_photo)!=1 or live.count(old_digest)!=1:raise RuntimeError('Scheduler photo slot changed')
+          live=live.replace(old_photo,"            if clock=='16:00':run_slot('instant-photo',instant_photo)\n            if t.weekday()==6 and clock=='17:00':run_slot('weekly-survey',weekly_survey)",1)
+          live=live.replace(old_digest,'',1)
+          old_weekly="            if t.weekday()==6 and clock=='18:00':run_slot('weekly',weekly)"
+          if live.count(old_weekly)!=1:raise RuntimeError('Weekly slot changed')
+          live=live.replace(old_weekly,old_weekly+'\n            recover_daily_photos()',1)
+          change("        if start=='instant':","        if start=='mission':")
+          photo_insert="    if photo and stage!='mission' and uid not in ADMINS:"
+          stage_instant="    if stage=='instant':"
+          if live.count(stage_instant)!=1 or photo_insert in live:raise RuntimeError('Photo route changed')
+          live=live.replace(stage_instant,source[source.index(photo_insert):source.index(stage_instant)]+stage_instant,1)
+          change("    if stage=='instant':","    if stage=='morning:important':")
+          weekly_callback="    if data in ('weekly:start','weekly:skip'):"
+          morning="    if data.startswith('morning:'):"
+          if live.count(morning)!=1 or weekly_callback in live:raise RuntimeError('Survey callback anchor changed')
+          live=live.replace(morning,source[source.index(weekly_callback):source.index(morning)]+morning,1)
+          old_images="        images=[a for a in attachments if isinstance(a,dict) and a.get('type')=='image']"
+          new_images='        image=max_transport.image_info(attachments)'
+          after='        except Exception:\n            if isinstance(mid,str) and mid:'
+          if live.count(old_images)!=1 or source.count(new_images)!=1 or live.count(after)!=1 or source.count(after)!=1:
+              raise RuntimeError('MAX image route changed')
+          live=live[:live.index(old_images)]+source[source.index(new_images):source.index(after)]+live[live.index(after):]
+          Path('server.py').write_text(live)
+          source_max=Path('/tmp/max_transport.py').read_text()
+          current=Path('max_transport.py').read_text()
+          anchor='def keyboard_from_telegram(rows):'
+          if current.count(anchor)!=1 or source_max.count(anchor)!=1 or 'def image_info(' in current:raise RuntimeError('MAX transport anchor changed')
+          current=current.replace(anchor,source_max[source_max.index('def image_info('):source_max.index(anchor)]+anchor,1)
+          Path('max_transport.py').write_text(current)
+          PY
+          python3 -m py_compile server.py max_transport.py
+          systemctl restart timecode-bot.service
+          healthy=0
+          for attempt in 1 2 3 4 5 6 7 8; do
+            if curl -fsS --max-time 3 http://127.0.0.1:8097/health -o /dev/null; then healthy=1;break;fi
+            sleep 2
+          done
+          test "$healthy" = 1
+          systemctl is-active --quiet timecode-bot.service
+          python3 - <<'PY'
+          import sqlite3
+          from pathlib import Path
+          code=Path('server.py').read_text()
+          assert "if clock=='16:00':run_slot('instant-photo',instant_photo)" in code
+          assert "run_slot('weekly-survey',weekly_survey)" in code
+          assert "run_slot('photos-digest'" not in code
+          with sqlite3.connect('/var/lib/timecode-bot/timecode.db') as db:
+              for table in ('daily_photos','weekly_surveys'):
+                  assert db.execute('select 1 from sqlite_master where type=? and name=?',('table',table)).fetchone()
+          print('Daily photo and weekly survey handlers installed; database tables ready')
+          PY
+          public_ok=0
+          for attempt in 1 2 3 4 5; do
+            if test "$(curl -ksS --max-time 5 -o /dev/null -w '%{http_code}' https://timecode-lab.ru/tc/)" = 200; then public_ok=1;break;fi
+            sleep 2
+          done
+          test "$public_ok" = 1
+          trap - ERR
+          echo 'Daily photos and weekly survey deployed'
+          REMOTE
