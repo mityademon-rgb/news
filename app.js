@@ -1388,7 +1388,7 @@
     } else if (layout === "story-builder") {
       stage = `<div class="story-builder" data-story-builder>
         <div class="story-builder-groups">${scene.groups.map((group, groupIndex) => `<fieldset><legend><span>0${groupIndex + 1}</span>${escapeHtml(group.label)}</legend>${group.options.map((option, optionIndex) => `<button type="button" data-story-option data-group="${groupIndex}" data-option="${optionIndex}" data-value="${escapeHtml(option)}">${escapeHtml(option)}</button>`).join("")}</fieldset>`).join("")}</div>
-        <div class="story-builder-result"><span>ЗАЯВКА</span><strong data-story-result>Выберите по одному варианту в каждом блоке.</strong><button type="button" data-story-example>Показать готовое решение</button></div>
+        <div class="story-builder-result"><span>${escapeHtml(scene.resultLabel || "ЗАЯВКА")}</span><strong data-story-result>Выберите по одному варианту в каждом блоке.</strong><button type="button" data-story-example>${escapeHtml(scene.exampleButton || "Показать готовое решение")}</button></div>
       </div>`;
     } else if (layout === "quiz") {
       stage = `<div class="magic-quiz">${pickButtons}</div><p class="pick-feedback" aria-live="polite"></p>${hint}`;
