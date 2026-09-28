@@ -21,7 +21,7 @@ jobs:
           ssh -i ~/.ssh/timecode -o BatchMode=yes -o ConnectionAttempts=5 -o ConnectTimeout=8 root@217.149.24.242 'bash -s' <<'REMOTE'
           set -e
           date -u '+UTC now: %F %T'
-          systemctl show timecode-bot.service -p ActiveState -p ActiveEnterTimestamp -p ExecMainStartTimestamp
+          systemctl show timecode-bot.service -p ActiveState -p ActiveEnterTimestamp -p ExecMainStartTimestamp -p LimitNOFILE\n          pid=$(systemctl show -p MainPID --value timecode-bot.service)\n          echo "fd_count=$(find /proc/$pid/fd -maxdepth 1 -type l | wc -l)"\n          find /proc/$pid/fd -maxdepth 1 -type l -printf '%l\\n' | sed -E 's/.*timecode.db.*/database/' | sort | uniq -c | sort -rn | head -12\n          echo "threads=$(find /proc/$pid/task -mindepth 1 -maxdepth 1 -type d | wc -l)"
           python3 - <<'PY'
           import sqlite3
           c=sqlite3.connect('/var/lib/timecode-bot/timecode.db')
