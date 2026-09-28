@@ -1,0 +1,35 @@
+name: TIMECODE evening delivery diagnostic
+on:
+  push:
+    branches: [boom-kadr-deploy]
+    paths: ['.github/workflows/timecode-evening-diagnostic.yml']
+permissions:
+  contents: read
+jobs:
+  inspect:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - name: Inspect private server without changing it
+        env:
+          BOOM_SSH_KEY: ${{ secrets.BOOM_SSH_KEY }}
+        run: |
+          install -d -m 700 ~/.ssh
+          printf '%s\n' "$BOOM_SSH_KEY" > ~/.ssh/timecode
+          chmod 600 ~/.ssh/timecode
+          ssh-keyscan -T 8 -H 217.149.24.242 > ~/.ssh/known_hosts
+          ssh -i ~/.ssh/timecode -o BatchMode=yes -o ConnectionAttempts=5 -o ConnectTimeout=8 root@217.149.24.242 'bash -s' <<'REMOTE'
+          set -e
+          date -u '+UTC now: %F %T'
+          systemctl show timecode-bot.service -p ActiveState -p ActiveEnterTimestamp -p ExecMainStartTimestamp
+          python3 - <<'PY'
+          import sqlite3
+          c=sqlite3.connect('/var/lib/timecode-bot/timecode.db')
+          day='2026-09-28'
+          print('slots:',c.execute('select slot,day from sent where day=? order by slot',(day,)).fetchall())
+          print('subscribers:',c.execute("select (id>0) telegram,count(*) from users where role!='admin' group by id>0").fetchall())
+          print('evening responses:',c.execute('select count(*),sum(step=\'done\') from evening_checkins where day=?',(day,)).fetchone())
+          print('group configured:',bool(c.execute("select value from settings where key='group_chat'").fetchone()))
+          PY
+          journalctl -u timecode-bot.service --utc --since '2026-09-28 17:00:00' --until '2026-09-28 18:10:00' --no-pager -o short-iso | tail -70
+          REMOTE
