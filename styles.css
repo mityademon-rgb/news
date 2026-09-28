@@ -5774,7 +5774,8 @@ body.play-active #main { min-height: 100svh; background: #0d0c12; }
   .habit-finish { min-height: 520px; padding: 42px 18px; }
 }
 
-.lesson-camera-brave {
+.lesson-camera-brave,
+.lesson-speak-dont-memorize {
   --camera-red: #ff4038;
   --camera-violet: #9b7cff;
   --camera-cyan: #22b8c5;
@@ -5783,6 +5784,15 @@ body.play-active #main { min-height: 100svh; background: #0d0c12; }
 .lesson-camera-brave .lesson-code,
 .lesson-camera-brave .scene-copy .eyebrow,
 .lesson-camera-brave .scene-meta span:last-child { color: var(--camera-red); }
+
+.lesson-speak-dont-memorize .lesson-code,
+.lesson-speak-dont-memorize .scene-copy .eyebrow,
+.lesson-speak-dont-memorize .scene-meta span:last-child { color: var(--camera-violet); }
+
+.lesson-speak-dont-memorize .magic-photo-answer img {
+  aspect-ratio: 16 / 9;
+  object-fit: cover;
+}
 
 .magic-camera-cards {
   grid-template-columns: 1fr;
@@ -6004,6 +6014,15 @@ body.camera-card-open { overflow: hidden; }
 }
 
 @media (max-width: 760px) {
+  .lesson-speak-dont-memorize .magic-answer-photo .scene-copy h2 {
+    max-width: 100%;
+    font-size: clamp(31px, 9vw, 43px);
+  }
+
+  .lesson-speak-dont-memorize .magic-photo-answer img {
+    aspect-ratio: 16 / 9;
+  }
+
   .magic-camera-cards .scene-copy { display: block; }
   .magic-camera-cards .scene-copy .scene-meta { margin-bottom: 14px; }
   .magic-camera-cards .scene-copy h2 { max-width: 100%; font-size: clamp(32px, 9.5vw, 44px); }
