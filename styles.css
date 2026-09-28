@@ -5790,6 +5790,8 @@ body.play-active #main { min-height: 100svh; background: #0d0c12; }
 .lesson-speak-dont-memorize .scene-meta span:last-child { color: var(--camera-violet); }
 
 .lesson-speak-dont-memorize .magic-photo-answer img {
+  width: 100%;
+  height: auto;
   aspect-ratio: 16 / 9;
   object-fit: cover;
 }
