@@ -41,6 +41,9 @@ jobs:
           print('subscribers:',c.execute("select (id>0) telegram,count(*) from users where role!='admin' group by id>0").fetchall())
           print('evening responses:',c.execute('select count(*),sum(step=\'done\') from evening_checkins where day=?',(day,)).fetchone())
           print('group configured:',bool(c.execute("select value from settings where key='group_chat'").fetchone()))
+          for table in ('morning_checkins','evening_checkins'):
+              print(table+' photo counts:',c.execute('select user_id<0,count(*) from '+table+' where day=? and photo!=\'\' group by user_id<0',(day,)).fetchall())
+          print('daily photo counts:',c.execute('select user_id<0,count(*) from daily_photos where day=? group by user_id<0',(day,)).fetchall())
           PY
           journalctl -u timecode-bot.service --utc --since '2026-09-28 17:00:00' --until '2026-09-28 18:10:00' --no-pager -o short-iso | tail -70
           REMOTE
