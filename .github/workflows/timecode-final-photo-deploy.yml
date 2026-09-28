@@ -1,0 +1,84 @@
+name: TIMECODE photo routing and digest attachment
+on:
+  push:
+    branches: [boom-kadr-deploy]
+    paths: ['.github/workflows/timecode-final-photo-deploy.yml']
+permissions:
+  contents: read
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    timeout-minutes: 12
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          repository: mityademon-rgb/media-center-bot
+          ref: feature/timecode-media-bot
+          path: source
+      - name: Verify
+        run: |
+          cd source/timecode-bot
+          python3 -m unittest discover -s tests -p test_server.py -k checkin_photos
+          python3 -m py_compile server.py notification_delivery.py
+      - name: Deploy and recover today's daily photos
+        env:
+          BOOM_SSH_KEY: ${{ secrets.BOOM_SSH_KEY }}
+        run: |
+          install -d -m 700 ~/.ssh
+          printf '%s\n' "$BOOM_SSH_KEY" > ~/.ssh/timecode
+          chmod 600 ~/.ssh/timecode
+          ssh-keyscan -T 8 -H 217.149.24.242 > ~/.ssh/known_hosts
+          scp -i ~/.ssh/timecode -o BatchMode=yes source/timecode-bot/server.py source/timecode-bot/notification_delivery.py root@217.149.24.242:/tmp/
+          ssh -i ~/.ssh/timecode -o BatchMode=yes root@217.149.24.242 'bash -s' <<'REMOTE'
+          set -Eeuo pipefail
+          cd /opt/timecode-bot/timecode-bot
+          backup=$(mktemp -d /opt/timecode-bot/photo-routing-backup-XXXXXXXX)
+          cp -p server.py notification_delivery.py "$backup/"
+          rollback() { cp -p "$backup/server.py" "$backup/notification_delivery.py" .; systemctl restart timecode-bot.service || true; }
+          trap rollback ERR
+          python3 - <<'PY'
+          from pathlib import Path
+          source=Path('/tmp/server.py').read_text()
+          live=Path('server.py').read_text()
+          start='def publish_daily_photo(uid,day):\n'
+          end='def accept_daily_photo(uid,msg):\n'
+          if any(t.count(mark)!=1 for t in (source,live) for mark in (start,end)):raise RuntimeError('Daily photo anchors changed')
+          live=live[:live.index(start)]+source[source.index(start):source.index(end)]+live[live.index(end):]
+          Path('server.py').write_text(live)
+          source=Path('/tmp/notification_delivery.py').read_text()
+          live=Path('notification_delivery.py').read_text()
+          start='    def broadcast(message, keyboard=None'
+          end='    def publish_to_all(msg, body):\n'
+          if any(t.count(mark)!=1 for t in (source,live) for mark in (start,end)):raise RuntimeError('Outbox anchors changed')
+          live=live[:live.index(start)]+source[source.index(start):source.index(end)]+live[live.index(end):]
+          start='        label=(\'☀️ <b>10:00 / ИСТОРИИ ЭТОГО УТРА</b>'
+          end='\n    def tip():\n'
+          if any(t.count(mark)!=1 for t in (source,live) for mark in (start,end)):raise RuntimeError('Digest anchors changed')
+          live=live[:live.index(start)]+source[source.index(start):source.index(end)]+live[live.index(end):]
+          Path('notification_delivery.py').write_text(live)
+          PY
+          python3 -m py_compile server.py notification_delivery.py
+          systemctl restart timecode-bot.service
+          for attempt in 1 2 3 4 5 6 7 8; do
+            if curl -fsS --max-time 3 http://127.0.0.1:8097/health -o /dev/null; then break;fi
+            sleep 2
+          done
+          systemctl is-active --quiet timecode-bot.service
+          curl -fsS --max-time 3 http://127.0.0.1:8097/health -o /dev/null
+          trap - ERR
+          set -a
+          . /etc/timecode-bot.env
+          set +a
+          python3 - <<'PY'
+          import server
+          day='2026-09-28'
+          with server.conn() as c:
+              rows=c.execute('select user_id,day,status from daily_photos where day=?',(day,)).fetchall()
+              print('Daily photos before recovery:',len(rows),[(r['status']) for r in rows])
+              c.execute("update daily_photos set status='pending' where day=? and status in ('done','queued','publishing')",(day,))
+          for r in rows:server.publish_daily_photo(r['user_id'],r['day'])
+          with server.conn() as c:
+              print('Daily photos after recovery:',[tuple(r) for r in c.execute('select status,count(*) from daily_photos where day=? group by status',(day,))])
+              print('Daily delivery:',[tuple(r) for r in c.execute("select (json_extract(chat,'$')<0) max_platform,delivered,count(*) from notification_photo_outbox where day=? and period='daily' group by 1,2",(day,))])
+          PY
+          REMOTE
