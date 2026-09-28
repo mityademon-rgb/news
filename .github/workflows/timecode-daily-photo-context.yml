@@ -1,0 +1,60 @@
+name: TIMECODE daily photo stays with its picture
+on:
+  push:
+    branches: [boom-kadr-deploy]
+    paths: ['.github/workflows/timecode-daily-photo-context.yml']
+permissions:
+  contents: read
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    timeout-minutes: 8
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          repository: mityademon-rgb/media-center-bot
+          ref: feature/timecode-media-bot
+          path: source
+      - name: Verify publishing on both platforms
+        run: |
+          cd source/timecode-bot
+          python3 -m unittest discover -s tests -p test_server.py -k daily_photo
+          python3 -m py_compile server.py
+      - name: Patch publisher with rollback
+        env:
+          BOOM_SSH_KEY: ${{ secrets.BOOM_SSH_KEY }}
+        run: |
+          install -d -m 700 ~/.ssh
+          printf '%s\n' "$BOOM_SSH_KEY" > ~/.ssh/timecode
+          chmod 600 ~/.ssh/timecode
+          ssh-keyscan -T 8 -H 217.149.24.242 > ~/.ssh/known_hosts
+          scp -i ~/.ssh/timecode -o BatchMode=yes -o ConnectionAttempts=5 -o ConnectTimeout=8 source/timecode-bot/server.py root@217.149.24.242:/tmp/timecode-photo-context-source.py
+          ssh -i ~/.ssh/timecode -o BatchMode=yes -o ConnectionAttempts=5 -o ConnectTimeout=8 root@217.149.24.242 'bash -s' <<'REMOTE'
+          set -Eeuo pipefail
+          cd /opt/timecode-bot/timecode-bot
+          backup=$(mktemp /opt/timecode-bot/photo-context-backup-XXXXXXXX.py)
+          cp -p server.py "$backup"
+          rollback() { cp -p "$backup" server.py; systemctl restart timecode-bot.service || true; }
+          trap rollback ERR
+          python3 - <<'PY'
+          from pathlib import Path
+          start='def publish_daily_photo(uid,day):\n'
+          end='def accept_daily_photo(uid,msg):\n'
+          live=Path('server.py').read_text()
+          source=Path('/tmp/timecode-photo-context-source.py').read_text()
+          if any(text.count(mark)!=1 for text in (live,source) for mark in (start,end)):
+              raise RuntimeError('Photo publisher anchor changed')
+          Path('server.py').write_text(live[:live.index(start)]+source[source.index(start):source.index(end)]+live[live.index(end):])
+          PY
+          python3 -m py_compile server.py
+          systemctl restart timecode-bot.service
+          healthy=0
+          for attempt in 1 2 3 4 5 6 7 8; do
+            if curl -fsS --max-time 3 http://127.0.0.1:8097/health -o /dev/null; then healthy=1;break;fi
+            sleep 2
+          done
+          test "$healthy" = 1
+          systemctl is-active --quiet timecode-bot.service
+          trap - ERR
+          echo 'Daily photo captions without their photo disabled across platforms'
+          REMOTE
