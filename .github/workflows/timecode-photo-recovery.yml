@@ -1,0 +1,92 @@
+name: TIMECODE check-in photo recovery
+on:
+  push:
+    branches: [boom-kadr-deploy]
+    paths: ['.github/workflows/timecode-photo-recovery.yml']
+permissions:
+  contents: read
+jobs:
+  recover:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          repository: mityademon-rgb/media-center-bot
+          ref: feature/timecode-media-bot
+          path: source
+      - name: Verify separate photo routing
+        run: |
+          cd source/timecode-bot
+          python3 -m unittest discover -s tests -p test_server.py -k checkin_photos
+          python3 -m py_compile server.py notification_delivery.py
+      - name: Deploy and resend accepted photos
+        env:
+          BOOM_SSH_KEY: ${{ secrets.BOOM_SSH_KEY }}
+        run: |
+          install -d -m 700 ~/.ssh
+          printf '%s\n' "$BOOM_SSH_KEY" > ~/.ssh/timecode
+          chmod 600 ~/.ssh/timecode
+          ssh-keyscan -T 8 -H 217.149.24.242 > ~/.ssh/known_hosts
+          scp -i ~/.ssh/timecode -o BatchMode=yes -o ConnectionAttempts=5 -o ConnectTimeout=8 source/timecode-bot/server.py source/timecode-bot/notification_delivery.py root@217.149.24.242:/tmp/
+          ssh -i ~/.ssh/timecode -o BatchMode=yes -o ConnectionAttempts=5 -o ConnectTimeout=8 root@217.149.24.242 'bash -s' <<'REMOTE'
+          set -Eeuo pipefail
+          cd /opt/timecode-bot/timecode-bot
+          backup=$(mktemp -d /opt/timecode-bot/photo-recovery-backup-XXXXXXXX)
+          cp -p server.py notification_delivery.py "$backup/"
+          rollback() { cp -p "$backup/server.py" "$backup/notification_delivery.py" .; systemctl restart timecode-bot.service || true; }
+          trap rollback ERR
+          python3 - <<'PY'
+          from pathlib import Path
+          source=Path('/tmp/server.py').read_text()
+          live=Path('server.py').read_text()
+          start='        create table if not exists notification_photo_outbox('
+          before='        create table if not exists codes('
+          if start not in live:
+              if source.count(start)!=1 or source.count(before)!=1 or live.count(before)!=1:raise RuntimeError('Photo schema anchor changed')
+              live=live.replace(before,source[source.index(start):source.index(before)]+before,1)
+          Path('server.py').write_text(live)
+          source=Path('/tmp/notification_delivery.py').read_text()
+          live=Path('notification_delivery.py').read_text()
+          def block(start,end):
+              global live
+              if any(text.count(mark)!=1 for text in (source,live) for mark in (start,end)):
+                  raise RuntimeError('Photo handler anchor changed '+start)
+              live=live[:live.index(start)]+source[source.index(start):source.index(end)]+live[live.index(end):]
+          block('    def broadcast(message, keyboard=None):\n','    def publish_to_all(msg, body):\n')
+          for old,new in (
+              ('select u.name,m.sleep,m.mood,m.important,m.photo from morning_checkins', 'select u.id user_id,u.name,m.sleep,m.mood,m.important,m.photo from morning_checkins'),
+              ('select u.name,e.mood,e.highlight,e.satisfied,e.photo from evening_checkins', 'select u.id user_id,u.name,e.mood,e.highlight,e.satisfied,e.photo from evening_checkins'),
+              ('        broadcast_checkin_photos(rows)\n',"        broadcast_checkin_photos(rows,'am' if morning else 'pm')\n")):
+              if old not in live and new not in live:raise RuntimeError('Digest photo anchor changed '+old)
+              live=live.replace(old,new,1)
+          line=next(x for x in source.splitlines(True) if x.startswith('    s.update({'))
+          old=next(x for x in live.splitlines(True) if x.startswith('    s.update({'))
+          Path('notification_delivery.py').write_text(live.replace(old,line,1))
+          PY
+          python3 -m py_compile server.py notification_delivery.py
+          systemctl restart timecode-bot.service
+          healthy=0
+          for attempt in 1 2 3 4 5 6 7 8; do
+            if curl -fsS --max-time 3 http://127.0.0.1:8097/health -o /dev/null; then healthy=1;break;fi
+            sleep 2
+          done
+          test "$healthy" = 1
+          systemctl is-active --quiet timecode-bot.service
+          trap - ERR
+          set -a
+          . /etc/timecode-bot.env
+          set +a
+          python3 - <<'PY'
+          import server,notification_delivery
+          scope=vars(server).copy()
+          notification_delivery.install(scope)
+          for period,table in (('am','morning_checkins'),('pm','evening_checkins')):
+              with server.conn() as c:
+                  rows=c.execute('select u.id user_id,u.name,x.photo from '+table+' x join users u on u.id=x.user_id where x.day=? and x.step=? and x.photo!=?',(server.today(),'done','')).fetchall()
+              scope['broadcast_checkin_photos'](rows,period)
+          with server.conn() as c:
+              result=c.execute('select period,delivered,count(*) from notification_photo_outbox where day=? group by period,delivered',(server.today(),)).fetchall()
+          print('Photo recovery by period / delivered / count:',[tuple(r) for r in result])
+          PY
+          REMOTE
