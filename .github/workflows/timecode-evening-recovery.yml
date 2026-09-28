@@ -1,0 +1,119 @@
+name: TIMECODE evening recovery and durable delivery
+on:
+  push:
+    branches: [boom-kadr-deploy]
+    paths: ['.github/workflows/timecode-evening-recovery.yml']
+permissions:
+  contents: read
+jobs:
+  recover:
+    runs-on: ubuntu-latest
+    timeout-minutes: 12
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          repository: mityademon-rgb/media-center-bot
+          ref: feature/timecode-media-bot
+          path: source
+      - name: Verify fixes
+        run: |
+          cd source/timecode-bot
+          python3 -m unittest discover -s tests -p test_server.py -k database_connection
+          python3 -m unittest discover -s tests -p test_server.py -k evening_digest_retries
+          python3 -m py_compile server.py notification_delivery.py
+      - name: Patch live service and resend to Telegram
+        env:
+          BOOM_SSH_KEY: ${{ secrets.BOOM_SSH_KEY }}
+        run: |
+          install -d -m 700 ~/.ssh
+          printf '%s\n' "$BOOM_SSH_KEY" > ~/.ssh/timecode
+          chmod 600 ~/.ssh/timecode
+          ssh-keyscan -T 8 -H 217.149.24.242 > ~/.ssh/known_hosts
+          scp -i ~/.ssh/timecode -o BatchMode=yes -o ConnectionAttempts=5 -o ConnectTimeout=8 source/timecode-bot/server.py source/timecode-bot/notification_delivery.py root@217.149.24.242:/tmp/
+          ssh -i ~/.ssh/timecode -o BatchMode=yes -o ConnectionAttempts=5 -o ConnectTimeout=8 root@217.149.24.242 'bash -s' <<'REMOTE'
+          set -Eeuo pipefail
+          cd /opt/timecode-bot/timecode-bot
+          backup=$(mktemp -d /opt/timecode-bot/evening-backup-XXXXXXXX)
+          cp -p server.py notification_delivery.py "$backup/"
+          rollback() { cp -p "$backup/server.py" "$backup/notification_delivery.py" .; systemctl restart timecode-bot.service || true; }
+          trap rollback ERR
+          python3 - <<'PY'
+          from pathlib import Path
+          source=Path('/tmp/server.py').read_text()
+          live=Path('server.py').read_text()
+          def change(start,end):
+              global live
+              if any(text.count(mark)!=1 for text in (source,live) for mark in (start,end)):
+                  raise RuntimeError('Server anchor changed '+start)
+              live=live[:live.index(start)]+source[source.index(start):source.index(end)]+live[live.index(end):]
+          if 'from contextlib import contextmanager\n' not in live:
+              live=live.replace('import datetime as dt\n','import datetime as dt\nfrom contextlib import contextmanager\n',1)
+          change('def conn():\n','def init():\n')
+          live=live.replace('def conn():\n','@contextmanager\ndef conn():\n',1)
+          schema='        create table if not exists notification_outbox('
+          before='        create table if not exists codes('
+          if schema not in live:
+              if source.count(schema)!=1 or source.count(before)!=1 or live.count(before)!=1:raise RuntimeError('Outbox schema anchor changed')
+              live=live.replace(before,source[source.index(schema):source.index(before)]+before,1)
+          retry='            if t.minute%5==0 and t.second<20:retry_notifications()\n'
+          if retry not in live:
+              before='            if t.minute%5==0 and t.second<20:\n'
+              if live.count(before)!=1:raise RuntimeError('Scheduler retry anchor changed')
+              live=live.replace(before,retry+before,1)
+          Path('server.py').write_text(live)
+          source=Path('/tmp/notification_delivery.py').read_text()
+          live=Path('notification_delivery.py').read_text()
+          if 'import hashlib\n' not in live:live=live.replace('import datetime as dt\n','import datetime as dt\nimport hashlib\n',1)
+          def block(start,end):
+              global live
+              if any(text.count(mark)!=1 for text in (source,live) for mark in (start,end)):
+                  raise RuntimeError('Delivery anchor changed '+start)
+              live=live[:live.index(start)]+source[source.index(start):source.index(end)]+live[live.index(end):]
+          block('    def broadcast(message, keyboard=None):\n','    def broadcast_checkin_photos(rows):\n')
+          block('    def run_slot(key, fn):\n','    def weekly():\n')
+          line=next(x for x in source.splitlines(True) if x.startswith('    s.update({'))
+          old=next(x for x in live.splitlines(True) if x.startswith('    s.update({'))
+          live=live.replace(old,line,1)
+          Path('notification_delivery.py').write_text(live)
+          PY
+          python3 -m py_compile server.py notification_delivery.py
+          systemctl restart timecode-bot.service
+          healthy=0
+          for attempt in 1 2 3 4 5 6 7 8; do
+            if curl -fsS --max-time 3 http://127.0.0.1:8097/health -o /dev/null; then healthy=1;break;fi
+            sleep 2
+          done
+          test "$healthy" = 1
+          systemctl is-active --quiet timecode-bot.service
+          python3 - <<'PY'
+          import sqlite3
+          with sqlite3.connect('/var/lib/timecode-bot/timecode.db') as c:
+              assert c.execute("select 1 from sqlite_master where type='table' and name='notification_outbox'").fetchone()
+          print('Durable delivery table ready')
+          PY
+          trap - ERR
+          set -a
+          . /etc/timecode-bot.env
+          set +a
+          python3 - <<'PY'
+          import server,notification_delivery
+          class TelegramOnly:
+              def __init__(self):self.context=server.conn()
+              def __enter__(self):self.db=self.context.__enter__();return self
+              def __exit__(self,*args):return self.context.__exit__(*args)
+              def execute(self,sql,params=()):
+                  if sql.strip()=='select id from users where enabled=1':
+                      sql='select id from users where enabled=1 and id>0'
+                  return self.db.execute(sql,params)
+          scope=vars(server).copy()
+          scope['conn']=TelegramOnly
+          scope['GROUP']=''
+          scope['api']=lambda *args,**kwargs:{'ok':True} # no cross-platform photo copies
+          notification_delivery.install(scope)
+          scope['digest']('pm')
+          with server.conn() as c:
+              rows=c.execute('select chat,delivered from notification_outbox where day=? and body like ?',(server.today(),'%20:30 / КАК ПРОШЁЛ ДЕНЬ%')).fetchall()
+          print('Evening Telegram resend: queued',len(rows),'delivered',sum(r['delivered'] for r in rows))
+          assert rows and all(int(__import__('json').loads(r['chat']))>0 for r in rows)
+          PY
+          REMOTE
