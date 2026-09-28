@@ -1,0 +1,80 @@
+name: TIMECODE independent watchdog
+on:
+  push:
+    branches: [boom-kadr-deploy]
+    paths: ['.github/workflows/timecode-watchdog.yml']
+permissions:
+  contents: read
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    timeout-minutes: 8
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          repository: mityademon-rgb/media-center-bot
+          ref: feature/timecode-media-bot
+          path: source
+      - name: Check guard
+        run: |
+          python3 -m py_compile source/timecode-bot/watchdog.py
+          cd source/timecode-bot
+          python3 - <<'PY'
+          import datetime as dt,sqlite3,tempfile
+          from pathlib import Path
+          from unittest.mock import patch
+          import watchdog
+          with tempfile.TemporaryDirectory() as folder:
+              db=Path(folder)/'test.db'
+              with sqlite3.connect(db) as c:
+                  c.executescript('create table sent(slot text,day text);create table notification_outbox(day text,delivered integer);create table notification_photo_outbox(day text,delivered integer);')
+                  c.execute('insert into notification_photo_outbox values (?,0)',(dt.datetime.now(watchdog.TZ).date().isoformat(),))
+              with patch.object(watchdog,'DB',db):
+                  missing,pending=watchdog.missing_and_pending(dt.datetime.now(watchdog.TZ).date().isoformat())
+              assert pending==1
+          PY
+      - name: Install systemd timer and run first check
+        env:
+          BOOM_SSH_KEY: ${{ secrets.BOOM_SSH_KEY }}
+        run: |
+          install -d -m 700 ~/.ssh
+          printf '%s\n' "$BOOM_SSH_KEY" > ~/.ssh/timecode
+          chmod 600 ~/.ssh/timecode
+          ssh-keyscan -T 8 -H 217.149.24.242 > ~/.ssh/known_hosts
+          scp -i ~/.ssh/timecode -o BatchMode=yes -o ConnectionAttempts=5 -o ConnectTimeout=8 source/timecode-bot/watchdog.py root@217.149.24.242:/tmp/timecode-watchdog.py
+          ssh -i ~/.ssh/timecode -o BatchMode=yes -o ConnectionAttempts=5 -o ConnectTimeout=8 root@217.149.24.242 'bash -s' <<'REMOTE'
+          set -Eeuo pipefail
+          install -m 644 /tmp/timecode-watchdog.py /opt/timecode-bot/timecode-bot/watchdog.py
+          cat > /etc/systemd/system/timecode-watchdog.service <<'UNIT'
+          [Unit]
+          Description=TIMECODE independent health and delivery guard
+          After=network-online.target
+          [Service]
+          Type=oneshot
+          User=root
+          WorkingDirectory=/opt/timecode-bot/timecode-bot
+          EnvironmentFile=/etc/timecode-bot.env
+          ExecStart=/usr/bin/python3 /opt/timecode-bot/timecode-bot/watchdog.py
+          TimeoutStartSec=180
+          UNIT
+          cat > /etc/systemd/system/timecode-watchdog.timer <<'TIMER'
+          [Unit]
+          Description=Check TIMECODE every two minutes
+          [Timer]
+          OnBootSec=1min
+          OnUnitActiveSec=2min
+          Persistent=true
+          Unit=timecode-watchdog.service
+          [Install]
+          WantedBy=timers.target
+          TIMER
+          python3 -m py_compile /opt/timecode-bot/timecode-bot/watchdog.py
+          systemctl daemon-reload
+          systemctl enable --now timecode-watchdog.timer
+          systemctl start timecode-watchdog.service
+          systemctl is-active --quiet timecode-watchdog.timer
+          systemctl is-active --quiet timecode-bot.service
+          curl -fsS --max-time 4 http://127.0.0.1:8097/health -o /dev/null
+          pid=$(systemctl show -p MainPID --value timecode-bot.service)
+          echo "TIMECODE guard active; app descriptors: $(find /proc/$pid/fd -maxdepth 1 -type l | wc -l)"
+          REMOTE
