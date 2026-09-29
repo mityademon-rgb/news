@@ -601,13 +601,17 @@
 
       <section class="topic-promo" aria-labelledby="topic-promo-title">
         <div class="topic-promo-copy">
-          <p class="eyebrow">Молодёжное шоу · первый сезон</p>
+          <p class="eyebrow">Легендарное молодёжное шоу</p>
           <h2 id="topic-promo-title">ТЫ В ТЕМЕ<span>!</span></h2>
-          <p>Младшие задают вопросы, на которые взрослые не готовы отвечать.</p>
-          <a href="#/you-in-topic">Смотреть выпуски <b>→</b></a>
+          <p>Младшие задают вопросы, на которые взрослые не готовы отвечать. Без фильтров, без сценариев, без «как надо».</p>
+          <a href="#/you-in-topic">Смотреть дальше <b>→</b></a>
         </div>
-        <div class="topic-promo-poster" aria-hidden="true">
-          <span>10</span><b>минут<br />честности</b><i>без фильтров</i>
+        <div class="topic-promo-poster">
+          <img src="./assets/you-in-topic-hosts.webp" alt="Ведущие молодёжного шоу «Ты в теме»" loading="lazy" />
+          <strong class="topic-neon" aria-hidden="true">ТЫ В ТЕМЕ!</strong>
+          <span class="topic-host-name topic-host-matvey">Матвей</span>
+          <span class="topic-host-name topic-host-alexandra">Александра</span>
+          <div aria-hidden="true"><span>10</span><b>минут<br />честности</b></div>
         </div>
       </section>
 
@@ -664,14 +668,28 @@
 
         <div class="topic-hero">
           <div class="topic-hero-copy">
-            <p class="topic-overline"><i></i> Без взрослых сценариев</p>
+            <p class="topic-overline"><i></i> Легендарное молодёжное шоу</p>
             <h1 id="topic-title">ТЫ В<br />ТЕМЕ<span>!</span></h1>
             <p class="topic-lead">Тут не будет правильных ответов<br />и удобных тем.</p>
           </div>
-          <div class="topic-ten" aria-label="10 минут честности">
-            <strong>10</strong><span>минут<br />честности</span>
+          <div class="topic-hosts">
+            <img src="./assets/you-in-topic-hosts.webp" alt="Ведущие шоу «Ты в теме»" />
+            <strong class="topic-neon" aria-hidden="true">ТЫ В ТЕМЕ!</strong>
+            <span class="topic-host-name topic-host-matvey">Матвей</span>
+            <span class="topic-host-name topic-host-alexandra">Александра</span>
+            <span aria-label="10 минут честности"><strong>10</strong> минут честности</span>
           </div>
         </div>
+
+        <section class="topic-player" aria-labelledby="topic-player-title">
+          <div class="topic-player-heading">
+            <div><small>СЕЗОН 01</small><h2 id="topic-player-title">Смотри выпуски</h2></div>
+            <a href="https://vkvideo.ru/playlist/-236346873_1/season_0" target="_blank" rel="noopener noreferrer">Открыть в VK Видео ↗</a>
+          </div>
+          <div class="topic-player-frame">
+            <iframe src="https://vkvideo.ru/playlist/-236346873_1/season_0" title="Плейлист молодёжного шоу Ты в теме" loading="lazy" allow="autoplay; encrypted-media; fullscreen; picture-in-picture" allowfullscreen></iframe>
+          </div>
+        </section>
 
         <div class="topic-statement">
           <p><strong>ТЫ В ТЕМЕ!</strong> — когда младшие задают вопросы, на которые взрослые не готовы отвечать.</p>
