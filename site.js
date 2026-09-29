@@ -4182,28 +4182,15 @@ window.TIMECODE_TEACHER_GUIDES = {
           </div>
         </div>
 
-        <section class="topic-player" aria-labelledby="topic-player-title">
-          <div class="topic-player-heading">
-            <div><small>СЕЗОН 01</small><h2 id="topic-player-title">Смотри выпуски</h2></div>
-            <a href="https://vkvideo.ru/playlist/-236346873_1/season_0" target="_blank" rel="noopener noreferrer">Открыть в VK Видео ↗</a>
-          </div>
-          <a class="topic-player-screen" href="https://vkvideo.ru/playlist/-236346873_1/season_0" target="_blank" rel="noopener noreferrer" aria-label="Смотреть первый сезон шоу Ты в теме в VK Видео">
-            <img src="./assets/you-in-topic-hosts.webp" alt="Матвей и Александра — ведущие шоу «Ты в теме»" />
-            <span class="topic-player-shade" aria-hidden="true"></span>
-            <span class="topic-player-button" aria-hidden="true">▶</span>
-            <span class="topic-player-copy"><small>10 ВЫПУСКОВ · VK ВИДЕО</small><strong>Смотреть первый сезон</strong><em>Откроется полный плейлист</em></span>
-          </a>
-        </section>
-
         <div class="topic-statement">
           <p><strong>ТЫ В ТЕМЕ!</strong> — когда младшие задают вопросы, на которые взрослые не готовы отвечать.</p>
           <ul aria-label="Правила шоу"><li>без фильтров</li><li>без сценариев</li><li>без «как надо»</li></ul>
         </div>
 
         <a class="topic-playlist" href="https://vkvideo.ru/playlist/-236346873_1/season_0" target="_blank" rel="noopener noreferrer" aria-label="Открыть плейлист первого сезона Ты в теме в VK Видео">
-          <span class="topic-play-icon" aria-hidden="true">▶</span>
-          <span><small>VK ВИДЕО · ПЕРВЫЙ СЕЗОН</small><strong>Смотреть все выпуски</strong><em>Плейлист откроется в VK Видео</em></span>
-          <b aria-hidden="true">→</b>
+          <span class="topic-play-icon" aria-hidden="true">VK</span>
+          <span><small>ПЕРВЫЙ СЕЗОН · 10 ВЫПУСКОВ</small><strong>Смотреть в VK Видео</strong><em>Откроется официальный плейлист шоу</em></span>
+          <b aria-hidden="true">↗</b>
         </a>
 
         <footer class="topic-footer">
