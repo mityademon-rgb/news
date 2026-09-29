@@ -1385,6 +1385,21 @@
           </div>
         </div>
       </div>`;
+    } else if (layout === "concept-poll") {
+      stage = `<div class="concept-poll" data-concept-poll>
+        <div class="concept-poll-progress"><span>ПРОДЮСЕРСКИЙ ДИАГНОЗ</span><b><i data-concept-poll-current>01</i> / ${scene.questions.length}</b></div>
+        <div class="concept-poll-meter"><i data-concept-poll-meter></i></div>
+        <section class="concept-poll-question" data-concept-poll-question>
+          <h3 data-concept-poll-prompt></h3>
+          <div data-concept-poll-options></div>
+        </section>
+        <section class="concept-poll-result" data-concept-poll-result hidden>
+          <span data-concept-poll-label></span>
+          <h3 data-concept-poll-title></h3>
+          <p data-concept-poll-text></p>
+          <button type="button" data-concept-poll-restart>Пройти ещё раз</button>
+        </section>
+      </div>`;
     } else if (layout === "story-builder") {
       stage = `<div class="story-builder" data-story-builder>
         <div class="story-builder-groups">${scene.groups.map((group, groupIndex) => `<fieldset><legend><span>0${groupIndex + 1}</span>${escapeHtml(group.label)}</legend>${group.options.map((option, optionIndex) => `<button type="button" data-story-option data-group="${groupIndex}" data-option="${optionIndex}" data-value="${escapeHtml(option)}">${escapeHtml(option)}</button>`).join("")}</fieldset>`).join("")}</div>
@@ -1548,6 +1563,69 @@
         storyBuilder.classList.add("is-complete");
         markAnswered();
       });
+    }
+
+    const conceptPoll = document.querySelector("[data-concept-poll]");
+    if (conceptPoll) {
+      const questions = scene.questions || [];
+      const scores = { package: 0, episode: 0, format: 0 };
+      const questionBlock = conceptPoll.querySelector("[data-concept-poll-question]");
+      const resultBlock = conceptPoll.querySelector("[data-concept-poll-result]");
+      const optionsBlock = conceptPoll.querySelector("[data-concept-poll-options]");
+      const meter = conceptPoll.querySelector("[data-concept-poll-meter]");
+      let cursor = 0;
+      let lastProfile = "format";
+
+      const showResult = () => {
+        const bestScore = Math.max(...Object.values(scores));
+        const tied = Object.keys(scores).filter((key) => scores[key] === bestScore);
+        const profileKey = tied.includes(lastProfile) ? lastProfile : tied[0];
+        const profile = scene.profiles[profileKey];
+        questionBlock.hidden = true;
+        resultBlock.hidden = false;
+        conceptPoll.querySelector("[data-concept-poll-label]").textContent = profile.label;
+        conceptPoll.querySelector("[data-concept-poll-title]").textContent = profile.title;
+        conceptPoll.querySelector("[data-concept-poll-text]").textContent = profile.text;
+        conceptPoll.querySelector("[data-concept-poll-current]").textContent = String(questions.length).padStart(2, "0");
+        meter.style.width = "100%";
+        conceptPoll.classList.add("is-finished");
+        markAnswered();
+      };
+
+      const renderQuestion = () => {
+        const question = questions[cursor];
+        if (!question) return showResult();
+        conceptPoll.querySelector("[data-concept-poll-current]").textContent = String(cursor + 1).padStart(2, "0");
+        conceptPoll.querySelector("[data-concept-poll-prompt]").textContent = question.prompt;
+        meter.style.width = `${(cursor / questions.length) * 100}%`;
+        optionsBlock.innerHTML = question.options.map((option, index) => `<button type="button" data-concept-poll-choice="${index}" data-profile="${escapeHtml(option.profile)}"><span>${String.fromCharCode(1040 + index)}</span>${escapeHtml(option.text)}</button>`).join("");
+        optionsBlock.querySelectorAll("[data-concept-poll-choice]").forEach((button) => {
+          button.addEventListener("click", () => {
+            const profile = button.dataset.profile;
+            lastProfile = profile;
+            scores[profile] += 1;
+            optionsBlock.querySelectorAll("button").forEach((item) => { item.disabled = true; });
+            button.classList.add("is-selected");
+            clearSceneTimer();
+            state.sceneTimer = window.setTimeout(() => {
+              cursor += 1;
+              renderQuestion();
+            }, 260);
+          });
+        });
+      };
+
+      conceptPoll.querySelector("[data-concept-poll-restart]")?.addEventListener("click", () => {
+        Object.keys(scores).forEach((key) => { scores[key] = 0; });
+        cursor = 0;
+        lastProfile = "format";
+        resultBlock.hidden = true;
+        questionBlock.hidden = false;
+        conceptPoll.classList.remove("is-finished");
+        renderQuestion();
+      });
+
+      renderQuestion();
     }
 
     const habitCheck = document.querySelector("[data-habit-check]");

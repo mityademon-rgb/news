@@ -2370,6 +2370,7 @@ INTRUDER.
   {
     id: "adult-program-concept",
     number: "A03",
+    track: "adult",
     title: "Формат держит программу",
     eyebrow: "Концепция программы с нуля",
     summary: "От темы и зрителя — к структуре выпуска, роли ведущего, кадру, свету, графике и звуку.",
@@ -2420,6 +2421,79 @@ INTRUDER.
         text: "Программа начинается не со студии и не с красивого названия. Сначала появляется обещание зрителю и механизм, который может работать выпуск за выпуском.",
         image: "./assets/media03-moodboard.webp",
         imageAlt: "Мудборд визуальной концепции современной программы"
+      },
+      {
+        type: "magic",
+        layout: "concept-poll",
+        kicker: "Входной опрос · 6 решений",
+        title: "С чего вы начинаете программу?",
+        questions: [
+          {
+            prompt: "Вам дали тему «еда в школе». Ваш первый шаг?",
+            options: [
+              { text: "Придумать название и заставку", profile: "package" },
+              { text: "Найти яркого героя для первого выпуска", profile: "episode" },
+              { text: "Понять зрителя и что команда будет проверять каждый раз", profile: "format" }
+            ]
+          },
+          {
+            prompt: "Какая фраза звучит для вас убедительнее?",
+            options: [
+              { text: "Будет стильно, быстро и молодёжно", profile: "package" },
+              { text: "В первом выпуске — сильная личная история", profile: "episode" },
+              { text: "В каждом выпуске мы проверяем один знакомый миф", profile: "format" }
+            ]
+          },
+          {
+            prompt: "Вы нашли очень харизматичного ведущего. Что дальше?",
+            options: [
+              { text: "Подбираем ему образ и фон", profile: "package" },
+              { text: "Пишем его первый стендап", profile: "episode" },
+              { text: "Определяем, какое действие он повторяет в каждом выпуске", profile: "format" }
+            ]
+          },
+          {
+            prompt: "Что важнее при выборе рубрики?",
+            options: [
+              { text: "Чтобы красиво называлась", profile: "package" },
+              { text: "Чтобы в неё вошёл уже найденный материал", profile: "episode" },
+              { text: "Чтобы она меняла ход выпуска и приближала результат", profile: "format" }
+            ]
+          },
+          {
+            prompt: "Как вы понимаете, что программа сможет жить?",
+            options: [
+              { text: "Получился сильный постер", profile: "package" },
+              { text: "Есть материал на пилот", profile: "episode" },
+              { text: "По тем же правилам можно придумать ещё десять выпусков", profile: "format" }
+            ]
+          },
+          {
+            prompt: "Когда вы выбираете кадр и цвет?",
+            options: [
+              { text: "Сразу: визуал поможет придумать всё остальное", profile: "package" },
+              { text: "Когда понятны герои первого выпуска", profile: "episode" },
+              { text: "Когда понятны обещание, механизм и характер программы", profile: "format" }
+            ]
+          }
+        ],
+        profiles: {
+          package: {
+            label: "УПАКОВЩИК",
+            title: "Вы начинаете с того, что зритель увидит, но ещё не знаете, зачем он вернётся",
+            text: "Название, свет и графика важны. Но без обещания и повторяемого действия они оформляют пустоту. На уроке попробуйте не выбирать цвет раньше двигателя."
+          },
+          episode: {
+            label: "АВТОР ПИЛОТА",
+            title: "Вы умеете придумать отдельный сильный выпуск",
+            text: "Это хорошая база. Риск в другом: герой и материал закончатся. На уроке превратите одну удачную историю в правило, которое выдержит десять выпусков."
+          },
+          format: {
+            label: "АРХИТЕКТОР ФОРМАТА",
+            title: "Вы уже думаете системой, а не одной красивой идеей",
+            text: "Проверим, выдержит ли система зрителя, ведущего, хронометраж, кадр, графику и звук — и сможет ли другая команда снять по ней следующий выпуск."
+          }
+        }
       },
       {
         type: "magic",
@@ -2478,6 +2552,15 @@ INTRUDER.
       },
       {
         type: "magic",
+        layout: "answer-photo",
+        kicker: "Двигатель в кадре",
+        title: "Один принцип должен рождать разные выпуски",
+        image: "./assets/media03-engine.webp",
+        imageAlt: "Одна команда применяет повторяемую механику в трёх разных расследованиях",
+        items: ["Одни и те же правила", "Новая тема и обстоятельства", "Ожидаемый зрителем результат"]
+      },
+      {
+        type: "magic",
         layout: "statement",
         kicker: "Двигатель программы",
         title: "Закончите одну фразу",
@@ -2529,6 +2612,24 @@ INTRUDER.
       },
       {
         type: "magic",
+        layout: "answer-photo",
+        kicker: "Одна тема · Три аудитории",
+        title: "Тема та же. Программа уже другая.",
+        image: "./assets/media03-audience.webp",
+        imageAlt: "Тема школьной еды показана для подростка, молодого репортёра и взрослого зрителя",
+        items: ["Подростку — узнаваемая ситуация", "Репортёру — проверка и разговор", "Взрослому — доказательства и последствия"]
+      },
+      {
+        type: "magic",
+        layout: "answer-photo",
+        kicker: "Лицо формата",
+        title: "Один ведущий не может одинаково работать во всех программах",
+        image: "./assets/media03-hosts.webp",
+        imageAlt: "Четыре роли ведущего в едином телевизионном стиле",
+        items: ["Проводник проходит путь", "Репортёр проверяет, эксперт объясняет", "Игрок создаёт выбор и риск"]
+      },
+      {
+        type: "magic",
         layout: "answer-cards",
         kicker: "Роль ведущего",
         title: "Ведущий не украшение, а функция",
@@ -2565,6 +2666,15 @@ INTRUDER.
           ["02", "Развитие: рубрики, препятствия, новые факты и герои"],
           ["03", "Развязка: ответ, результат проверки или изменение героя"]
         ]
+      },
+      {
+        type: "magic",
+        layout: "answer-photo",
+        kicker: "История выпуска",
+        title: "Зритель должен видеть движение, а не перечень рубрик",
+        image: "./assets/media03-structure.webp",
+        imageAlt: "Пять последовательных кадров журналистского поиска от находки до результата",
+        items: ["Находка создаёт вопрос", "Проверка усложняет версию", "Результат отвечает на обещание начала"]
       },
       {
         type: "magic",
@@ -2664,6 +2774,15 @@ INTRUDER.
       },
       {
         type: "magic",
+        layout: "answer-photo",
+        kicker: "Звуковой стиль",
+        title: "Звук — не ковёр под словами, а часть формата",
+        image: "./assets/media03-sound.webp",
+        imageAlt: "Монтаж звука, полевая запись, музыкальная отбивка и осознанная пауза",
+        items: ["Тема узнаёт программу", "Среда переносит в место", "Тишина подчёркивает ответ"]
+      },
+      {
+        type: "magic",
         layout: "answer-cards",
         kicker: "Звуковой код",
         title: "Программу можно узнать даже с закрытыми глазами",
@@ -2673,6 +2792,15 @@ INTRUDER.
           ["Среда", "Атмосфера места вместо вечной музыкальной подложки"],
           ["Тишина", "Осознанная пауза перед важным ответом или результатом"]
         ]
+      },
+      {
+        type: "magic",
+        layout: "answer-photo",
+        kicker: "Рабочая доска",
+        title: "Концепция должна собраться в один видимый мир",
+        image: "./assets/media03-concept-board.webp",
+        imageAlt: "Команда собирает на одной доске героев, кадры, палитру, структуру и звук программы",
+        items: ["Кому и что обещаем", "Что повторяется в каждом выпуске", "Как это выглядит и звучит"]
       },
       {
         type: "magic",
@@ -3290,69 +3418,69 @@ window.TIMECODE_TEACHER_GUIDES = {
       "Открыть урок на большом экране и включить полноэкранный режим.",
       "Подготовить листы А3 и маркеры; телефоны оставить только для заметок и поиска референсов.",
       "Разделить участников на команды по 2–3 человека и заранее определить одну рабочую тему для общего примера.",
-      "Проверить загрузку пяти визуальных досок. Камеры для этого занятия не нужны: сначала проектируем формат."
+      "Проверить загрузку всех визуальных досок и входного опроса. Камеры для этого занятия не нужны: сначала проектируем формат."
     ],
     blocks: [
       {
         time: "0–8 мин",
         title: "Отделяем тему от концепции",
-        screens: "Кадры 01–02",
-        teacher: "Попросите группу назвать несколько тем программ. После каждого ответа задайте вопрос: что именно будет происходить в каждом выпуске? Зафиксируйте разницу между темой и повторяемым механизмом.",
+        screens: "Кадры 01–03",
+        teacher: "Сначала проведите входной опрос и не комментируйте отдельные ответы. Затем попросите группу назвать несколько тем программ. После каждого ответа задайте вопрос: что именно будет происходить в каждом выпуске? Зафиксируйте разницу между темой и повторяемым механизмом.",
         message: "Тема отвечает «о чём», а формат — что зритель увидит снова в следующем выпуске."
       },
       {
         time: "8–20 мин",
         title: "Разбираем семейства программ и двигатель",
-        screens: "Кадры 03–08",
+        screens: "Кадры 04–10",
         teacher: "По визуальной доске быстро назовите шесть типов программ. В примере с двумя ведущими и разными бюджетами сначала соберите версии группы, затем покажите: узнаваемость создаёт повторяемое правило, а не сама тема путешествий.",
         message: "Сильный формат можно продолжить фразой: «В каждом выпуске ведущий или герой…»."
       },
       {
         time: "20–32 мин",
         title: "Собираем зрителя, проблему и обещание",
-        screens: "Кадры 09–13",
+        screens: "Кадры 11–16",
         teacher: "Дайте группе выбрать сильнейшую формулировку концепции и аудитории. Не принимайте ответы «для всех» и «для молодёжи вообще». Добейтесь описания одного узнаваемого зрителя, его конкретной проблемы и результата просмотра.",
         message: "Концепция начинается не с названия, а с решения: кому и зачем нужна эта программа."
       },
       {
         time: "32–43 мин",
         title: "Назначаем функцию ведущего",
-        screens: "Кадры 14–16",
+        screens: "Кадры 17–20",
         teacher: "Разведите роли проводника, репортёра, эксперта и игрока. В задании про столовую попросите объяснить не только выбор, но и какое действие ведущего создаст выпуск.",
         message: "Роль ведущего формулируется глаголом: ищет, проверяет, объясняет, сравнивает, испытывает."
       },
       {
         time: "43–55 мин",
         title: "Строим драматургию и хронометраж",
-        screens: "Кадры 17–20",
+        screens: "Кадры 21–25",
         teacher: "Покажите движение выпуска от крючка к результату. На десятиминутной схеме попросите назвать функцию каждого блока. Если рубрику можно убрать без последствий, группа должна сформулировать, чего ей не хватает.",
         message: "Каждый блок меняет понимание, повышает риск, раскрывает героя или приближает ответ."
       },
       {
         time: "55–70 мин",
         title: "Переводим идею в визуальный код",
-        screens: "Кадры 21–26",
+        screens: "Кадры 26–32",
         teacher: "Сначала сравните хаотичный и цельный кадр, затем соберите три слова характера будущей программы. По мудборду и доске крупностей назначьте функцию общему, среднему, двухплану, крупному и детали.",
         message: "Стиль — не украшение. Цвет, свет, пространство и крупность должны выполнять обещание программы."
       },
       {
         time: "70–78 мин",
         title: "Добавляем графику и звук",
-        screens: "Кадры 27–30",
+        screens: "Кадры 33–37",
         teacher: "Покажите минимальный графический пакет и звуковой код. Попросите команды отказаться от эффектов, которые не поддерживают характер. Зафиксируйте восемь решений, которые принимаются до первой съёмки.",
         message: "Узнаваемость создаётся повторением нескольких точных правил, а не количеством оформления."
       },
       {
         time: "78–88 мин",
         title: "Собираем концепцию в конструкторе",
-        screens: "Кадры 31–33",
+        screens: "Кадры 38–40",
         teacher: "Команды выбирают по одному решению в семи группах конструктора и затем переносят результат на лист А3. Требуйте одно предложение концепции, пять строк выпуска и короткий визуально-звуковой код. После этого проведите четыре теста формата.",
         message: "Рабочую концепцию можно рассказать за 30 секунд, продолжить на 10 выпусков и передать другой команде."
       },
       {
         time: "88–90 мин",
         title: "Фиксируем порядок разработки",
-        screens: "Кадр 34",
+        screens: "Кадр 41",
         teacher: "Каждая команда одной фразой произносит своё обещание и двигатель. Закройте урок порядком: зритель → обещание → двигатель → структура → визуальный и звуковой код.",
         message: "Программа — это обещание, которое можно повторить."
       }
@@ -4760,6 +4888,21 @@ window.TIMECODE_TEACHER_GUIDES = {
           </div>
         </div>
       </div>`;
+    } else if (layout === "concept-poll") {
+      stage = `<div class="concept-poll" data-concept-poll>
+        <div class="concept-poll-progress"><span>ПРОДЮСЕРСКИЙ ДИАГНОЗ</span><b><i data-concept-poll-current>01</i> / ${scene.questions.length}</b></div>
+        <div class="concept-poll-meter"><i data-concept-poll-meter></i></div>
+        <section class="concept-poll-question" data-concept-poll-question>
+          <h3 data-concept-poll-prompt></h3>
+          <div data-concept-poll-options></div>
+        </section>
+        <section class="concept-poll-result" data-concept-poll-result hidden>
+          <span data-concept-poll-label></span>
+          <h3 data-concept-poll-title></h3>
+          <p data-concept-poll-text></p>
+          <button type="button" data-concept-poll-restart>Пройти ещё раз</button>
+        </section>
+      </div>`;
     } else if (layout === "story-builder") {
       stage = `<div class="story-builder" data-story-builder>
         <div class="story-builder-groups">${scene.groups.map((group, groupIndex) => `<fieldset><legend><span>0${groupIndex + 1}</span>${escapeHtml(group.label)}</legend>${group.options.map((option, optionIndex) => `<button type="button" data-story-option data-group="${groupIndex}" data-option="${optionIndex}" data-value="${escapeHtml(option)}">${escapeHtml(option)}</button>`).join("")}</fieldset>`).join("")}</div>
@@ -4923,6 +5066,69 @@ window.TIMECODE_TEACHER_GUIDES = {
         storyBuilder.classList.add("is-complete");
         markAnswered();
       });
+    }
+
+    const conceptPoll = document.querySelector("[data-concept-poll]");
+    if (conceptPoll) {
+      const questions = scene.questions || [];
+      const scores = { package: 0, episode: 0, format: 0 };
+      const questionBlock = conceptPoll.querySelector("[data-concept-poll-question]");
+      const resultBlock = conceptPoll.querySelector("[data-concept-poll-result]");
+      const optionsBlock = conceptPoll.querySelector("[data-concept-poll-options]");
+      const meter = conceptPoll.querySelector("[data-concept-poll-meter]");
+      let cursor = 0;
+      let lastProfile = "format";
+
+      const showResult = () => {
+        const bestScore = Math.max(...Object.values(scores));
+        const tied = Object.keys(scores).filter((key) => scores[key] === bestScore);
+        const profileKey = tied.includes(lastProfile) ? lastProfile : tied[0];
+        const profile = scene.profiles[profileKey];
+        questionBlock.hidden = true;
+        resultBlock.hidden = false;
+        conceptPoll.querySelector("[data-concept-poll-label]").textContent = profile.label;
+        conceptPoll.querySelector("[data-concept-poll-title]").textContent = profile.title;
+        conceptPoll.querySelector("[data-concept-poll-text]").textContent = profile.text;
+        conceptPoll.querySelector("[data-concept-poll-current]").textContent = String(questions.length).padStart(2, "0");
+        meter.style.width = "100%";
+        conceptPoll.classList.add("is-finished");
+        markAnswered();
+      };
+
+      const renderQuestion = () => {
+        const question = questions[cursor];
+        if (!question) return showResult();
+        conceptPoll.querySelector("[data-concept-poll-current]").textContent = String(cursor + 1).padStart(2, "0");
+        conceptPoll.querySelector("[data-concept-poll-prompt]").textContent = question.prompt;
+        meter.style.width = `${(cursor / questions.length) * 100}%`;
+        optionsBlock.innerHTML = question.options.map((option, index) => `<button type="button" data-concept-poll-choice="${index}" data-profile="${escapeHtml(option.profile)}"><span>${String.fromCharCode(1040 + index)}</span>${escapeHtml(option.text)}</button>`).join("");
+        optionsBlock.querySelectorAll("[data-concept-poll-choice]").forEach((button) => {
+          button.addEventListener("click", () => {
+            const profile = button.dataset.profile;
+            lastProfile = profile;
+            scores[profile] += 1;
+            optionsBlock.querySelectorAll("button").forEach((item) => { item.disabled = true; });
+            button.classList.add("is-selected");
+            clearSceneTimer();
+            state.sceneTimer = window.setTimeout(() => {
+              cursor += 1;
+              renderQuestion();
+            }, 260);
+          });
+        });
+      };
+
+      conceptPoll.querySelector("[data-concept-poll-restart]")?.addEventListener("click", () => {
+        Object.keys(scores).forEach((key) => { scores[key] = 0; });
+        cursor = 0;
+        lastProfile = "format";
+        resultBlock.hidden = true;
+        questionBlock.hidden = false;
+        conceptPoll.classList.remove("is-finished");
+        renderQuestion();
+      });
+
+      renderQuestion();
     }
 
     const habitCheck = document.querySelector("[data-habit-check]");
