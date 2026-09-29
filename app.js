@@ -599,6 +599,18 @@
         </div>` : ""}
       </section>
 
+      <section class="topic-promo" aria-labelledby="topic-promo-title">
+        <div class="topic-promo-copy">
+          <p class="eyebrow">Молодёжное шоу · первый сезон</p>
+          <h2 id="topic-promo-title">ТЫ В ТЕМЕ<span>!</span></h2>
+          <p>Младшие задают вопросы, на которые взрослые не готовы отвечать.</p>
+          <a href="#/you-in-topic">Смотреть выпуски <b>→</b></a>
+        </div>
+        <div class="topic-promo-poster" aria-hidden="true">
+          <span>10</span><b>минут<br />честности</b><i>без фильтров</i>
+        </div>
+      </section>
+
       ${lifehackCards ? `<section class="lifehack-library" id="lifehacks" aria-labelledby="lifehacks-title">
         <header class="library-header">
           <div>
@@ -623,7 +635,7 @@
         </div>
       </section>`;
 
-    document.body.classList.remove("teacher-mode", "lesson-active", "teacher-portal-active", "play-active");
+    document.body.classList.remove("teacher-mode", "lesson-active", "teacher-portal-active", "play-active", "topic-active");
     document.body.classList.add("home-active");
     bindTitleInteractions();
     bindLifehackFilters();
@@ -632,6 +644,53 @@
     } else {
       window.scrollTo({ top: 0, behavior: "instant" });
     }
+  }
+
+  function renderYouInTopic() {
+    clearSceneTimer();
+    clearInterval(state.homeTimer);
+    state.homeTimer = null;
+    state.lesson = null;
+    document.body.classList.remove("home-active", "lesson-active", "teacher-portal-active", "teacher-mode", "presentation-mode", "play-active");
+    document.body.classList.add("topic-active");
+
+    main.innerHTML = `
+      <section class="topic-page" aria-labelledby="topic-title">
+        <header class="topic-page-bar">
+          <a href="#/">← TIMECODE</a>
+          <span>МОЛОДЁЖНОЕ ШОУ</span>
+          <b>СЕЗОН 01 · 10 ВЫПУСКОВ</b>
+        </header>
+
+        <div class="topic-hero">
+          <div class="topic-hero-copy">
+            <p class="topic-overline"><i></i> Без взрослых сценариев</p>
+            <h1 id="topic-title">ТЫ В<br />ТЕМЕ<span>!</span></h1>
+            <p class="topic-lead">Тут не будет правильных ответов<br />и удобных тем.</p>
+          </div>
+          <div class="topic-ten" aria-label="10 минут честности">
+            <strong>10</strong><span>минут<br />честности</span>
+          </div>
+        </div>
+
+        <div class="topic-statement">
+          <p><strong>ТЫ В ТЕМЕ!</strong> — когда младшие задают вопросы, на которые взрослые не готовы отвечать.</p>
+          <ul aria-label="Правила шоу"><li>без фильтров</li><li>без сценариев</li><li>без «как надо»</li></ul>
+        </div>
+
+        <a class="topic-playlist" href="https://vkvideo.ru/playlist/-236346873_1/season_0" target="_blank" rel="noopener noreferrer" aria-label="Открыть плейлист первого сезона Ты в теме в VK Видео">
+          <span class="topic-play-icon" aria-hidden="true">▶</span>
+          <span><small>VK ВИДЕО · ПЕРВЫЙ СЕЗОН</small><strong>Смотреть все выпуски</strong><em>Плейлист откроется в VK Видео</em></span>
+          <b aria-hidden="true">→</b>
+        </a>
+
+        <footer class="topic-footer">
+          <p><strong>Подписывайся.</strong><br />Или стой в стороне, пока мы делаем историю.</p>
+          <a href="https://vk.ru/theinsideeye" target="_blank" rel="noopener noreferrer">Сообщество «Ты в теме» <b>↗</b></a>
+        </footer>
+      </section>`;
+
+    window.scrollTo({ top: 0, behavior: "instant" });
   }
 
   function setPlayPage() {
@@ -1880,6 +1939,10 @@
     }
     if (playMatch) {
       renderPlay(playMatch[1] ? decodeURIComponent(playMatch[1]) : null);
+      return;
+    }
+    if (hash === "#/you-in-topic") {
+      renderYouInTopic();
       return;
     }
     if (hash === "#lessons") renderHome("#lessons");
