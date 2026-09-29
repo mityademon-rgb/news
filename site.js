@@ -4111,7 +4111,7 @@ window.TIMECODE_TEACHER_GUIDES = {
           <img src="./assets/you-in-topic-hosts.webp" alt="Ведущие молодёжного шоу «Ты в теме»" loading="lazy" />
           <strong class="topic-neon" aria-hidden="true">ТЫ В ТЕМЕ!</strong>
           <span class="topic-host-name topic-host-matvey">Матвей</span>
-          <span class="topic-host-name topic-host-alexandra">Александра</span>
+          <span class="topic-host-name topic-host-alexandra">Саша</span>
           <div aria-hidden="true"><span>10</span><b>минут<br />честности</b></div>
         </div>
       </section>
@@ -4177,7 +4177,7 @@ window.TIMECODE_TEACHER_GUIDES = {
             <img src="./assets/you-in-topic-hosts.webp" alt="Ведущие шоу «Ты в теме»" />
             <strong class="topic-neon" aria-hidden="true">ТЫ В ТЕМЕ!</strong>
             <span class="topic-host-name topic-host-matvey">Матвей</span>
-            <span class="topic-host-name topic-host-alexandra">Александра</span>
+            <span class="topic-host-name topic-host-alexandra">Саша</span>
             <span aria-label="10 минут честности"><strong>10</strong> минут честности</span>
           </div>
         </div>

@@ -1347,8 +1347,8 @@ img {
 .topic-host-matvey { left: 7%; }
 .topic-host-alexandra { left: 55%; }
 .topic-promo-poster > div { position: absolute; z-index: 1; right: 20px; bottom: 18px; display: flex; gap: 8px; align-items: end; transform: rotate(-3deg); color: #fff; text-align: right; }
-.topic-promo-poster span { font-size: clamp(70px, 9vw, 126px); font-weight: 950; line-height: .7; letter-spacing: -.1em; color: #ff3f36; }
-.topic-promo-poster b { font-size: clamp(16px, 2vw, 26px); line-height: .86; text-transform: uppercase; }
+.topic-promo-poster > div > span { font-size: clamp(70px, 9vw, 126px); font-weight: 950; line-height: .7; letter-spacing: -.1em; color: #ff3f36; }
+.topic-promo-poster > div > b { font-size: clamp(16px, 2vw, 26px); line-height: .86; text-transform: uppercase; }
 
 body.topic-active { background: #09090d; color: #f5f0e7; }
 .topic-page { min-height: 100vh; padding: 18px clamp(18px, 4vw, 64px) clamp(64px, 8vw, 120px); background: radial-gradient(circle at 78% 20%, rgba(101,55,200,.35), transparent 34%), #09090d; }
