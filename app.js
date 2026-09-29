@@ -686,9 +686,12 @@
             <div><small>СЕЗОН 01</small><h2 id="topic-player-title">Смотри выпуски</h2></div>
             <a href="https://vkvideo.ru/playlist/-236346873_1/season_0" target="_blank" rel="noopener noreferrer">Открыть в VK Видео ↗</a>
           </div>
-          <div class="topic-player-frame">
-            <iframe src="https://vkvideo.ru/playlist/-236346873_1/season_0" title="Плейлист молодёжного шоу Ты в теме" loading="lazy" allow="autoplay; encrypted-media; fullscreen; picture-in-picture" allowfullscreen></iframe>
-          </div>
+          <a class="topic-player-screen" href="https://vkvideo.ru/playlist/-236346873_1/season_0" target="_blank" rel="noopener noreferrer" aria-label="Смотреть первый сезон шоу Ты в теме в VK Видео">
+            <img src="./assets/you-in-topic-hosts.webp" alt="Матвей и Александра — ведущие шоу «Ты в теме»" />
+            <span class="topic-player-shade" aria-hidden="true"></span>
+            <span class="topic-player-button" aria-hidden="true">▶</span>
+            <span class="topic-player-copy"><small>10 ВЫПУСКОВ · VK ВИДЕО</small><strong>Смотреть первый сезон</strong><em>Откроется полный плейлист</em></span>
+          </a>
         </section>
 
         <div class="topic-statement">
