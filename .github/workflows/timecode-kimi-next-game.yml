@@ -1,0 +1,42 @@
+name: TIMECODE prepare next daily Kimi game
+on:
+  push:
+    branches: [boom-kadr-deploy]
+    paths: ['.github/workflows/timecode-kimi-next-game.yml']
+permissions:
+  contents: read
+jobs:
+  prepare:
+    runs-on: ubuntu-latest
+    timeout-minutes: 6
+    steps:
+      - name: Prepare next games without sending extra invitations
+        env:
+          BOOM_SSH_KEY: ${{ secrets.BOOM_SSH_KEY }}
+        run: |
+          install -d -m 700 ~/.ssh
+          printf '%s\n' "$BOOM_SSH_KEY" > ~/.ssh/timecode
+          chmod 600 ~/.ssh/timecode
+          ssh-keyscan -T 8 -H 217.149.24.242 > ~/.ssh/known_hosts
+          ssh -i ~/.ssh/timecode -o BatchMode=yes -o ConnectTimeout=8 root@217.149.24.242 'bash -s' <<'REMOTE'
+          set -Eeuo pipefail
+          cd /opt/timecode-bot/timecode-bot
+          set -a
+          . /etc/timecode-bot.env
+          set +a
+          python3 - <<'PY'
+          import server,chat_games,datetime as dt,json
+          tomorrow=server.now()+dt.timedelta(days=1)
+          scope=vars(server).copy()
+          scope['today']=lambda:tomorrow.date().isoformat()
+          scope['now']=lambda:tomorrow
+          chat_games.install(scope)
+          print('Kimi configured:',bool(server.AI_KEY))
+          scope['chat_game_prepare']()
+          with server.conn() as c:
+              rows=c.execute('select topic,source,body from chat_game_content where day=?',(scope['today']().replace('-',''),)).fetchall()
+          print('Next game sources:',[(r['topic'],r['source']) for r in rows])
+          print('Next game question counts:',[(r['topic'],len(json.loads(r['body'])['questions'])) for r in rows])
+          print('No invitation sent; existing participants and service unchanged')
+          PY
+          REMOTE
