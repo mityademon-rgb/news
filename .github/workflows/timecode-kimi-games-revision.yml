@@ -1,0 +1,68 @@
+name: TIMECODE Kimi game editorial revision
+on:
+  push:
+    branches: [boom-kadr-deploy]
+    paths: ['.github/workflows/timecode-kimi-games-revision.yml']
+permissions:
+  contents: read
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          repository: mityademon-rgb/media-center-bot
+          ref: feature/timecode-media-bot
+          path: source
+      - name: Verify daily game generator
+        run: |
+          cd source/timecode-bot
+          python3 -m unittest discover -s tests -p test_editorial_chat.py
+          python3 -m py_compile chat_games.py
+      - name: Deploy revision and prepare next games
+        env:
+          BOOM_SSH_KEY: ${{ secrets.BOOM_SSH_KEY }}
+        run: |
+          install -d -m 700 ~/.ssh
+          printf '%s\n' "$BOOM_SSH_KEY" > ~/.ssh/timecode
+          chmod 600 ~/.ssh/timecode
+          ssh-keyscan -T 8 -H 217.149.24.242 > ~/.ssh/known_hosts
+          scp -i ~/.ssh/timecode -o BatchMode=yes source/timecode-bot/chat_games.py root@217.149.24.242:/tmp/chat_games.py
+          ssh -i ~/.ssh/timecode -o BatchMode=yes root@217.149.24.242 'bash -s' <<'REMOTE'
+          set -Eeuo pipefail
+          cd /opt/timecode-bot/timecode-bot
+          backup=$(mktemp /opt/timecode-bot/chat-games-revision-XXXXXXXX.py)
+          cp -p chat_games.py "$backup"
+          rollback() { cp -p "$backup" chat_games.py; systemctl restart timecode-bot.service || true; }
+          trap rollback ERR
+          cp /tmp/chat_games.py chat_games.py
+          python3 -m py_compile chat_games.py
+          systemctl restart timecode-bot.service
+          for attempt in 1 2 3 4 5 6 7 8; do
+            if curl -fsS --max-time 3 http://127.0.0.1:8097/health -o /dev/null;then break;fi
+            sleep 2
+          done
+          curl -fsS --max-time 3 http://127.0.0.1:8097/health -o /dev/null
+          systemctl is-active --quiet timecode-bot.service
+          trap - ERR
+          set -a
+          . /etc/timecode-bot.env
+          set +a
+          python3 - <<'PY'
+          import server,chat_games,datetime as dt,json
+          tomorrow=server.now()+dt.timedelta(days=1)
+          day=tomorrow.strftime('%Y%m%d')
+          with server.conn() as c:
+              c.execute("delete from chat_game_content where day=? and source='backup' and not exists(select 1 from chat_game_runs r where r.day=chat_game_content.day and r.topic=chat_game_content.topic)",(day,))
+          scope=vars(server).copy()
+          scope['today']=lambda:tomorrow.date().isoformat()
+          scope['now']=lambda:tomorrow
+          chat_games.install(scope)
+          scope['chat_game_prepare']()
+          with server.conn() as c:rows=c.execute('select topic,source,body from chat_game_content where day=?',(day,)).fetchall()
+          print('Next game sources:',[(r['topic'],r['source']) for r in rows])
+          print('Next game question counts:',[(r['topic'],len(json.loads(r['body'])['questions'])) for r in rows])
+          print('No duplicate invitations or administrator panels sent')
+          PY
+          REMOTE
