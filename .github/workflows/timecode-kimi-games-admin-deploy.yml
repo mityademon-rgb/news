@@ -1,0 +1,130 @@
+name: TIMECODE Kimi daily games and persistent admin panel
+on:
+  push:
+    branches: [boom-kadr-deploy]
+    paths: ['.github/workflows/timecode-kimi-games-admin-deploy.yml']
+permissions:
+  contents: read
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    timeout-minutes: 12
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          repository: mityademon-rgb/media-center-bot
+          ref: feature/timecode-media-bot
+          path: source
+      - name: Verify conversational posts and game progression
+        run: |
+          cd source/timecode-bot
+          python3 -m unittest discover -s tests -p test_editorial_chat.py
+          python3 -m unittest discover -s tests -p test_server.py -k daily_photo_unreadable
+          python3 -m unittest discover -s tests -p test_server.py -k admin_menu_has
+          python3 -m unittest discover -s tests -p test_server.py -k checkin_photos
+          python3 -m unittest discover -s tests -p test_server.py -k evening_digest_retries
+          python3 -m py_compile server.py notification_delivery.py editorial_voice.py chat_games.py
+      - name: Deploy targeted blocks and invite subscribers
+        env:
+          BOOM_SSH_KEY: ${{ secrets.BOOM_SSH_KEY }}
+        run: |
+          install -d -m 700 ~/.ssh
+          printf '%s\n' "$BOOM_SSH_KEY" > ~/.ssh/timecode
+          chmod 600 ~/.ssh/timecode
+          ssh-keyscan -T 8 -H 217.149.24.242 > ~/.ssh/known_hosts
+          scp -i ~/.ssh/timecode -o BatchMode=yes -o ConnectTimeout=8 source/timecode-bot/server.py source/timecode-bot/notification_delivery.py source/timecode-bot/editorial_voice.py source/timecode-bot/chat_games.py root@217.149.24.242:/tmp/
+          ssh -i ~/.ssh/timecode -o BatchMode=yes -o ConnectTimeout=8 root@217.149.24.242 'bash -s' <<'REMOTE'
+          set -Eeuo pipefail
+          cd /opt/timecode-bot/timecode-bot
+          backup=$(mktemp -d /opt/timecode-bot/chat-editorial-backup-XXXXXXXX)
+          cp -p server.py notification_delivery.py "$backup/"
+          for module in editorial_voice.py chat_games.py; do if test -f "$module"; then cp -p "$module" "$backup/";fi;done
+          rollback() { cp -p "$backup/server.py" "$backup/notification_delivery.py" .; for module in editorial_voice.py chat_games.py; do if test -f "$backup/$module"; then cp -p "$backup/$module" .;fi;done; systemctl restart timecode-bot.service || true; }
+          trap rollback ERR
+          python3 - <<'PY'
+          from pathlib import Path
+          source=Path('/tmp/server.py').read_text()
+          live=Path('server.py').read_text()
+          def block(start,end):
+              global live
+              if any(t.count(mark)!=1 for t in (source,live) for mark in (start,end)):raise RuntimeError('Server anchor changed: '+start)
+              live=live[:live.index(start)]+source[source.index(start):source.index(end)]+live[live.index(end):]
+          block('def photo_comment(file_id,photo_url=\'\'):\n','def industry_search(query,sites):\n')
+          block('def admin_menu(uid):\n','def subscriber_report(uid,page=0):\n')
+          admin_line=next(x for x in source.splitlines(True) if x.startswith('ADMINS = '))
+          old_admin_line=next(x for x in live.splitlines(True) if x.startswith('ADMINS = '))
+          live=live.replace(old_admin_line,admin_line,1)
+          if "    if uid in ADMINS and text in ('/questions','❓ Вопросы'):\n" not in live:
+              marker="    if uid in ADMINS and text in ('/publish','📣 Написать всем'):\n"
+              if live.count(marker)!=1:raise RuntimeError('Admin command anchor changed')
+              live=live.replace(marker,"    if uid in ADMINS and text in ('/questions','❓ Вопросы'):\n        callback({'id':'max','from':{'id':uid},'data':'admin:questions'});return\n"+marker,1)
+          block('def instant_photo():\n','def recover_daily_photos():\n')
+          game_slot="            if clock=='17:00':run_slot('chat-game',chat_game_invite)\n"
+          if game_slot not in live:
+              anchor="            if clock=='16:00':run_slot('instant-photo',instant_photo)\n"
+              if live.count(anchor)!=1:raise RuntimeError('Game scheduler anchor changed')
+              live=live.replace(anchor,anchor+game_slot,1)
+          if 'import editorial_voice\n' not in live:
+              anchor='import notification_delivery\n'
+              if live.count(anchor)!=1:raise RuntimeError('Editorial import anchor changed')
+              live=live.replace(anchor,'import editorial_voice\n'+anchor,1)
+          if 'chat_games.install(globals())\n' not in live:
+              anchor='notification_delivery.install(globals())\n'
+              if live.count(anchor)!=1:raise RuntimeError('Games import anchor changed')
+              live=live.replace(anchor,anchor+'import chat_games\nchat_games.install(globals())\n',1)
+          Path('server.py').write_text(live)
+          source=Path('/tmp/notification_delivery.py').read_text()
+          live=Path('notification_delivery.py').read_text()
+          if 'import editorial_voice\n' not in live:live=live.replace('import re\n','import re\nimport editorial_voice\n',1)
+          if "    original_instant_photo=s['instant_photo']\n" not in live:
+              anchor="    original_evening=s['evening']\n"
+              if live.count(anchor)!=1:raise RuntimeError('Original photo handler anchor changed')
+              live=live.replace(anchor,anchor+"    original_instant_photo=s['instant_photo']\n",1)
+          def block(start,end):
+              global live
+              if any(t.count(mark)!=1 for t in (source,live) for mark in (start,end)):raise RuntimeError('Notification anchor changed: '+start)
+              live=live[:live.index(start)]+source[source.index(start):source.index(end)]+live[live.index(end):]
+          block('    def retry_photos():\n', '    def publish_to_all(msg, body):\n')
+          block('    def digest(period):\n','    def tip():\n')
+          block('    def instant_photo():\n','    def photos_digest():\n')
+          Path('notification_delivery.py').write_text(live)
+          for module in ('editorial_voice.py','chat_games.py'):Path(module).write_text(Path('/tmp/'+module).read_text())
+          PY
+          python3 -m py_compile server.py notification_delivery.py editorial_voice.py chat_games.py
+          systemctl restart timecode-bot.service
+          healthy=0
+          for attempt in 1 2 3 4 5 6 7 8; do
+            if curl -fsS --max-time 3 http://127.0.0.1:8097/health -o /dev/null; then healthy=1;break;fi
+            sleep 2
+          done
+          test "$healthy" = 1
+          systemctl is-active --quiet timecode-bot.service
+          curl -fsS --max-time 8 https://timecode-lab.ru/tc/ -o /dev/null
+          trap - ERR
+          set -a
+          . /etc/timecode-bot.env
+          set +a
+          python3 - <<'PY'
+          import server,editorial_voice,hashlib
+          # Repair captions waiting for delivery without duplicating delivered photos.
+          with server.conn() as c:
+              rows=c.execute("select p.user_id,p.day,p.comment,u.name from daily_photos p join users u on u.id=p.user_id where p.day=?",(server.today(),)).fetchall()
+              for row in rows:
+                  caption=editorial_voice.photo_caption(row['name'],row['comment'],row['day'])
+                  c.execute("update notification_photo_outbox set caption=? where day=? and user_id=? and period='daily' and delivered=0",(caption,row['day'],row['user_id']))
+          server.chat_game_prepare()
+          server.run_slot('chat-game',server.chat_game_invite)
+          panels=[]
+          for uid in sorted(server.ADMINS):
+              panels.append(bool((server.admin_menu(uid) or {}).get('ok')))
+          print('Configured admin panels delivered:',sum(panels),'/',len(panels))
+          with server.conn() as c:
+              print('Daily game content sources:',[tuple(r) for r in c.execute('select topic,source from chat_game_content where day=?',(server.today().replace('-',''),))])
+              print('Current-day game participants:',c.execute('select count(distinct user_id) from chat_game_runs where day=? and step>0',(server.today().replace('-',''),)).fetchone()[0])
+          key=hashlib.sha256(('chat-game:'+server.today()).encode()).hexdigest()[:24]
+          with server.conn() as c:
+              print('Chat game invitation delivered / pending by platform:',[tuple(r) for r in c.execute("select (json_extract(chat,'$')<0) max_platform,delivered,count(*) from notification_outbox where day=? and message_key=? group by 1,2",(server.today(),key))])
+              print('Accepted daily photos:',len(rows))
+          print('Service and public mini app healthy; chat games installed')
+          PY
+          REMOTE
