@@ -13,7 +13,7 @@ jobs:
       - uses: actions/checkout@v4
         with:
           repository: mityademon-rgb/media-center-bot
-          ref: 6352a7e493801f88a98049fd1899ef6423095127
+          ref: d230411d75f93854b206a68f1378cd087937537b
           path: source
       - name: Test unified reports and cross-platform images
         run: |
@@ -21,6 +21,8 @@ jobs:
           python3 -m unittest discover -s tests -p test_shared_media.py
           python3 -m unittest discover -s tests -p test_server.py -k checkin_photos
           python3 -m unittest discover -s tests -p test_server.py -k daily_photo_collected
+          python3 -m unittest discover -s tests -p test_server.py -k morning_report
+          python3 -m unittest discover -s tests -p test_server.py -k photo_report
           python3 -m unittest discover -s tests -p test_server.py -k evening_digest_retries
           python3 -m unittest discover -s tests -p test_editorial_chat.py
           python3 -m unittest discover -s tests -p test_chat_schedule.py
@@ -62,8 +64,9 @@ jobs:
           block('    def digest(period):\n','    def tip():\n')
           block('    def instant_photo():\n','    def photos_digest():\n')
           anchor="    s.update({'morning':morning"
-          if live.count(anchor)!=1:raise RuntimeError('Export anchor changed')
-          live=live.replace(anchor,"    s.update({'bot_message':bot_message,'accept_daily_photo':accept_daily_photo,'publish_daily_photo':publish_daily_photo,'morning':morning",1)
+          new_anchor="    s.update({'bot_message':bot_message,'accept_daily_photo':accept_daily_photo,'publish_daily_photo':publish_daily_photo,'morning':morning"
+          if live.count(anchor)==1:live=live.replace(anchor,new_anchor,1)
+          elif live.count(new_anchor)!=1:raise RuntimeError('Export anchor changed')
           Path('notification_delivery.py').write_text(live)
           Path('shared_media.py').write_text(Path('/tmp/shared_media.py').read_text())
           PY
