@@ -1,0 +1,84 @@
+name: TIMECODE weekend quest October 3-4
+on:
+  push:
+    branches: [boom-kadr-deploy]
+    paths: ['.github/workflows/timecode-weekend-quest-deploy.yml']
+permissions:
+  contents: read
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    timeout-minutes: 12
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          repository: mityademon-rgb/media-center-bot
+          ref: 257a5e0bfb2acddfb447275ef9c1a1f9eb670ad9
+          path: source
+      - name: Verify releases, submissions, deadlines and one winner
+        run: |
+          cd source/timecode-bot
+          python3 -m unittest discover -s tests -p test_weekend_quest.py
+          python3 -m unittest discover -s tests -p test_editorial_chat.py
+          python3 -m unittest discover -s tests -p test_chat_schedule.py
+          python3 -m unittest discover -s tests -p test_shared_media.py
+          python3 -m unittest discover -s tests -p test_max_integration.py
+          python3 -m unittest discover -s tests -p test_server.py -k checkin_photos
+          python3 -m unittest discover -s tests -p test_server.py -k evening_digest_retries
+          python3 -m unittest discover -s tests -p test_server.py -k admin_menu_has
+          python3 -m py_compile server.py weekend_quest.py
+      - name: Deploy chat quest and send approved announcement
+        env:
+          BOOM_SSH_KEY: ${{ secrets.BOOM_SSH_KEY }}
+        run: |
+          install -d -m 700 ~/.ssh
+          printf '%s\n' "$BOOM_SSH_KEY" > ~/.ssh/timecode
+          chmod 600 ~/.ssh/timecode
+          ssh-keyscan -T 8 -H 217.149.24.242 > ~/.ssh/known_hosts
+          scp -i ~/.ssh/timecode -o BatchMode=yes -o ConnectTimeout=8 source/timecode-bot/weekend_quest.py root@217.149.24.242:/tmp/
+          ssh -i ~/.ssh/timecode -o BatchMode=yes -o ConnectTimeout=8 root@217.149.24.242 'bash -s' <<'REMOTE'
+          set -Eeuo pipefail
+          cd /opt/timecode-bot/timecode-bot
+          backup=$(mktemp -d /opt/timecode-bot/weekend-quest-backup-XXXXXXXX)
+          cp -p server.py "$backup/"
+          if test -f weekend_quest.py; then cp -p weekend_quest.py "$backup/";fi
+          rollback() { cp -p "$backup/server.py" .; if test -f "$backup/weekend_quest.py"; then cp -p "$backup/weekend_quest.py" .;fi; systemctl restart timecode-bot.service || true; }
+          trap rollback ERR
+          python3 - <<'PY'
+          from pathlib import Path
+          live=Path('server.py').read_text()
+          anchor='chat_schedule.install(globals())\n'
+          added='import weekend_quest\nweekend_quest.install(globals())\n'
+          if added not in live:
+              if live.count(anchor)!=1:raise RuntimeError('Quest import anchor changed')
+              live=live.replace(anchor,anchor+added,1)
+          Path('server.py').write_text(live)
+          Path('weekend_quest.py').write_text(Path('/tmp/weekend_quest.py').read_text())
+          PY
+          python3 -m py_compile server.py weekend_quest.py
+          systemctl restart timecode-bot.service
+          curl -fsS --retry 5 --retry-delay 2 --retry-connrefused --max-time 10 http://127.0.0.1:8097/health -o /dev/null
+          curl -fsS --max-time 20 https://timecode-lab.ru/tc/ -o /dev/null
+          trap - ERR
+          set -a
+          . /etc/timecode-bot.env
+          set +a
+          python3 - <<'PY'
+          import server, weekend_quest, hashlib
+          with server.conn() as c:weekend_quest.tables(c)
+          server.weekend_quest_announce()
+          server.weekend_quest_announce()
+          key=hashlib.sha256(('weekend:'+weekend_quest.CAMPAIGN+':announcement').encode()).hexdigest()[:24]
+          for attempt in range(5):
+              with server.conn() as c:pending=c.execute('select count(*) from notification_outbox where message_key=? and delivered=0',(key,)).fetchone()[0]
+              if not pending:break
+              server.retry_notifications(key)
+          with server.conn() as c:
+              print('Quest announcement delivery by platform:',[tuple(r) for r in c.execute("select (json_extract(chat,'$')<0) max_platform,delivered,count(*) from notification_outbox where message_key=? group by 1,2",(key,))])
+              print('Stored announcement count:',c.execute('select count(*) from weekend_posts where event=?',('announcement',)).fetchone()[0])
+              print('Prize draw exists before start:',c.execute('select count(*) from weekend_draws where campaign=?',(weekend_quest.CAMPAIGN,)).fetchone()[0])
+          print('Moscow releases:',[t['at'] for t in weekend_quest.TASKS])
+          print('Close:',weekend_quest.CLOSE.isoformat(),'Result:',weekend_quest.RESULT.isoformat())
+          print('Quest deployed; bot and mini app healthy')
+          PY
+          REMOTE
