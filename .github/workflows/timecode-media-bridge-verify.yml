@@ -10,6 +10,11 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 12
     steps:
+      - uses: actions/checkout@v4
+        with:
+          repository: mityademon-rgb/media-center-bot
+          ref: 1fc5a8f9b44e84363d19f2e076e7b521df3943e7
+          path: source
       - name: Verify existing image download and upload without broadcasting
         env:
           BOOM_SSH_KEY: ${{ secrets.BOOM_SSH_KEY }}
@@ -18,9 +23,14 @@ jobs:
           printf '%s\n' "$BOOM_SSH_KEY" > ~/.ssh/timecode
           chmod 600 ~/.ssh/timecode
           ssh-keyscan -T 8 -H 217.149.24.242 > ~/.ssh/known_hosts
+          scp -i ~/.ssh/timecode -o BatchMode=yes -o ConnectTimeout=8 source/timecode-bot/shared_media.py root@217.149.24.242:/tmp/
           ssh -i ~/.ssh/timecode -o BatchMode=yes -o ConnectTimeout=8 root@217.149.24.242 'bash -s' <<'REMOTE'
           set -Eeuo pipefail
           cd /opt/timecode-bot/timecode-bot
+          cp -p shared_media.py /tmp/timecode-shared-media-before-ca-fix.py
+          cp /tmp/shared_media.py shared_media.py
+          python3 -m py_compile shared_media.py
+          systemctl restart timecode-bot.service
           set -a
           . /etc/timecode-bot.env
           set +a
@@ -46,4 +56,6 @@ jobs:
               print('Cross-platform cached assets:',c.execute("select count(*) from shared_photo_assets where max_token!='' or tg_file_id!=''").fetchone()[0])
           print('No report or test message published')
           PY
+          curl -fsS --retry 4 --retry-delay 2 --retry-connrefused --max-time 10 http://127.0.0.1:8097/health -o /dev/null
+          curl -fsS --max-time 20 https://timecode-lab.ru/tc/ -o /dev/null
           REMOTE
