@@ -1,0 +1,110 @@
+name: TIMECODE unified Telegram MAX reports
+on:
+  push:
+    branches: [boom-kadr-deploy]
+    paths: ['.github/workflows/timecode-unified-reports-deploy.yml']
+permissions:
+  contents: read
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    timeout-minutes: 12
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          repository: mityademon-rgb/media-center-bot
+          ref: 6352a7e493801f88a98049fd1899ef6423095127
+          path: source
+      - name: Test unified reports and cross-platform images
+        run: |
+          cd source/timecode-bot
+          python3 -m unittest discover -s tests -p test_shared_media.py
+          python3 -m unittest discover -s tests -p test_server.py -k checkin_photos
+          python3 -m unittest discover -s tests -p test_server.py -k daily_photo_collected
+          python3 -m unittest discover -s tests -p test_server.py -k evening_digest_retries
+          python3 -m unittest discover -s tests -p test_editorial_chat.py
+          python3 -m unittest discover -s tests -p test_chat_schedule.py
+          python3 -m unittest discover -s tests -p test_max_integration.py
+      - name: Deploy report handlers and preserve other live edits
+        env:
+          BOOM_SSH_KEY: ${{ secrets.BOOM_SSH_KEY }}
+        run: |
+          install -d -m 700 ~/.ssh
+          printf '%s\n' "$BOOM_SSH_KEY" > ~/.ssh/timecode
+          chmod 600 ~/.ssh/timecode
+          ssh-keyscan -T 8 -H 217.149.24.242 > ~/.ssh/known_hosts
+          scp -i ~/.ssh/timecode -o BatchMode=yes -o ConnectTimeout=8 source/timecode-bot/notification_delivery.py source/timecode-bot/shared_media.py root@217.149.24.242:/tmp/
+          ssh -i ~/.ssh/timecode -o BatchMode=yes -o ConnectTimeout=8 root@217.149.24.242 'bash -s' <<'REMOTE'
+          set -Eeuo pipefail
+          cd /opt/timecode-bot/timecode-bot
+          backup=$(mktemp -d /opt/timecode-bot/unified-report-backup-XXXXXXXX)
+          cp -p notification_delivery.py "$backup/"
+          if test -f shared_media.py; then cp -p shared_media.py "$backup/";fi
+          rollback() { cp -p "$backup/notification_delivery.py" .; if test -f "$backup/shared_media.py"; then cp -p "$backup/shared_media.py" .;fi; systemctl restart timecode-bot.service || true; }
+          trap rollback ERR
+          python3 - <<'PY'
+          from pathlib import Path
+          source=Path('/tmp/notification_delivery.py').read_text()
+          live=Path('notification_delivery.py').read_text()
+          for module in ('shared_media','threading','time'):
+              line='import '+module+'\n'
+              if line not in live:live=live.replace('import editorial_voice\n','import editorial_voice\n'+line,1)
+          if '_DELIVERY_LOCK=threading.RLock()' not in live:
+              live=live.replace('\ndef install(s):','\n_DELIVERY_LOCK=threading.RLock()\n\ndef install(s):',1)
+          start="    original_instant_photo=s['instant_photo']\n"
+          end='    def audience():\n'
+          def block(start,end):
+              global live
+              if any(t.count(mark)!=1 for t in (source,live) for mark in (start,end)):raise RuntimeError('Report anchor changed: '+start)
+              live=live[:live.index(start)]+source[source.index(start):source.index(end)]+live[live.index(end):]
+          block(start,end)
+          block('    def retry_photos():\n','    def publish_to_all(msg, body):\n')
+          block('    def digest(period):\n','    def tip():\n')
+          block('    def instant_photo():\n','    def photos_digest():\n')
+          anchor="    s.update({'morning':morning"
+          if live.count(anchor)!=1:raise RuntimeError('Export anchor changed')
+          live=live.replace(anchor,"    s.update({'bot_message':bot_message,'accept_daily_photo':accept_daily_photo,'publish_daily_photo':publish_daily_photo,'morning':morning",1)
+          Path('notification_delivery.py').write_text(live)
+          Path('shared_media.py').write_text(Path('/tmp/shared_media.py').read_text())
+          PY
+          python3 -m py_compile server.py notification_delivery.py shared_media.py
+          systemctl restart timecode-bot.service
+          healthy=0
+          for attempt in 1 2 3 4 5 6 7 8; do
+            if curl -fsS --max-time 3 http://127.0.0.1:8097/health -o /dev/null; then healthy=1;break;fi
+            sleep 2
+          done
+          test "$healthy" = 1
+          curl -fsS --max-time 20 https://timecode-lab.ru/tc/ -o /dev/null
+          trap - ERR
+          set -a
+          . /etc/timecode-bot.env
+          set +a
+          python3 - <<'PY'
+          import server, shared_media, urllib.parse
+          shared_media.ensure(vars(server))
+          # Recover provider URLs for photos received before this deployment.
+          recovered=0
+          with server.conn() as c:
+              daily=c.execute("select photo,photo_url from daily_photos where day>=date(?,'-1 day') and photo_url!=''",(server.today(),)).fetchall()
+              mids=c.execute('select mid from max_processed_messages order by created_at desc limit 150').fetchall()
+          for r in daily:shared_media.remember(vars(server),r['photo'],r['photo_url'])
+          for start in range(0,len(mids),20):
+              try:
+                  ids=','.join(r['mid'] for r in mids[start:start+20])
+                  response=server.max_transport.api('GET','/messages?message_ids='+urllib.parse.quote(ids),server.MAX_TOKEN)
+                  for msg in response.get('messages',[]):
+                      body=msg.get('body') or {}
+                      image=server.max_transport.image_info(body.get('attachments'))
+                      if image and image['url']:
+                          shared_media.remember(vars(server),'max:image:'+(image['token'] or str(body.get('mid') or 'received')),image['url'])
+                          recovered+=1
+              except Exception as error:print('Legacy MAX photo recovery:',type(error).__name__)
+          with server.conn() as c:
+              c.execute("update daily_photos set status='collected' where day=? and status in ('pending','publishing')",(server.today(),))
+              print('Recovered MAX media URLs:',recovered)
+              print('Stored MAX image hosts:',sorted({urllib.parse.urlsplit(r['url']).hostname for r in c.execute("select url from shared_photo_assets where url!=''")}))
+              print('Today photo counts:',c.execute('select count(*) from daily_photos where day=?',(server.today(),)).fetchone()[0])
+          print('Service healthy; unified reports installed; no report re-published during deployment')
+          PY
+          REMOTE
