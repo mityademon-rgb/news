@@ -1,0 +1,66 @@
+name: TIMECODE Saturday correction and weekend reminder
+on:
+  push:
+    branches: [boom-kadr-deploy]
+    paths: ['.github/workflows/timecode-saturday-correction.yml']
+permissions:
+  contents: read
+jobs:
+  correction:
+    runs-on: ubuntu-latest
+    timeout-minutes: 8
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          repository: mityademon-rgb/media-center-bot
+          ref: 7c3eedc65d567f810155da060d995f51ba3a379d
+          path: source
+      - name: Ground calendar and publish approved correction
+        env:
+          BOOM_SSH_KEY: ${{ secrets.BOOM_SSH_KEY }}
+        run: |
+          install -d -m 700 ~/.ssh
+          printf '%s\n' "$BOOM_SSH_KEY" > ~/.ssh/timecode
+          chmod 600 ~/.ssh/timecode
+          ssh-keyscan -T 8 -H 217.149.24.242 > ~/.ssh/known_hosts
+          scp -i ~/.ssh/timecode -o BatchMode=yes -o ConnectTimeout=8 source/timecode-bot/editorial_voice.py root@217.149.24.242:/tmp/
+          ssh -i ~/.ssh/timecode -o BatchMode=yes -o ConnectTimeout=8 root@217.149.24.242 'bash -s' <<'REMOTE'
+          set -Eeuo pipefail
+          cd /opt/timecode-bot/timecode-bot
+          set -a
+          . /etc/timecode-bot.env
+          set +a
+          python3 - <<'PY'
+          import server, json, hashlib
+          body=('Друзья, извините: в утреннем отчёте я назвал субботу пятницей. Сегодня суббота, 3 октября. Это моя ошибка — мысленно застрял перед выходными. Исправляюсь.\n\n'
+                'И напоминаю: «Операция: пропавший выходной» — игра на ДВА ДНЯ, всю субботу и воскресенье. За выходные нужно собрать шесть улик: снимать, придумывать и отвечать. Всё прямо здесь, в чате бота; приложение открывать не нужно.\n\n'
+                'Задания сегодня выходят в 10:00, 14:00 и 18:00, завтра — в 10:00, 13:00 и 16:00. Первое уже доступно. Пропущенное можно догнать до воскресенья, 17:30. Нажми «Играть в квест», выбери задание и отправляй ответ.\n\n'
+                'В воскресенье, 4 октября, в 18:00 подведу общий итог и случайно выберу ОДНОГО победителя среди тех, кто выполнил все шесть заданий. Подарок — брелок с логотипом TIMECODE. Победитель получит его лично из рук Дмитрия Витальевича на занятии.\n\n'
+                'Телефон есть? Дело открыто. Начинаем.')
+          key=hashlib.sha256(b'timecode-saturday-correction-20261003').hexdigest()[:24]
+          buttons=[[{'text':'Играть в квест','callback_data':'wq:20261003:start'}]]
+          with server.conn() as c:
+              users=[r['id'] for r in c.execute('select id from users where enabled=1')]
+              if server.GROUP:users.append(server.GROUP)
+              for uid in dict.fromkeys(users):
+                  c.execute('insert or ignore into notification_outbox(day,message_key,chat,body,keyboard) values(?,?,?,?,?)',(server.today(),key,json.dumps(uid),server.esc(body),json.dumps(buttons,ensure_ascii=False)))
+              cached=c.execute("select body from daily_content where day=? and kind='digest-story-am'",(server.today(),)).fetchone()
+              print('Moscow calendar:',server.today(),server.now().strftime('%A'))
+              print('Cached morning story mentions Friday:',bool(cached and 'пятниц' in cached['body'].lower()))
+          for attempt in range(5):
+              server.retry_notifications(key)
+              with server.conn() as c:
+                  pending=c.execute('select count(*) from notification_outbox where message_key=? and delivered=0',(key,)).fetchone()[0]
+              if not pending:break
+          with server.conn() as c:
+              print('Correction deliveries by platform:',[tuple(r) for r in c.execute("select (json_extract(chat,'$')<0),delivered,count(*) from notification_outbox where message_key=? group by 1,2",(key,))])
+          PY
+          backup=$(mktemp -d /opt/timecode-bot/calendar-fix-XXXXXXXX)
+          cp -p editorial_voice.py "$backup/"
+          cp /tmp/editorial_voice.py editorial_voice.py
+          python3 -m py_compile editorial_voice.py
+          systemctl restart timecode-bot.service
+          curl -fsS --retry 5 --retry-delay 2 --retry-connrefused --max-time 10 http://127.0.0.1:8097/health -o /dev/null
+          curl -fsS --max-time 15 https://timecode-lab.ru/tc/ -o /dev/null
+          echo 'Calendar fixed; bot and mini app healthy; quest progress preserved'
+          REMOTE
