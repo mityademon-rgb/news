@@ -507,19 +507,38 @@
       ...item,
       lessonId: lesson.id,
       lessonNumber: lesson.number,
-      lessonTitle: lesson.title
+      lessonTitle: lesson.title,
+      cover: lesson.cover || "./assets/camera-hero.webp"
     })));
     const lifehackLabel = (id) => lifehackFilters.find((filter) => filter.id === id)?.label || `#${id}`;
     const lifehackCards = lifehacks.map((item, index) => {
       const hashtags = item.hashtags || [];
       return `
       <article class="lifehack-card" data-lifehack-tags="${hashtags.map(escapeHtml).join(" ")}">
+        <div class="lifehack-card-photo"><img src="${escapeHtml(item.cover)}" alt="" loading="lazy" /><span>${escapeHtml(lifehackLabel(hashtags[0] || "shooting"))}</span></div>
         <div class="lifehack-card-top"><span>${String(index + 1).padStart(2, "0")}</span><b>${escapeHtml(item.category)}</b></div>
         <h3>${escapeHtml(item.title)}</h3>
         <p>${escapeHtml(item.text)}</p>
         <div class="lifehack-hashtags">${hashtags.map((tag) => `<span>${escapeHtml(lifehackLabel(tag))}</span>`).join("")}</div>
         <div class="lifehack-action"><strong>Применить сегодня</strong><span>${escapeHtml(item.action)}</span></div>
         <a href="#/lesson/${encodeURIComponent(item.lessonId)}">Урок ${escapeHtml(item.lessonNumber)} · ${escapeHtml(item.lessonTitle)} →</a>
+      </article>`;
+    }).join("");
+    const featuredLifehackItems = [
+      lifehacks.find((item) => item.lessonId === "kids-own-channel"),
+      lifehacks.find((item) => item.lessonId === "first-big-shoot"),
+      lifehacks.find((item) => item.lessonId === "adult-story-pitch"),
+      lifehacks.find((item) => item.lessonId === "adult-social-channel")
+    ].filter(Boolean);
+    const featuredLifehacks = featuredLifehackItems.map((item, index) => {
+      const hashtags = item.hashtags || [];
+      return `
+      <article class="lifehack-card lifehack-card-featured" data-lifehack-tags="${hashtags.map(escapeHtml).join(" ")}">
+        <div class="lifehack-card-photo"><img src="${escapeHtml(item.cover)}" alt="" loading="lazy" /><span>${escapeHtml(lifehackLabel(hashtags[0] || "shooting"))}</span></div>
+        <div class="lifehack-card-top"><span>${String(index + 1).padStart(2, "0")}</span><b>${escapeHtml(item.category)}</b></div>
+        <h3>${escapeHtml(item.title)}</h3>
+        <p>${escapeHtml(item.text)}</p>
+        <div class="lifehack-action"><strong>Попробовать</strong><span>${escapeHtml(item.action)}</span></div>
       </article>`;
     }).join("");
     const lifehackFilterButtons = [
@@ -615,16 +634,16 @@
         </div>
       </section>
 
-      ${lifehackCards ? `<section class="lifehack-library" id="lifehacks" aria-labelledby="lifehacks-title">
+      ${featuredLifehacks ? `<section class="lifehack-library lifehack-library-home" id="lifehacks" aria-labelledby="lifehacks-title">
         <header class="library-header">
           <div>
-            <p class="eyebrow">Можно применить на ближайшей съёмке</p>
-            <h2 id="lifehacks-title">Лайфхаки</h2>
+            <p class="eyebrow">Коротко. По делу. Сразу в работу.</p>
+            <h2 id="lifehacks-title">Приём,<br />который работает</h2>
           </div>
-          <p><strong data-lifehack-count>${lifehacks.length}</strong> приёмов · библиотека пополняется из каждого урока</p>
+          <p>Не теория на потом.<br /><strong>${lifehacks.length}</strong> приёмов для следующей съёмки.</p>
         </header>
-        <div class="lifehack-filters" aria-label="Фильтр лайфхаков">${lifehackFilterButtons}</div>
-        <div class="lifehack-grid">${lifehackCards}</div>
+        <div class="lifehack-grid lifehack-grid-featured">${featuredLifehacks}</div>
+        <a class="lifehack-all-link" href="#/lifehacks"><span>Вся библиотека лайфхаков</span><b>${lifehacks.length}</b><i>→</i></a>
       </section>` : ""}
 
       <section class="studio-about" id="about" aria-labelledby="about-title">
@@ -648,6 +667,49 @@
     } else {
       window.scrollTo({ top: 0, behavior: "instant" });
     }
+  }
+
+  function renderLifehackLibrary() {
+    clearSceneTimer();
+    clearInterval(state.homeTimer);
+    state.homeTimer = null;
+    state.lesson = null;
+
+    const lifehacks = lessons.flatMap((lesson) => (lesson.lifehacks || []).map((item) => ({
+      ...item,
+      lessonId: lesson.id,
+      lessonNumber: lesson.number,
+      lessonTitle: lesson.title,
+      cover: lesson.cover || "./assets/camera-hero.webp"
+    })));
+    const lifehackLabel = (id) => lifehackFilters.find((filter) => filter.id === id)?.label || `#${id}`;
+    const cards = lifehacks.map((item, index) => {
+      const hashtags = item.hashtags || [];
+      return `<article class="lifehack-card" data-lifehack-tags="${hashtags.map(escapeHtml).join(" ")}">
+        <div class="lifehack-card-photo"><img src="${escapeHtml(item.cover)}" alt="" loading="lazy" /><span>${escapeHtml(lifehackLabel(hashtags[0] || "shooting"))}</span></div>
+        <div class="lifehack-card-top"><span>${String(index + 1).padStart(2, "0")}</span><b>${escapeHtml(item.category)}</b></div>
+        <h3>${escapeHtml(item.title)}</h3>
+        <p>${escapeHtml(item.text)}</p>
+        <div class="lifehack-hashtags">${hashtags.map((tag) => `<span>${escapeHtml(lifehackLabel(tag))}</span>`).join("")}</div>
+        <div class="lifehack-action"><strong>Применить сегодня</strong><span>${escapeHtml(item.action)}</span></div>
+        <a href="#/lesson/${encodeURIComponent(item.lessonId)}">Урок ${escapeHtml(item.lessonNumber)} · ${escapeHtml(item.lessonTitle)} →</a>
+      </article>`;
+    }).join("");
+    const filters = [`<button type="button" class="is-active" data-lifehack-filter="all" aria-pressed="true">Все</button>`, ...lifehackFilters.map((filter) => `<button type="button" data-lifehack-filter="${escapeHtml(filter.id)}" aria-pressed="false">${escapeHtml(filter.label)}</button>`)].join("");
+
+    main.innerHTML = `<section class="lifehack-library lifehack-catalog-page" aria-labelledby="lifehack-catalog-title">
+      <a class="lifehack-back" href="#/">← На главную</a>
+      <header class="library-header">
+        <div><p class="eyebrow">Библиотека TIMECODE</p><h1 id="lifehack-catalog-title">Все<br />лайфхаки</h1></div>
+        <p><strong data-lifehack-count>${lifehacks.length}</strong> приёмов из уроков KIDS LAB и MEDIA LAB</p>
+      </header>
+      <div class="lifehack-filters" aria-label="Фильтр лайфхаков">${filters}</div>
+      <div class="lifehack-grid">${cards}</div>
+    </section>`;
+    document.body.classList.remove("teacher-mode", "lesson-active", "teacher-portal-active", "play-active", "topic-active");
+    document.body.classList.add("home-active");
+    bindLifehackFilters();
+    window.scrollTo({ top: 0, behavior: "instant" });
   }
 
   function renderYouInTopic() {
@@ -1951,6 +2013,10 @@
     }
     if (hash === "#/you-in-topic") {
       renderYouInTopic();
+      return;
+    }
+    if (hash === "#/lifehacks") {
+      renderLifehackLibrary();
       return;
     }
     if (hash === "#lessons") renderHome("#lessons");
