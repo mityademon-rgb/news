@@ -5548,7 +5548,9 @@ body.teacher-portal-active #main {
 
 /* TIME:CODE PLAY — short, phone-first experiences */
 .play-shelf {
-  padding: clamp(72px, 9vw, 130px) clamp(18px, 4vw, 64px);
+  width: 100%;
+  max-width: none;
+  padding: clamp(72px, 9vw, 130px) clamp(16px, 2vw, 30px);
   background: #0d0c12;
   overflow: hidden;
 }
@@ -5558,8 +5560,9 @@ body.teacher-portal-active #main {
   grid-template-columns: minmax(0, 1fr) auto;
   align-items: end;
   gap: 30px;
-  max-width: 1500px;
-  margin: 0 auto 40px;
+  width: 100%;
+  max-width: none;
+  margin: 0 0 40px;
 }
 
 .play-shelf > header h2 {
@@ -5583,8 +5586,9 @@ body.teacher-portal-active #main {
   display: grid;
   grid-template-columns: repeat(3, minmax(0, 1fr));
   gap: clamp(12px, 2vw, 26px);
-  max-width: 1500px;
-  margin: 0 auto;
+  width: 100%;
+  max-width: none;
+  margin: 0;
 }
 
 .play-hub .play-card-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
