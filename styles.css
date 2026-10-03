@@ -5587,6 +5587,8 @@ body.teacher-portal-active #main {
   margin: 0 auto;
 }
 
+.play-hub .play-card-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+
 .play-card {
   position: relative;
   isolation: isolate;
@@ -5615,6 +5617,25 @@ body.teacher-portal-active #main {
 .play-card-red { --play-accent: #ff4038; }
 .play-card-violet { --play-accent: #9b7cff; }
 .play-card-cyan { --play-accent: #24bdc8; }
+.play-card-yellow { --play-accent: #f4d84b; }
+
+.play-shelf .play-card-grid {
+  grid-template-columns: 1.35fr 1fr 1fr;
+  grid-template-areas: "main second third" "main fourth fourth";
+}
+
+.play-shelf .play-card:nth-child(1) { grid-area: main; }
+.play-shelf .play-card:nth-child(2) { grid-area: second; }
+.play-shelf .play-card:nth-child(3) { grid-area: third; }
+.play-shelf .play-card:nth-child(4) { grid-area: fourth; }
+
+.play-shelf .play-card:not(:first-child) {
+  min-height: 290px;
+}
+
+.play-shelf .play-card:nth-child(4) .play-card-copy h3 {
+  max-width: 16ch;
+}
 
 .play-card-top,
 .play-card-copy {
@@ -5741,11 +5762,66 @@ body.play-active #main { min-height: 100svh; background: #0d0c12; }
 .play-hack-actions { display: flex; flex-wrap: wrap; gap: 10px; margin-top: 14px; }
 .play-hack-actions a { border: 1px solid rgba(255,255,255,.22); background: transparent; color: var(--paper); }
 
+.frame-game-stage {
+  display: grid;
+  grid-template-columns: minmax(0, 1.1fr) minmax(360px, .9fr);
+  gap: clamp(18px, 3vw, 42px);
+  margin-top: clamp(24px, 4vw, 48px);
+  align-items: stretch;
+}
+
+.frame-game-stage > img {
+  width: 100%;
+  height: 100%;
+  min-height: 520px;
+  object-fit: cover;
+  border: 1px solid rgba(255,255,255,.18);
+  border-radius: 26px;
+}
+
+.frame-game-stage > div {
+  padding: clamp(22px, 3vw, 38px);
+  border: 1px solid rgba(255,255,255,.18);
+  border-radius: 26px;
+  background: #17141d;
+}
+
+.frame-game-stage > div > span,
+.frame-game-answer strong {
+  color: #f4d84b;
+  font: 950 11px/1 ui-monospace, SFMono-Regular, Menlo, monospace;
+  letter-spacing: .1em;
+}
+
+.frame-game-stage h2 {
+  margin: 18px 0 26px;
+  font-size: clamp(34px, 4vw, 62px);
+  line-height: .95;
+  letter-spacing: -.055em;
+}
+
+.frame-game-answer {
+  margin-top: 18px;
+  padding: 18px;
+  border-left: 4px solid #f4d84b;
+  background: rgba(244,216,75,.08);
+}
+
+.frame-game-answer p { margin: 9px 0 16px; color: var(--paper); line-height: 1.4; }
+.frame-game-answer button { min-height: 46px; padding: 0 16px; border: 0; border-radius: 999px; background: #f4d84b; color: #0d0c12; font-weight: 900; cursor: pointer; }
+.play-answer.is-wrong { border-color: var(--red); background: rgba(255,64,56,.12); }
+
 @media (max-width: 820px) {
   .play-shelf > header { grid-template-columns: 1fr; }
   .play-shelf > header > p { text-align: left; }
   .play-card-grid { grid-template-columns: 1fr; }
+  .play-hub .play-card-grid { grid-template-columns: 1fr; }
+  .play-shelf .play-card-grid { display: flex; overflow-x: auto; gap: 12px; padding-bottom: 10px; scroll-snap-type: x mandatory; }
+  .play-shelf .play-card { flex: 0 0 min(82vw, 390px); min-height: min(112vw, 500px); scroll-snap-align: start; }
+  .play-shelf .play-card:not(:first-child) { min-height: min(112vw, 500px); }
   .play-card { min-height: min(112vw, 520px); }
+  .frame-game-stage { grid-template-columns: 1fr; }
+  .frame-game-stage > img { min-height: 0; aspect-ratio: 4 / 3; }
   .talk-stage,
   .crew-stage { grid-template-columns: 1fr; }
   .talk-hero { grid-row: auto; min-height: 280px; }

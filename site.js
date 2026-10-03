@@ -4137,6 +4137,15 @@ window.TIMECODE_TEACHER_GUIDES = {
       text: "Одна картинка. Одна фраза. То, что можно применить сразу.",
       image: "./assets/girl-look.webp",
       accent: "cyan"
+    },
+    {
+      id: "frame",
+      type: "Игра на глаз",
+      number: "04",
+      title: "Что сломало кадр?",
+      text: "Смотрите на фотографию, находите главную ошибку и сразу узнаёте, как её исправить.",
+      image: "./assets/shot-quiz.webp",
+      accent: "yellow"
     }
   ];
   const interviewRounds = [
@@ -4257,6 +4266,12 @@ window.TIMECODE_TEACHER_GUIDES = {
     { image: "./assets/robot-medium.webp", tag: "#компания", title: "Не знаете, как войти в разговор?", text: "Спросите не «как дела?», а «что сегодня было самым странным?»" },
     { image: "./assets/runner-mixed.webp", tag: "#съёмка", title: "Не увеличивайте пальцами", text: "Хотите крупнее — подойдите. Цифровой зум приближает не героя, а недостатки изображения." }
   ];
+  const frameQuestions = [
+    {image:"./assets/girl-loose.webp",title:"Героиня потерялась внутри кадра. Что мешает сильнее всего?",choices:["Слишком много пустого пространства","Нужен цифровой зум","На ней нет микрофона"],correct:0,explanation:"Пустота не помогает взгляду и не рассказывает историю. Подойдите ближе или осознанно используйте пространство по направлению взгляда."},
+    {image:"./assets/robot-close.webp",title:"Крупный план выглядит тесным. В чём ошибка?",choices:["Слишком яркий фон","Обрезаны важные части головы без причины","Камера стоит на штативе"],correct:1,explanation:"Крупность может быть очень смелой, но обрезка должна выглядеть намеренной. Следите за верхней границей кадра и глазами героя."},
+    {image:"./assets/runner-wide.webp",title:"Человек бежит, но кадр будто тормозит движение. Почему?",choices:["Слишком короткая выдержка","Нет пространства перед движением","Герой находится не по центру"],correct:1,explanation:"Зрителю нужно видеть, куда движется герой. Оставьте свободное пространство перед ним, а не позади."},
+    {image:"./assets/composition-girl.webp",title:"Фон начал спорить с героиней. Что проверяем первым?",choices:["Линии и предметы, которые растут из головы","Марку камеры","Цвет обуви оператора"],correct:0,explanation:"Перед REC посмотрите на четыре края и фон за головой. Столб, ветка или яркое пятно легко становятся главным героем кадра."}
+  ];
   const main = document.querySelector("#main");
   const soundButton = document.querySelector("#sound-check");
   const year = document.querySelector("#year");
@@ -4271,7 +4286,9 @@ window.TIMECODE_TEACHER_GUIDES = {
     playTalkScore: 0,
     playCrewStep: 0,
     playCrewScores: { director: 0, operator: 0, journalist: 0, editor: 0, producer: 0 },
-    playHackIndex: Math.floor(Date.now() / 86400000) % dailyHacks.length
+    playHackIndex: Math.floor(Date.now() / 86400000) % dailyHacks.length,
+    playFrameStep: 0,
+    playFrameScore: 0
   };
 
   year.textContent = new Date().getFullYear();
@@ -4694,8 +4711,8 @@ window.TIMECODE_TEACHER_GUIDES = {
 
       <section class="play-shelf" id="play" aria-labelledby="play-title">
         <header>
-          <div><p class="eyebrow">Три штуки на сегодня</p><h2 id="play-title">TIME<span>:</span>CODE PLAY</h2></div>
-          <p>Можно зайти на минуту.<br />Что будет дальше — не обещаем.</p>
+          <div><p class="eyebrow">Четыре коротких входа</p><h2 id="play-title">TIME<span>:</span>CODE PLAY</h2></div>
+          <p>Игра, тест, один полезный приём<br />и тренировка операторского глаза.</p>
         </header>
         <div class="play-card-grid">${playCards}</div>
       </section>
@@ -4891,6 +4908,10 @@ window.TIMECODE_TEACHER_GUIDES = {
       state.playCrewStep = 0;
       state.playCrewScores = { director: 0, operator: 0, journalist: 0, editor: 0, producer: 0 };
     }
+    if (type === "frame") {
+      state.playFrameStep = 0;
+      state.playFrameScore = 0;
+    }
   }
 
   function renderPlayHub() {
@@ -4905,11 +4926,11 @@ window.TIMECODE_TEACHER_GUIDES = {
 
     main.innerHTML = `
       <section class="play-page play-hub" aria-labelledby="play-hub-title">
-        <header class="play-page-bar"><a href="#/">← На главную</a><span>НЕ УРОКИ</span><b>03 сегодня</b></header>
+        <header class="play-page-bar"><a href="#/">← На главную</a><span>НЕ УРОКИ</span><b>${String(playCatalog.length).padStart(2, "0")} сегодня</b></header>
         <div class="play-hub-intro">
           <p>Можно зависнуть на минуту</p>
           <h1 id="play-hub-title">TIME<span>:</span>CODE PLAY</h1>
-          <strong>Сегодня — три штуки. Завтра добавим ещё.</strong>
+          <strong>Выберите настроение: поговорить, проверить себя, взять приём или потренировать глаз.</strong>
         </div>
         <div class="play-card-grid">${cards}</div>
       </section>`;
@@ -5058,6 +5079,44 @@ window.TIMECODE_TEACHER_GUIDES = {
     window.scrollTo({ top: 0, behavior: "instant" });
   }
 
+  function renderFrameGame() {
+    setPlayPage();
+    const step = state.playFrameStep;
+    if (step >= frameQuestions.length) {
+      const title = state.playFrameScore === frameQuestions.length ? "Глаз уже работает" : state.playFrameScore >= 2 ? "Главное вы замечаете" : "Кадр пока умеет отвлекать";
+      main.innerHTML = `<section class="play-page play-experience">
+        ${playHeader("Игра закончена", "Что сломало кадр?")}
+        <article class="play-result"><span>РЕЗУЛЬТАТ · ${state.playFrameScore} / ${frameQuestions.length}</span><h2>${escapeHtml(title)}</h2><p>На съёмке проверяйте не только героя. Четыре края, фон, пространство перед взглядом и намеренность крупности решают половину операторских ошибок.</p><div class="play-result-actions"><button type="button" data-play-retry="frame">Ещё раз</button><a href="#/play">Другие игры →</a></div></article>
+      </section>`;
+      document.querySelector("[data-play-retry]")?.addEventListener("click", () => { resetPlay("frame"); renderFrameGame(); });
+      window.scrollTo({ top: 0, behavior: "instant" });
+      return;
+    }
+
+    const question = frameQuestions[step];
+    const choices = question.choices.map((choice, index) => `<button type="button" class="play-answer" data-frame-choice="${index}"><span>${String.fromCharCode(65 + index)}</span>${escapeHtml(choice)}</button>`).join("");
+    main.innerHTML = `<section class="play-page play-experience">
+      ${playHeader("Игра на операторский глаз", "Что сломало кадр?", `${step + 1} / ${frameQuestions.length}`)}
+      <div class="play-progress" aria-hidden="true"><i style="width:${((step + 1) / frameQuestions.length) * 100}%"></i></div>
+      <article class="frame-game-stage">
+        <img src="${escapeHtml(question.image)}" alt="Кадр для разбора" />
+        <div><span>НАЙДИТЕ ГЛАВНУЮ ОШИБКУ</span><h2>${escapeHtml(question.title)}</h2><div class="play-options">${choices}</div><div class="frame-game-answer" hidden><strong></strong><p>${escapeHtml(question.explanation)}</p><button type="button" data-frame-next>${step === frameQuestions.length - 1 ? "Результат →" : "Следующий кадр →"}</button></div></div>
+      </article>
+    </section>`;
+    document.querySelectorAll("[data-frame-choice]").forEach((button) => button.addEventListener("click", () => {
+      const picked = Number(button.dataset.frameChoice);
+      const correct = picked === question.correct;
+      if (correct) state.playFrameScore += 1;
+      document.querySelectorAll("[data-frame-choice]").forEach((item) => { item.disabled = true; });
+      button.classList.add(correct ? "is-picked" : "is-wrong");
+      const answer = document.querySelector(".frame-game-answer");
+      answer.querySelector("strong").textContent = correct ? "ТОЧНО" : `ГЛАВНОЕ — ВАРИАНТ ${String.fromCharCode(65 + question.correct)}`;
+      answer.hidden = false;
+    }, { once: true }));
+    document.querySelector("[data-frame-next]")?.addEventListener("click", () => { state.playFrameStep += 1; renderFrameGame(); });
+    window.scrollTo({ top: 0, behavior: "instant" });
+  }
+
   function renderPlay(playId) {
     if (!playId) {
       renderPlayHub();
@@ -5066,6 +5125,7 @@ window.TIMECODE_TEACHER_GUIDES = {
     if (playId === "talk") renderTalkGame();
     else if (playId === "crew") renderCrewTest();
     else if (playId === "hack") renderDailyHack();
+    else if (playId === "frame") renderFrameGame();
     else renderPlayHub();
   }
 
