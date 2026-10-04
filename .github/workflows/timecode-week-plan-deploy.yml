@@ -13,7 +13,7 @@ jobs:
       - uses: actions/checkout@v4
         with:
           repository: mityademon-rgb/media-center-bot
-          ref: 4a4c6992bdabee73f069c026e3a245e0f7b74625
+          ref: e0d72a94b37e80e2294686e51f6bdf17cffac8f2
           path: source
       - name: Check privacy, dialogue isolation and weekly rewards
         run: |
@@ -85,7 +85,7 @@ jobs:
           if item:
               game=server.chat_game_for(day,item[0])
               with server.conn() as c:src=c.execute('select source from chat_game_content where day=? and topic=?',(day,item[0])).fetchone()['source']
-              print('Today game prepared:',item[1],src,len(game['questions']))
+              print('Today game prepared:',item[1],src,len(game['questions']),'stored title:',game['title'])
           print('Weekday game dates:',list(week_plan.DAYS))
           print('Wednesday quest: 7 October 10:00–20:00; result 20:15; submissions private')
           print('Weekly prize: 5/5 each weekday, Saturday 10 October all qualifying students')
