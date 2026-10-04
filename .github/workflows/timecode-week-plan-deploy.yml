@@ -1,0 +1,95 @@
+name: TIMECODE conversational week and private game answers
+on:
+  push:
+    branches: [boom-kadr-deploy]
+    paths: ['.github/workflows/timecode-week-plan-deploy.yml']
+permissions:
+  contents: read
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          repository: mityademon-rgb/media-center-bot
+          ref: 4a4c6992bdabee73f069c026e3a245e0f7b74625
+          path: source
+      - name: Check privacy, dialogue isolation and weekly rewards
+        run: |
+          cd source/timecode-bot
+          python3 -m unittest discover -s tests -p test_week_plan.py
+          python3 -m unittest discover -s tests -p test_editorial_chat.py
+          python3 -m unittest discover -s tests -p test_weekend_quest.py
+          python3 -m unittest discover -s tests -p test_chat_schedule.py
+          python3 -m unittest discover -s tests -p test_shared_media.py
+          python3 -m unittest discover -s tests -p test_max_integration.py
+          python3 -m unittest discover -s tests -p test_server.py -k checkin_photos
+          python3 -m unittest discover -s tests -p test_server.py -k evening_digest_retries
+          python3 -m unittest discover -s tests -p test_server.py -k admin_menu_has
+          python3 -m py_compile server.py chat_games.py editorial_voice.py week_plan.py
+      - name: Deploy scoped conversation changes and schedule morning rules
+        env:
+          BOOM_SSH_KEY: ${{ secrets.BOOM_SSH_KEY }}
+        run: |
+          install -d -m 700 ~/.ssh
+          printf '%s\n' "$BOOM_SSH_KEY" > ~/.ssh/timecode
+          chmod 600 ~/.ssh/timecode
+          ssh-keyscan -T 8 -H 217.149.24.242 > ~/.ssh/known_hosts
+          scp -i ~/.ssh/timecode -o BatchMode=yes -o ConnectTimeout=8 source/timecode-bot/server.py source/timecode-bot/chat_games.py source/timecode-bot/editorial_voice.py source/timecode-bot/week_plan.py root@217.149.24.242:/tmp/
+          ssh -i ~/.ssh/timecode -o BatchMode=yes -o ConnectTimeout=8 root@217.149.24.242 'bash -s' <<'REMOTE'
+          set -Eeuo pipefail
+          cd /opt/timecode-bot/timecode-bot
+          backup=$(mktemp -d /opt/timecode-bot/week-plan-backup-XXXXXXXX)
+          cp -p server.py chat_games.py editorial_voice.py "$backup/"
+          if test -f week_plan.py; then cp -p week_plan.py "$backup/";fi
+          rollback() { cp -p "$backup/server.py" "$backup/chat_games.py" "$backup/editorial_voice.py" .; if test -f "$backup/week_plan.py"; then cp -p "$backup/week_plan.py" .;fi; systemctl restart timecode-bot.service || true; }
+          trap rollback ERR
+          python3 - <<'PY'
+          from pathlib import Path
+          source=Path('/tmp/server.py').read_text()
+          live=Path('server.py').read_text()
+          start='def chat_reply(';end='def allowed(uid):\n'
+          if any(t.count(mark)!=1 for t in (source,live) for mark in (start,end)):raise RuntimeError('Chat reply anchor changed')
+          live=live[:live.index(start)]+source[source.index(start):source.index(end)]+live[live.index(end):]
+          live=live.replace('chat_reply(text)','chat_reply(text,uid)').replace('chat_reply(question)))','chat_reply(question,uid)))')
+          anchor='weekend_quest.install(globals())\n'
+          added='import week_plan\nweek_plan.install(globals())\n'
+          if added not in live:
+              if live.count(anchor)!=1:raise RuntimeError('Week module anchor changed')
+              live=live.replace(anchor,anchor+added,1)
+          Path('server.py').write_text(live)
+          for name in ('chat_games.py','editorial_voice.py','week_plan.py'):Path(name).write_text(Path('/tmp/'+name).read_text())
+          PY
+          python3 -m py_compile server.py chat_games.py editorial_voice.py week_plan.py
+          systemctl restart timecode-bot.service
+          curl -fsS --retry 5 --retry-delay 2 --retry-connrefused --max-time 10 http://127.0.0.1:8097/health -o /dev/null
+          curl -fsS --max-time 20 https://timecode-lab.ru/tc/ -o /dev/null
+          trap - ERR
+          set -a
+          . /etc/timecode-bot.env
+          set +a
+          python3 - <<'PY'
+          import server,week_plan,json,hashlib
+          with server.conn() as c:
+              week_plan.tables(c)
+              if c.execute("select 1 from sqlite_master where type='table' and name='chat_game_runs'").fetchone():
+                  for r in c.execute("select g.user_id,g.day,g.topic,g.score,u.name from chat_game_runs g join users u on u.id=g.user_id where step=5").fetchall():
+                      key=hashlib.sha256(('game-answers:'+r['day']+':'+r['topic']+':'+str(r['user_id'])).encode()).hexdigest()[:24]
+                      body=server.esc(r['name']+' сыграл — '+str(r['score'])+'/5. '+('Молодец: все ответы правильные!' if r['score']==5 else 'Спасибо за игру! Подсказки отправил лично.'))
+                      c.execute('update notification_outbox set body=? where message_key=? and delivered=0',(body,key))
+              day=server.today().replace('-','')
+              item=week_plan.DAYS.get(day)
+              if item:
+                  c.execute('delete from chat_game_content where day=? and topic=? and not exists(select 1 from chat_game_runs where day=? and topic=?)',(day,item[0],day,item[0]))
+          if item:
+              game=server.chat_game_for(day,item[0])
+              with server.conn() as c:src=c.execute('select source from chat_game_content where day=? and topic=?',(day,item[0])).fetchone()['source']
+              print('Today game prepared:',item[1],src,len(game['questions']))
+          print('Weekday game dates:',list(week_plan.DAYS))
+          print('Wednesday quest: 7 October 10:00–20:00; result 20:15; submissions private')
+          print('Weekly prize: 5/5 each weekday, Saturday 10 October all qualifying students')
+          print('No overnight announcement sent; morning rules scheduled at 07:30')
+          print('Bot and mini app healthy; progress and earlier prize outcome preserved')
+          PY
+          REMOTE
