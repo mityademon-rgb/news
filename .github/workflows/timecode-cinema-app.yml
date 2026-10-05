@@ -13,7 +13,7 @@ jobs:
       - uses: actions/checkout@v4
         with:
           repository: mityademon-rgb/media-center-bot
-          ref: 04581c5fe80111f368b92449442f0f6d814f2c86
+          ref: 859bba101b45a483060bab5b363eaf695446a724
           path: source
       - name: Verify JavaScript and deploy scoped home change
         env:
@@ -21,10 +21,14 @@ jobs:
         run: |
           node --check source/timecode-bot/static/cinema-library.js
           node --check source/timecode-bot/static/app.js
+          cd source/timecode-bot
+          python3 -m unittest discover -s tests -p test_max_integration.py
+          cd ../..
           install -d -m 700 ~/.ssh
           printf '%s\n' "$BOOM_SSH_KEY" > ~/.ssh/timecode
           chmod 600 ~/.ssh/timecode
           ssh-keyscan -T 8 -H 217.149.24.242 > ~/.ssh/known_hosts
+          scp -i ~/.ssh/timecode source/timecode-bot/max_transport.py root@217.149.24.242:/tmp/cinema-max-transport.py
           scp -i ~/.ssh/timecode source/timecode-bot/static/cinema-library.js root@217.149.24.242:/tmp/
           scp -i ~/.ssh/timecode source/timecode-bot/static/app.js root@217.149.24.242:/tmp/cinema-source-app.js
           ssh -i ~/.ssh/timecode root@217.149.24.242 'bash -s' <<'REMOTE'
@@ -32,6 +36,8 @@ jobs:
           cd /opt/timecode-bot/timecode-bot
           backup=$(mktemp -d /opt/timecode-bot/cinema-app-backup-XXXXXXXX)
           cp -p static/app.js static/index.html "$backup/"
+          cp -p max_transport.py "$backup/"
+          cp /tmp/cinema-max-transport.py max_transport.py
           cp /tmp/cinema-library.js static/
           python3 - <<'PY'
           from pathlib import Path
