@@ -1,0 +1,70 @@
+name: TIMECODE cinema app and messenger launch
+on:
+  push:
+    branches: [boom-kadr-deploy]
+    paths: ['.github/workflows/timecode-cinema-app.yml']
+permissions:
+  contents: read
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          repository: mityademon-rgb/media-center-bot
+          ref: 04581c5fe80111f368b92449442f0f6d814f2c86
+          path: source
+      - name: Verify JavaScript and deploy scoped home change
+        env:
+          BOOM_SSH_KEY: ${{ secrets.BOOM_SSH_KEY }}
+        run: |
+          node --check source/timecode-bot/static/cinema-library.js
+          node --check source/timecode-bot/static/app.js
+          install -d -m 700 ~/.ssh
+          printf '%s\n' "$BOOM_SSH_KEY" > ~/.ssh/timecode
+          chmod 600 ~/.ssh/timecode
+          ssh-keyscan -T 8 -H 217.149.24.242 > ~/.ssh/known_hosts
+          scp -i ~/.ssh/timecode source/timecode-bot/static/cinema-library.js root@217.149.24.242:/tmp/
+          scp -i ~/.ssh/timecode source/timecode-bot/static/app.js root@217.149.24.242:/tmp/cinema-source-app.js
+          ssh -i ~/.ssh/timecode root@217.149.24.242 'bash -s' <<'REMOTE'
+          set -Eeuo pipefail
+          cd /opt/timecode-bot/timecode-bot
+          backup=$(mktemp -d /opt/timecode-bot/cinema-app-backup-XXXXXXXX)
+          cp -p static/app.js static/index.html "$backup/"
+          cp /tmp/cinema-library.js static/
+          python3 - <<'PY'
+          from pathlib import Path
+          src=Path('/tmp/cinema-source-app.js').read_text()
+          p=Path('static/app.js');live=p.read_text()
+          a='function login(){';b='function render(){'
+          assert live.count(a)==1 and live.count(b)==1
+          live=live[:live.index(a)]+src[src.index(a):src.index(b)]+live[live.index(b):]
+          p.write_text(live)
+          p=Path('static/index.html');live=p.read_text()
+          import re
+          live=re.sub(r'src="app.js(?:\?[^"]*)?"','src="app.js?v=cinema-20261005-2"',live)
+          if 'cinema-library.js' not in live:live=live.replace('</body>','<script src="cinema-library.js?v=20261005"></script></body>')
+          p.write_text(live)
+          PY
+          curl -fsS https://timecode-lab.ru/tc/cinema-library.js -o /tmp/cinema-served.js
+          cmp static/cinema-library.js /tmp/cinema-served.js
+          curl -fsS http://127.0.0.1:8097/health -o /dev/null
+          set -a
+          . /etc/timecode-bot.env
+          set +a
+          python3 - <<'PY'
+          import server,json,hashlib
+          key=hashlib.sha256(b'cinema-app-correct-launch-20261005').hexdigest()[:24]
+          body='Поправил вход: обычная ссылка открывала браузер и просила код. Нажми «Открыть приложение» ниже — это запуск внутри твоего мессенджера. На главной теперь есть «Кино»: шесть фильмов, истории со съёмок и ссылки на просмотр. Читать можно прямо в приложении.'
+          buttons=[[{'text':'Открыть приложение','web_app':{'url':server.BASE}}],[{'text':'Кино на сайте','url':'https://timecode-lab.ru/#/cinema'}]]
+          with server.conn() as c:
+              recipients=[r['id'] for r in c.execute('select id from users where enabled=1')]
+              for uid in recipients:c.execute('insert or ignore into notification_outbox(day,message_key,chat,body,keyboard) values(?,?,?,?,?)',(server.today(),key,json.dumps(uid),server.esc(body),json.dumps(buttons,ensure_ascii=False)))
+          server.retry_notifications(key)
+          with server.conn() as c:
+              r=c.execute('select count(*) n,sum(delivered) delivered from notification_outbox where message_key=?',(key,)).fetchone()
+              print('Correct launch button delivered:',r['delivered'],'of',r['n'])
+          print('Cinema JavaScript served correctly; six full stories; app health OK')
+          PY
+          REMOTE
