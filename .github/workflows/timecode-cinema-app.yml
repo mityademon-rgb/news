@@ -78,6 +78,17 @@ jobs:
           with server.conn() as c:
               recipients=[r['id'] for r in c.execute('select id from users where enabled=1')]
               for uid in recipients:c.execute('insert or ignore into notification_outbox(day,message_key,chat,body,keyboard) values(?,?,?,?,?)',(server.today(),key,json.dumps(uid),server.esc(body),json.dumps(buttons,ensure_ascii=False)))
+          original_api=server.max_transport.api
+          def diagnosed_api(*args,**kwargs):
+              try:return original_api(*args,**kwargs)
+              except Exception as e:
+                  if hasattr(e,'read'):
+                      try:
+                          details=json.loads(e.read())
+                          print('MAX API diagnostic:',args[0],args[1],getattr(e,'code',None),details.get('code'),str(details.get('message',''))[:300])
+                      except Exception:pass
+                  raise
+          server.max_transport.api=diagnosed_api
           server.retry_notifications(key)
           with server.conn() as c:
               r=c.execute('select count(*) n,sum(delivered) delivered from notification_outbox where message_key=?',(key,)).fetchone()
