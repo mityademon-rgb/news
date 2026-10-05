@@ -52,7 +52,7 @@ jobs:
           with server.conn() as c:
               rows=c.execute('select chat,delivered from notification_outbox where message_key=?',(key,)).fetchall()
               for platform in ('Telegram','MAX'):
-                  r=[x for x in rows if ('MAX' if isinstance(json.loads(x['chat']),int) and json.loads(x['chat'])<0 and c.execute('select 1 from messenger_identities where internal_id=? and platform=?',(json.loads(x['chat']),'max')).fetchone() else 'Telegram')==platform]
+                  r=[x for x in rows if ('MAX' if isinstance(json.loads(x['chat']),int) and json.loads(x['chat'])<0 and c.execute('select 1 from messenger_identities where user_id=? and platform=?',(json.loads(x['chat']),'max')).fetchone() else 'Telegram')==platform]
                   print(platform,'delivered',sum(x['delivered'] for x in r),'pending',sum(not x['delivered'] for x in r))
           print('Live threshold: >=3 each day; existing results preserved; health OK')
           PY
