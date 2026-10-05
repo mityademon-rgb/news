@@ -74,6 +74,37 @@
             {
                 "label": "«ЛесПромИнформ»: справка в архиве Почечуева",
                 "url": "https://lesprominform.ru/jarticles.html?id=2417"
+            },
+            {
+                "label": "Мосфильм: фильм и создатели",
+                "url": "https://mosfilm.ru/cinema/films/ivan-vasilevich-menyaet-professiyu/"
+            }
+        ],
+        "country": "СССР",
+        "studio": "Мосфильм",
+        "genre": "Комедия о путешествии во времени",
+        "duration": "93 минуты",
+        "cast": [
+            [
+                "Александр Демьяненко",
+                "Шурик, изобретатель"
+            ],
+            [
+                "Юрий Яковлев",
+                "Иван Грозный и управдом Бунша"
+            ],
+            [
+                "Леонид Куравлёв",
+                "Жорж Милославский, квартирный вор"
+            ]
+        ],
+        "summary": "Шурик изобретает машину времени прямо у себя дома. Пробный запуск отправляет управдома Буншу и квартирного вора в XVI век, а Ивана Грозного — в советскую квартиру. Царь осваивает телефон, Бунша пытается сойти за государя, вор чувствует себя при дворе подозрительно уверенно. Чтобы вернуть всех на места, Шурику нужно починить машину. Желательно раньше, чем подмену царя заметят.",
+        "fame": "Гайдай столкнул две эпохи так, что смешным стал каждый бытовой пустяк: телефон для царя, царские обязанности для управдома. Яковлев играет двух одинаковых с виду людей с совершенно разными характерами, а Куравлёв превращает вора в самого находчивого человека во дворце. «Очень приятно, царь», «Замуровали, демоны!» и «Танцуют все!» давно живут отдельно от фильма. Возможно, ты уже слышал их, просто не знал откуда.",
+        "watch": [
+            {
+                "label": "Смотреть на Мосфильме",
+                "url": "https://mosfilm.ru/cinema/films/ivan-vasilevich-menyaet-professiyu/",
+                "note": "Бесплатно · полный фильм · официальный онлайн-кинотеатр"
             }
         ]
     },
@@ -99,6 +130,37 @@
             {
                 "label": "Журнал «Баку»: интервью Леонида Каневского",
                 "url": "https://www.baku-media.ru/publications/kultura/kino/leonid-kanevskiy-bolshaya-rol/"
+            },
+            {
+                "label": "Мосфильм: фильм и создатели",
+                "url": "https://www.mosfilm.ru/cinema/films/brilliantovaya-ruka/"
+            }
+        ],
+        "country": "СССР",
+        "studio": "Мосфильм",
+        "genre": "Детективная комедия",
+        "duration": "100 минут",
+        "cast": [
+            [
+                "Юрий Никулин",
+                "Семён Горбунков, турист"
+            ],
+            [
+                "Андрей Миронов",
+                "Геша Козодоев, контрабандист"
+            ],
+            [
+                "Анатолий Папанов",
+                "Лёлик, его сообщник"
+            ]
+        ],
+        "summary": "Обычный советский турист Семён Горбунков падает на улице зарубежного города. Контрабандисты принимают его за своего человека и прячут драгоценности в гипс на его руке. Теперь турист возвращается домой с очень дорогой повязкой, а преступники пытаются получить её обратно. Их беда: Горбунков — не опытный агент, а честный и совершенно непредсказуемый человек.",
+        "fame": "Комедия устроена как погоня, в которой опасные преступники постоянно оказываются смешнее своей жертвы. Никулин играет тихого человека, Миронов — обаятельного мошенника, Папанов — раздражённого мастера сомнительных операций. Песни «Остров невезения» и «Песня про зайцев», реплики про такси в булочную и «Буду бить аккуратно, но сильно» сделали фильм узнаваемым даже для тех, кто не видел его целиком.",
+        "watch": [
+            {
+                "label": "Смотреть на Мосфильме",
+                "url": "https://www.mosfilm.ru/cinema/films/brilliantovaya-ruka/",
+                "note": "Бесплатно · полный фильм · официальный онлайн-кинотеатр"
             }
         ]
     },
@@ -108,7 +170,7 @@
         "categoryLabel": "Зарубежные",
         "title": "Матрица",
         "year": "1999",
-        "age": "16+",
+        "age": "18+",
         "director": "Лана и Лилли Вачовски",
         "image": "./assets/cinema-matrix.webp",
         "hook": "Камера должна была облететь Нео быстрее пули. Тогда её заменили целым кольцом фотоаппаратов.",
@@ -123,6 +185,45 @@
             {
                 "label": "WIRED: Джон Гаэта и команда bullet time",
                 "url": "https://www.wired.com/2003/05/matrix2/"
+            },
+            {
+                "label": "Apple TV: сюжет, актёры, год и страна",
+                "url": "https://tv.apple.com/us/movie/the-matrix/umc.cmc.af8k9kcq9r1s1qmmdxpq4itn"
+            },
+            {
+                "label": "Киноакадемия: четыре награды «Матрицы»",
+                "url": "https://www.oscars.org/oscars/ceremonies/embed/2000"
+            }
+        ],
+        "country": "США / Австралия",
+        "studio": "Warner Bros. / Village Roadshow",
+        "genre": "Фантастический боевик",
+        "duration": "136 минут",
+        "cast": [
+            [
+                "Киану Ривз",
+                "Нео, программист и хакер"
+            ],
+            [
+                "Лоренс Фишбёрн",
+                "Морфеус, проводник в другой мир"
+            ],
+            [
+                "Кэрри-Энн Мосс",
+                "Тринити, участница сопротивления"
+            ],
+            [
+                "Хьюго Уивинг",
+                "агент Смит"
+            ]
+        ],
+        "summary": "Днём Томас Андерсон работает программистом, ночью становится хакером Нео. Он чувствует, что с окружающим миром что-то не так. Незнакомцы предлагают ему проверить подозрения: привычная жизнь может оказаться компьютерной системой, а её правила — ловушкой. Нео предстоит решить, хочет ли он узнать правду, если вернуться к прежней жизни уже не получится.",
+        "fame": "Фильм предложил зрителям тревожную мысль: вдруг привычный мир ненастоящий? И показал её через погони, единоборства и невозможные движения. Чёрные плащи, зелёные строки кода, выбор красной или синей таблетки стали узнаваемыми образами. Эффект bullet time начали повторять и пародировать. «Матрица» получила четыре «Оскара»: за монтаж, звук, монтаж звуковых эффектов и визуальные эффекты.",
+        "watch": [
+            {
+                "label": "Открыть фильм на Apple TV",
+                "url": "https://tv.apple.com/us/movie/the-matrix/umc.cmc.af8k9kcq9r1s1qmmdxpq4itn",
+                "note": "Зарубежный каталог · условия просмотра зависят от страны и аккаунта. Доступность в России не подтверждена."
             }
         ]
     },
@@ -132,7 +233,7 @@
         "categoryLabel": "Зарубежные",
         "title": "Челюсти",
         "year": "1975",
-        "age": "16+",
+        "age": "18+",
         "director": "Стивен Спилберг",
         "image": "./assets/cinema-jaws.webp",
         "hook": "Спилберг приехал снимать акулу. Акула отказалась работать.",
@@ -151,6 +252,41 @@
             {
                 "label": "SYFY: интервью художника Джо Алвеса",
                 "url": "https://www.syfy.com/syfy-wire/jaws-joe-alves-interview-45-anniversary"
+            },
+            {
+                "label": "Amblin: сюжет, создатели и успех фильма",
+                "url": "https://amblin.com/movie/jaws/"
+            },
+            {
+                "label": "Universal: официальный каталог фильма",
+                "url": "https://www.universalpicturesathome.com/movies/jaws"
+            }
+        ],
+        "country": "США",
+        "studio": "Universal Pictures / Zanuck–Brown",
+        "genre": "Триллер",
+        "duration": "124 минуты",
+        "cast": [
+            [
+                "Рой Шайдер",
+                "Мартин Броуди, начальник полиции"
+            ],
+            [
+                "Ричард Дрейфусс",
+                "Мэтт Хупер, специалист по акулам"
+            ],
+            [
+                "Роберт Шоу",
+                "Квинт, охотник на акул"
+            ]
+        ],
+        "summary": "В курортном городке акула начинает нападать на людей. Начальник полиции хочет закрыть пляжи, но мэр боится потерять летний заработок. Когда ждать больше нельзя, полицейский, учёный и опытный рыбак выходят в море. На берегу каждый мог спорить о том, насколько велика опасность. На маленькой лодке спорить становится гораздо труднее.",
+        "fame": "Спилберг превратил обычный пляж в место, где страшно даже смотреть на спокойную воду. Зритель замечает угрозу раньше героев, слышит музыку Джона Уильямса и ждёт нападения. Фильм стал огромным кассовым событием 1975 года и одним из образцов летнего блокбастера — большого фильма, ради которого массово идут в кино. Он получил три «Оскара»: за музыку, звук и монтаж.",
+        "watch": [
+            {
+                "label": "Варианты просмотра от Universal",
+                "url": "https://www.universalpicturesathome.com/movies/jaws",
+                "note": "Покупка или аренда · зарубежные сервисы · доступность в России не подтверждена."
             }
         ]
     },
@@ -160,7 +296,7 @@
         "categoryLabel": "Сказки",
         "title": "Морозко",
         "year": "1964",
-        "age": "6+",
+        "age": "0+",
         "director": "Александр Роу",
         "image": "./assets/cinema-morozko.webp",
         "hook": "Марфуша должна была хрустеть яблоками. Чуриковой достался сырой лук.",
@@ -175,6 +311,54 @@
             {
                 "label": "Myslo: интервью Инны Чуриковой, 2015",
                 "url": "https://myslo.ru/city/people/interview/inna-churikova-marfusha-iz-morozko-%E2%80%94-moya-lubimaya-rol"
+            },
+            {
+                "label": "Киностудия Горького: карточка «Морозко»",
+                "url": "https://gorkyfilm.ru/catalog/zolotaya-kollekcziya/morozko/"
+            },
+            {
+                "label": "Культура.РФ: история фильма",
+                "url": "https://www.culture.ru/live/movies/784/morozko"
+            }
+        ],
+        "country": "СССР",
+        "studio": "Киностудия имени М. Горького",
+        "genre": "Музыкальная сказка",
+        "duration": "84 минуты",
+        "cast": [
+            [
+                "Наталья Седых",
+                "Настенька"
+            ],
+            [
+                "Эдуард Изотов",
+                "Иван"
+            ],
+            [
+                "Инна Чурикова",
+                "Марфушенька-Душенька"
+            ],
+            [
+                "Георгий Милляр",
+                "Баба-яга"
+            ],
+            [
+                "Александр Хвыля",
+                "Морозко"
+            ]
+        ],
+        "summary": "Мачеха отправляет Настеньку в зимний лес: пусть родная дочь Марфуша получит всё, а падчерица не мешает. Тем временем красавец Иван расплачивается за своё хвастовство неожиданным превращением. В лесу встретятся Морозко, Баба-яга и другие герои, у которых на каждый человеческий недостаток найдётся волшебный ответ. Только зимняя сказка совсем не обещает всем одинакового приёма.",
+        "fame": "Роу снял сказку, в которой страшные персонажи одновременно смешные. Баба-яга Милляра, возмущённая Марфуша Чуриковой и зимний лес запоминаются не меньше главных героев. Здесь чудеса выглядят осязаемыми: в избушку можно войти, от мороза можно замёрзнуть, с волшебником можно поговорить. Фильм стал привычным зимним просмотром для нескольких поколений.",
+        "watch": [
+            {
+                "label": "Смотреть на Культура.РФ",
+                "url": "https://www.culture.ru/live/movies/784/morozko",
+                "note": "Бесплатно · полный фильм"
+            },
+            {
+                "label": "Смотреть на канале киностудии Горького",
+                "url": "https://www.youtube.com/watch?v=TESoWRfVPCc",
+                "note": "Бесплатно · YouTube · доступ зависит от работы сервиса"
             }
         ]
     },
@@ -200,6 +384,49 @@
             {
                 "label": "«Вокруг ТВ»: интервью Дмитрия Иосифова, 2008",
                 "url": "https://www.vokrug.tv/article/show/intervyu_s_dimoi_iosifovym_s_novym_nosom/"
+            },
+            {
+                "label": "Гостелерадиофонд: публикация полной версии",
+                "url": "https://t.me/s/gosteleradiofond/9696?q=%23%D1%81%D0%BA%D0%B0%D0%B7%D0%BA%D0%B8"
+            }
+        ],
+        "country": "СССР",
+        "studio": "Беларусьфильм",
+        "genre": "Музыкальная сказка · две серии",
+        "duration": "Около 130 минут",
+        "cast": [
+            [
+                "Дмитрий Иосифов",
+                "Буратино"
+            ],
+            [
+                "Николай Гринько",
+                "папа Карло"
+            ],
+            [
+                "Владимир Этуш",
+                "Карабас-Барабас"
+            ],
+            [
+                "Ролан Быков",
+                "кот Базилио"
+            ],
+            [
+                "Елена Санаева",
+                "лиса Алиса"
+            ],
+            [
+                "Рина Зелёная",
+                "черепаха Тортилла"
+            ]
+        ],
+        "summary": "Папа Карло вырезает из полена мальчика, а тот немедленно превращает свою жизнь в приключение. Вместо школы — кукольный театр, вместо разумных покупок — знакомство с лисой Алисой и котом Базилио. Они обещают лёгкое богатство. Карабас-Барабас тем временем ищет тайну, связанную с золотым ключиком. Буратино ещё не умеет отличать друзей от мошенников, зато уже умеет нарушать чужие планы.",
+        "fame": "Деревянный мальчик здесь ведёт себя как живой ребёнок: спорит, ошибается, верит красивым обещаниям и не умеет сидеть спокойно. Взрослые актёры превращают сказочных злодеев в ярких комедийных персонажей, а музыка Алексея Рыбникова делает каждую встречу отдельным номером. Песни про Буратино, Поле чудес и Карабаса-Барабаса можно вспомнить спустя годы — именно так фильм и передаётся от поколения к поколению.",
+        "watch": [
+            {
+                "label": "Смотреть у Гостелерадиофонда",
+                "url": "https://www.youtube.com/watch?si=95DWyIvzfv7WrSDb&v=MiXzvd5EbsI&feature=youtu.be",
+                "note": "Бесплатно · полный фильм · официальный канал · YouTube"
             }
         ]
     }
@@ -994,13 +1221,13 @@
       const cards = cinemaCatalog.filter((film) => film.category === id).map((film) => `
         <a class="cinema-film-card" href="#/cinema/${encodeURIComponent(film.id)}">
           <div class="cinema-film-image"><img src="${escapeHtml(film.image)}" alt="" /><span>${escapeHtml(film.age)}</span></div>
-          <div class="cinema-film-copy"><p>${escapeHtml(film.year)} · ${escapeHtml(film.director)}</p><h3>${escapeHtml(film.title)}</h3><strong>${escapeHtml(film.hook)}</strong><i>Узнать историю →</i></div>
+          <div class="cinema-film-copy"><p>${escapeHtml(film.year)} · ${escapeHtml(film.country)} · ${escapeHtml(film.director)}</p><h3>${escapeHtml(film.title)}</h3><strong>${escapeHtml(film.hook)}</strong><i>Узнать историю →</i></div>
         </a>`).join("");
       return `<section class="cinema-category cinema-category-${id}"><header><span>${escapeHtml(title)}</span><p>${escapeHtml(copy)}</p></header><div>${cards}</div></section>`;
     }).join("");
     main.innerHTML = `<section class="cinema-page">
       <header class="cinema-page-bar"><a href="#/">← На главную</a><span>КИНО БЕЗ ЛЕКЦИЙ</span><b>${cinemaCatalog.length} историй</b></header>
-      <div class="cinema-intro"><p>Фильм начинается не с оценки</p><h1>СМОТРИ,<br /><span>КАК ЭТО СДЕЛАНО</span></h1><strong>На площадке что-то пошло не так. Кто-то придумал выход. А мы получили сцену, которую хочется пересмотреть.</strong></div>
+      <div class="cinema-intro"><p>Фильм начинается не с оценки</p><h1>КИНО,<br /><span>С КОТОРОГО НАЧАТЬ</span></h1><strong>Что за фильм, кто его сделал, почему его помнят — и что случилось за кадром. Выбери историю, а потом включи кино.</strong></div>
       ${sections}
     </section>`;
     window.scrollTo({ top: 0, behavior: "instant" });
@@ -1018,12 +1245,20 @@
       <header class="cinema-page-bar"><a href="#/cinema">← Все фильмы</a><span>${escapeHtml(film.categoryLabel)}</span><b>${escapeHtml(film.age)}</b></header>
       <div class="cinema-story-hero">
         <img src="${escapeHtml(film.image)}" alt="Иллюстрация к истории о фильме «${escapeHtml(film.title)}»" />
-        <div><p>${escapeHtml(film.year)} · ${escapeHtml(film.director)}</p><h1>${escapeHtml(film.title)}</h1><strong>${escapeHtml(film.hook)}</strong></div>
+        <div><p>${escapeHtml(film.year)} · ${escapeHtml(film.country)} · ${escapeHtml(film.director)}</p><h1>${escapeHtml(film.title)}</h1><strong>${escapeHtml(film.hook)}</strong></div>
       </div>
+      <section class="cinema-film-passport" aria-label="О фильме">
+        <div><span>КОГДА И ГДЕ СОЗДАН</span><strong>${escapeHtml(film.year)} · ${escapeHtml(film.country)}</strong><p>${escapeHtml(film.studio)}</p></div>
+        <div><span>КТО СНЯЛ</span><strong>${escapeHtml(film.director)}</strong><p>${escapeHtml(film.genre)} · ${escapeHtml(film.duration)}</p></div>
+        <div class="cinema-film-cast"><span>КТО ИГРАЕТ</span><ul>${film.cast.map(([actor, role]) => `<li><b>${escapeHtml(actor)}</b><i>${escapeHtml(role)}</i></li>`).join("")}</ul></div>
+      </section>
       <div class="cinema-story-grid">
+        <article class="cinema-story-introduction"><span>ЧТО ЗА ИСТОРИЯ</span><p>${escapeHtml(film.summary)}</p></article>
+        <article class="cinema-story-fame"><span>ПОЧЕМУ ЕГО ПОМНЯТ</span><p>${escapeHtml(film.fame)}</p></article>
         <article class="cinema-story-main"><span>ИСТОРИЯ СО СЪЁМОК</span>${film.story.map((paragraph) => `<p>${escapeHtml(paragraph)}</p>`).join("")}</article>
         <article class="cinema-story-note cinema-story-watch"><span>ТЕПЕРЬ ПОСМОТРИ ЭТУ СЦЕНУ</span><p>${escapeHtml(film.notice)}</p></article>
       </div>
+      <section class="cinema-watch-links" aria-label="Где посмотреть фильм"><h2>ВКЛЮЧИТЬ ФИЛЬМ</h2>${film.watch.map((item) => `<div><a href="${escapeHtml(item.url)}" target="_blank" rel="noopener noreferrer">${escapeHtml(item.label)} <span>↗</span></a><p>${escapeHtml(item.note)}</p></div>`).join("")}</section>
       <details class="cinema-story-sources"><summary>Откуда эта история</summary><p>${escapeHtml(film.evidence)}</p><ul>${film.sources.map((source) => `<li><a href="${escapeHtml(source.url)}" target="_blank" rel="noopener noreferrer">${escapeHtml(source.label)} ↗</a></li>`).join("")}</ul><p class="cinema-illustration-note">Обложка — иллюстрация, а не кадр со съёмочной площадки.</p></details>
       <footer class="cinema-story-footer"><a href="#/cinema">Все киноистории</a>${siblings.map((item) => `<a href="#/cinema/${encodeURIComponent(item.id)}">Следующий в разделе: <b>${escapeHtml(item.title)}</b> →</a>`).join("")}</footer>
     </section>`;

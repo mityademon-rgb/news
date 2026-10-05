@@ -6705,3 +6705,29 @@ body.camera-card-open { overflow: hidden; }
   .camera-card-rule b:nth-of-type(2),
   .camera-card-rule b:nth-of-type(2) + span { margin-top: 5px; }
 }
+
+/* Film introductions: context before the production story. */
+.cinema-film-passport { display:grid; grid-template-columns:1fr 1fr; gap:28px; padding:36px 0; border-bottom:1px solid rgba(242,238,228,.25); }
+.cinema-film-passport span { display:block; color:#ff655e; font-size:12px; font-weight:900; letter-spacing:.08em; margin-bottom:12px; }
+.cinema-film-passport strong { display:block; font-size:clamp(20px,2vw,28px); }
+.cinema-film-passport p { margin:10px 0 0; font-size:16px; line-height:1.5; }
+.cinema-film-cast { grid-column:1/-1; }
+.cinema-film-cast ul { display:grid; grid-template-columns:repeat(3,minmax(0,1fr)); gap:18px 24px; list-style:none; padding:0; margin:0; }
+.cinema-film-cast b,.cinema-film-cast i { display:block; font-size:16px; line-height:1.45; }
+.cinema-film-cast i { font-style:normal; opacity:.72; }
+.cinema-story-introduction,.cinema-story-fame { grid-column:1/-1; background:#201d26; }
+.cinema-story-fame { background:#302323; }
+.cinema-story-introduction p,.cinema-story-fame p { max-width:900px; font-size:clamp(20px,2.2vw,30px)!important; line-height:1.45!important; }
+.cinema-watch-links { padding:28px 0 40px; }
+.cinema-watch-links h2 { margin:0 0 22px; font-size:clamp(28px,4vw,48px); letter-spacing:-.04em; }
+.cinema-watch-links > div { margin-bottom:22px; }
+.cinema-watch-links a { display:flex; justify-content:space-between; align-items:center; gap:16px; padding:22px 26px; background:#ff4038; color:#fff; border-radius:16px; text-decoration:none; font-size:clamp(18px,2vw,24px); font-weight:850; }
+.cinema-watch-links a:hover { background:#e4352e; }
+.cinema-watch-links p { margin:10px 4px 0; max-width:850px; font-size:15px; line-height:1.5; opacity:.78; }
+.cinema-story-hero h1,.cinema-intro h1 { overflow-wrap:anywhere; }
+@media(max-width:760px) {
+ .cinema-film-passport { grid-template-columns:1fr; gap:24px; }
+ .cinema-film-cast ul { grid-template-columns:1fr; gap:14px; }
+ .cinema-watch-links a { padding:20px; }
+ .cinema-story-footer a { min-width:0; flex-basis:100%; }
+}
