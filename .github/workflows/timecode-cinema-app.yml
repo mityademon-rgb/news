@@ -47,6 +47,17 @@ jobs:
           if 'cinema-library.js' not in live:live=live.replace('</body>','<script src="cinema-library.js?v=20261005"></script></body>')
           p.write_text(live)
           PY
+          python3 - <<'PY'
+          from pathlib import Path
+          p=Path('server.py');s=p.read_text()
+          if "'/cinema-library.js'" not in s:
+              assert s.count("'/home-discovery.js',")==1
+              s=s.replace("'/home-discovery.js',","'/cinema-library.js','/home-discovery.js',")
+              p.write_text(s)
+          PY
+          python3 -m py_compile server.py
+          systemctl restart timecode-bot.service
+          curl -fsS --retry 5 --retry-delay 2 --retry-connrefused http://127.0.0.1:8097/health -o /dev/null
           curl -fsS https://timecode-lab.ru/tc/cinema-library.js -o /tmp/cinema-served.js
           cmp static/cinema-library.js /tmp/cinema-served.js
           curl -fsS http://127.0.0.1:8097/health -o /dev/null
