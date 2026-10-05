@@ -1,0 +1,59 @@
+name: TIMECODE three correct answers and cinema announcement
+on:
+  push:
+    branches: [boom-kadr-deploy]
+    paths: ['.github/workflows/timecode-three-of-five.yml']
+permissions:
+  contents: read
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          repository: mityademon-rgb/media-center-bot
+          ref: 7bf0ab0adaa1e360d77b6e9aaafde24fada71e63
+          path: source
+      - name: Verify threshold boundary and deploy
+        env:
+          BOOM_SSH_KEY: ${{ secrets.BOOM_SSH_KEY }}
+        run: |
+          cd source/timecode-bot
+          python3 -m unittest discover -s tests -p test_week_plan.py
+          install -d -m 700 ~/.ssh
+          printf '%s\n' "$BOOM_SSH_KEY" > ~/.ssh/timecode
+          chmod 600 ~/.ssh/timecode
+          ssh-keyscan -T 8 -H 217.149.24.242 > ~/.ssh/known_hosts
+          scp -i ~/.ssh/timecode week_plan.py root@217.149.24.242:/tmp/week_plan_threshold.py
+          ssh -i ~/.ssh/timecode root@217.149.24.242 'bash -s' <<'REMOTE'
+          set -Eeuo pipefail
+          cd /opt/timecode-bot/timecode-bot
+          cp -p week_plan.py /tmp/week_plan-before-threshold.py
+          cp /tmp/week_plan_threshold.py week_plan.py
+          python3 -m py_compile week_plan.py
+          systemctl restart timecode-bot.service
+          curl -fsS --retry 5 --retry-delay 2 --retry-connrefused http://127.0.0.1:8097/health -o /dev/null
+          curl -fsS https://timecode-lab.ru/tc/ -o /dev/null
+          set -a
+          . /etc/timecode-bot.env
+          set +a
+          python3 - <<'PY'
+          import server,json,hashlib,week_plan
+          assert "r['score']>=3" in open('week_plan.py').read()
+          body=server.esc("Я обещал меняться и учиться — выполняю. Теперь в моём арсенале бот, сайт TIMECODE и Дмитрий Витальевич. Последний особенно полезен: умеет объяснять кино без зарядки и обновлений.\n\nСегодня на сайте появился раздел «Кино». Будем знакомиться с фильмами, которые стали классикой: что в них такого и как их снимали. Смотреть или нет — решаете вы. Но я очень советую: некоторые находки пережили десятки лет и до сих пор работают лучше модных фильтров. Про фильмы можно почитать и в нашем приложении — прямо здесь, в боте.\n\nКино на сайте: https://timecode-lab.ru/#/cinema\nПриложение: https://timecode-lab.ru/tc/\n\nА ещё Дмитрий Витальевич попросил ослабить игровой порог. Договорились: теперь для брелока нужно минимум 3 правильных ответа из 5 каждый день с понедельника по пятницу, 5–9 октября. Сегодняшние результаты тоже засчитываются по новым правилам. Все, кто выполнит условие, в субботу получат брелок TIMECODE из его рук. Играем прямо в чате бота, ответы и подсказки остаются между нами.\n\nСегодняшняя игра — «Это новость?». До 23:59 ещё можно успеть. Открывай /game — проверим твоё редакторское чутьё.")
+          key=hashlib.sha256(b'timecode-cinema-threshold-20261005').hexdigest()[:24]
+          buttons=[[{'text':'Кино на сайте','url':'https://timecode-lab.ru/#/cinema'},{'text':'Приложение TIMECODE','url':server.BASE}],[{'text':'Играть: Это новость?','callback_data':'cg:s:20261005:f'}]]
+          with server.conn() as c:
+              recipients=[r['id'] for r in c.execute('select id from users where enabled=1')]+([server.GROUP] if server.GROUP else [])
+              for uid in dict.fromkeys(recipients):
+                  c.execute('insert or ignore into notification_outbox(day,message_key,chat,body,keyboard) values(?,?,?,?,?)',(server.today(),key,json.dumps(uid),body,json.dumps(buttons,ensure_ascii=False)))
+          server.retry_notifications(key)
+          with server.conn() as c:
+              rows=c.execute('select chat,delivered from notification_outbox where message_key=?',(key,)).fetchall()
+              for platform in ('Telegram','MAX'):
+                  r=[x for x in rows if ('MAX' if isinstance(json.loads(x['chat']),int) and json.loads(x['chat'])<0 and c.execute('select 1 from messenger_identities where internal_id=? and platform=?',(json.loads(x['chat']),'max')).fetchone() else 'Telegram')==platform]
+                  print(platform,'delivered',sum(x['delivered'] for x in r),'pending',sum(not x['delivered'] for x in r))
+          print('Live threshold: >=3 each day; existing results preserved; health OK')
+          PY
+          REMOTE
