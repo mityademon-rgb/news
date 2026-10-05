@@ -48,6 +48,98 @@
       accent: "yellow"
     }
   ];
+  const cinemaCatalog = [
+    {
+      id: "ivan-vasilievich",
+      category: "ours",
+      categoryLabel: "Наши",
+      title: "Иван Васильевич меняет профессию",
+      year: "1973",
+      age: "12+",
+      director: "Леонид Гайдай",
+      image: "./assets/cinema-ivan.webp",
+      hook: "Как один актёр сыграл сразу двух совершенно разных людей — без компьютерных эффектов?",
+      story: "Юрий Яковлев играет и грозного Ивана Грозного, и растерянного управдома Буншу. Чтобы зритель ни на секунду их не путал, работают не только костюмы: у героев разные походка, взгляд, темп речи и даже способ молчать.",
+      why: "Это отличный урок актёрской работы, комедийного ритма и точного монтажа.",
+      notice: "Сравните, как один и тот же актёр входит в комнату в каждой из двух ролей.",
+      question: "Получилось бы различить героев, если бы они были одеты одинаково?"
+    },
+    {
+      id: "diamond-arm",
+      category: "ours",
+      categoryLabel: "Наши",
+      title: "Бриллиантовая рука",
+      year: "1968",
+      age: "12+",
+      director: "Леонид Гайдай",
+      image: "./assets/cinema-diamond.webp",
+      hook: "Почему смешной момент почти никогда не бывает случайным?",
+      story: "Гайдай строит комедию как точный механизм: сначала зрителю показывают предмет или опасность, потом дают герою сделать неправильный шаг, а реакцию оставляют на самый конец. Даже простое падение работает благодаря подготовке, паузе и монтажу.",
+      why: "Фильм показывает, как из обычных мест, понятных характеров и точных деталей получается большое кино.",
+      notice: "Перед каждой шуткой ищите подсказку: что режиссёр специально показал чуть раньше?",
+      question: "Что смешнее — само происшествие или реакция героя после него?"
+    },
+    {
+      id: "matrix",
+      category: "world",
+      categoryLabel: "Зарубежные",
+      title: "Матрица",
+      year: "1999",
+      age: "16+",
+      director: "Лана и Лилли Вачовски",
+      image: "./assets/cinema-matrix.webp",
+      hook: "Как снять камеру, которая будто летит вокруг остановившегося времени?",
+      story: "Для знаменитого bullet time вокруг актёра выстраивали цепочку фотокамер. Они снимали по очереди с разных точек, а промежутки между кадрами соединяла компьютерная обработка. Эффект родился не из одной волшебной кнопки, а из точного плана.",
+      why: "Здесь форма помогает идее: мир кажется обычным, пока герой не замечает его правила.",
+      notice: "Следите, когда цвет, движение камеры и звук подсказывают: реальность изменилась.",
+      question: "Какой простой предмет в вашей истории мог бы показать, что мир работает неправильно?"
+    },
+    {
+      id: "jaws",
+      category: "world",
+      categoryLabel: "Зарубежные",
+      title: "Челюсти",
+      year: "1975",
+      age: "16+",
+      director: "Стивен Спилберг",
+      image: "./assets/cinema-jaws.webp",
+      hook: "Как сломанная механическая акула сделала фильм страшнее?",
+      story: "Механическая акула плохо работала в морской воде. Поэтому Спилберг был вынужден долго не показывать её целиком. Опасность создавали музыка, взгляд героя, пустая вода и монтаж — воображение зрителя дорисовало страшное само.",
+      why: "Это лучший пример правила: иногда не показать сильнее, чем показать.",
+      notice: "Заметьте, сколько времени акула существует только в звуке и реакциях людей.",
+      question: "Чем вы можете показать опасность, не показывая её саму?"
+    },
+    {
+      id: "morozko",
+      category: "fairy",
+      categoryLabel: "Сказки",
+      title: "Морозко",
+      year: "1964",
+      age: "6+",
+      director: "Александр Роу",
+      image: "./assets/cinema-morozko.webp",
+      hook: "Как создавали волшебный лес, когда не было компьютерной графики?",
+      story: "Экранное чудо собирали руками: грим, костюмы, декорации, искусственный снег, дым, свет и простые операторские трюки. Магия работает потому, что все детали подчинены одному сказочному миру.",
+      why: "Фильм учит придумывать эффект не с телефона, а с того, что есть рядом.",
+      notice: "Попробуйте угадать: где настоящий зимний лес, а где декорация и искусственный снег.",
+      question: "Какой волшебный эффект вы смогли бы сделать с фонариком, тканью и вентилятором?"
+    },
+    {
+      id: "buratino",
+      category: "fairy",
+      categoryLabel: "Сказки",
+      title: "Приключения Буратино",
+      year: "1975",
+      age: "6+",
+      director: "Леонид Нечаев",
+      image: "./assets/cinema-buratino.webp",
+      hook: "Что делать, если исполнителя главной роли приходится искать заново?",
+      story: "Диму Иосифова сначала пробовали на роль Арлекина. Но после замены юного исполнителя режиссёр увидел в нём будущего Буратино. В кино первоначальный план меняется постоянно — важно заметить удачное решение и не бояться пересобрать работу.",
+      why: "Это пример кино, где музыка, цвет, актёры и декорации складываются в один узнаваемый мир.",
+      notice: "Посмотрите, как цвет костюма помогает понять характер героя ещё до его реплики.",
+      question: "Какой герой понятен вам по одному силуэту — и почему?"
+    }
+  ];
   const interviewRounds = [
     {
       scene: "Вы на городском празднике. Незнакомый парень только что сошёл со сцены и явно торопится.",
@@ -569,6 +661,16 @@
         <div class="play-card-top"><b>${escapeHtml(item.type)}</b><i>${escapeHtml(item.number)}</i></div>
         <div class="play-card-copy"><h3>${escapeHtml(item.title)}</h3><p>${escapeHtml(item.text)}</p><strong>Открыть <i>→</i></strong></div>
       </a>`).join("");
+    const cinemaPreview = ["ours", "world", "fairy"].map((category) => {
+      const films = cinemaCatalog.filter((film) => film.category === category);
+      const labels = { ours: "Наши", world: "Зарубежные", fairy: "Сказки" };
+      return `<a class="cinema-preview-card cinema-preview-${category}" href="#/cinema/${encodeURIComponent(films[0].id)}">
+        <img src="${escapeHtml(films[0].image)}" alt="" loading="lazy" />
+        <span>${escapeHtml(labels[category])}</span>
+        <h3>${films.map((film) => escapeHtml(film.title)).join("<br />")}</h3>
+        <strong>Открыть истории <i>→</i></strong>
+      </a>`;
+    }).join("");
 
     const latestLink = latestLesson && latestLesson.status === "ready"
       ? `#/lesson/${encodeURIComponent(latestLesson.id)}`
@@ -615,6 +717,15 @@
           <p>Игра, тест, один полезный приём<br />и тренировка операторского глаза.</p>
         </header>
         <div class="play-card-grid">${playCards}</div>
+      </section>
+
+      <section class="cinema-preview" id="cinema" aria-labelledby="cinema-preview-title">
+        <header>
+          <div><p class="eyebrow">Не лекции о великом</p><h2 id="cinema-preview-title">КИНО<span>:</span>ИСТОРИИ</h2></div>
+          <p>Что случилось на съёмках —<br />и почему после этого хочется включить фильм.</p>
+        </header>
+        <div class="cinema-preview-grid">${cinemaPreview}</div>
+        <a class="cinema-preview-all" href="#/cinema">Все шесть фильмов <b>→</b></a>
       </section>
 
       <section class="course-library" id="lessons" aria-labelledby="lessons-title">
@@ -675,7 +786,7 @@
         </div>
       </section>`;
 
-    document.body.classList.remove("teacher-mode", "lesson-active", "teacher-portal-active", "play-active", "topic-active");
+    document.body.classList.remove("teacher-mode", "lesson-active", "teacher-portal-active", "play-active", "topic-active", "cinema-active");
     document.body.classList.add("home-active");
     bindTitleInteractions();
     bindLifehackFilters();
@@ -797,6 +908,63 @@
         ${step ? `<b>${escapeHtml(step)}</b>` : "<b>TIME:CODE</b>"}
       </header>
       <div class="play-page-heading"><h1>${escapeHtml(title)}</h1></div>`;
+  }
+
+  function setCinemaPage() {
+    clearSceneTimer();
+    clearInterval(state.homeTimer);
+    state.homeTimer = null;
+    state.lesson = null;
+    document.body.classList.remove("teacher-mode", "lesson-active", "teacher-portal-active", "play-active", "topic-active", "home-active");
+    document.body.classList.add("cinema-active");
+  }
+
+  function renderCinemaHub() {
+    setCinemaPage();
+    const categories = [
+      ["ours", "Наши", "Комедии, которые знают взрослые — теперь можно открыть их самим."],
+      ["world", "Зарубежные", "Большое кино и приёмы, которыми до сих пор пользуются режиссёры."],
+      ["fairy", "Сказки", "Волшебство, которое создавали руками — задолго до компьютерной графики."]
+    ];
+    const sections = categories.map(([id, title, copy]) => {
+      const cards = cinemaCatalog.filter((film) => film.category === id).map((film) => `
+        <a class="cinema-film-card" href="#/cinema/${encodeURIComponent(film.id)}">
+          <div class="cinema-film-image"><img src="${escapeHtml(film.image)}" alt="" /><span>${escapeHtml(film.age)}</span></div>
+          <div class="cinema-film-copy"><p>${escapeHtml(film.year)} · ${escapeHtml(film.director)}</p><h3>${escapeHtml(film.title)}</h3><strong>${escapeHtml(film.hook)}</strong><i>Узнать историю →</i></div>
+        </a>`).join("");
+      return `<section class="cinema-category cinema-category-${id}"><header><span>${escapeHtml(title)}</span><p>${escapeHtml(copy)}</p></header><div>${cards}</div></section>`;
+    }).join("");
+    main.innerHTML = `<section class="cinema-page">
+      <header class="cinema-page-bar"><a href="#/">← На главную</a><span>КИНО БЕЗ ЛЕКЦИЙ</span><b>${cinemaCatalog.length} историй</b></header>
+      <div class="cinema-intro"><p>Фильм начинается не с оценки</p><h1>СМОТРИ,<br /><span>КАК ЭТО СДЕЛАНО</span></h1><strong>Короткая история со съёмок. Один приём. Один вопрос, после которого кино уже смотришь иначе.</strong></div>
+      ${sections}
+    </section>`;
+    window.scrollTo({ top: 0, behavior: "instant" });
+  }
+
+  function renderCinemaStory(id) {
+    const film = cinemaCatalog.find((item) => item.id === id);
+    if (!film) {
+      renderCinemaHub();
+      return;
+    }
+    setCinemaPage();
+    const siblings = cinemaCatalog.filter((item) => item.category === film.category && item.id !== film.id);
+    main.innerHTML = `<section class="cinema-story">
+      <header class="cinema-page-bar"><a href="#/cinema">← Все фильмы</a><span>${escapeHtml(film.categoryLabel)}</span><b>${escapeHtml(film.age)}</b></header>
+      <div class="cinema-story-hero">
+        <img src="${escapeHtml(film.image)}" alt="Иллюстрация к истории о фильме «${escapeHtml(film.title)}»" />
+        <div><p>${escapeHtml(film.year)} · ${escapeHtml(film.director)}</p><h1>${escapeHtml(film.title)}</h1><strong>${escapeHtml(film.hook)}</strong></div>
+      </div>
+      <div class="cinema-story-grid">
+        <article class="cinema-story-main"><span>ИСТОРИЯ СО СЪЁМОК</span><p>${escapeHtml(film.story)}</p></article>
+        <article class="cinema-story-note cinema-story-why"><span>ЗАЧЕМ СМОТРЕТЬ</span><p>${escapeHtml(film.why)}</p></article>
+        <article class="cinema-story-note cinema-story-watch"><span>ПОЙМАЙТЕ ЭТОТ МОМЕНТ</span><p>${escapeHtml(film.notice)}</p></article>
+        <article class="cinema-story-question"><span>ВОПРОС ПОСЛЕ ФИЛЬМА</span><h2>${escapeHtml(film.question)}</h2></article>
+      </div>
+      <footer class="cinema-story-footer"><a href="#/cinema">Все киноистории</a>${siblings.map((item) => `<a href="#/cinema/${encodeURIComponent(item.id)}">Следующий в разделе: <b>${escapeHtml(item.title)}</b> →</a>`).join("")}</footer>
+    </section>`;
+    window.scrollTo({ top: 0, behavior: "instant" });
   }
 
   function resetPlay(type) {
@@ -2059,6 +2227,7 @@
     const lessonMatch = hash.match(/^#\/lesson\/([^/]+)$/);
     const teacherMatch = hash.match(/^#\/teacher(?:\/([^/]+))?$/);
     const playMatch = hash.match(/^#\/play(?:\/([^/]+))?$/);
+    const cinemaMatch = hash.match(/^#\/cinema(?:\/([^/]+))?$/);
     if (lessonMatch) {
       renderLesson(decodeURIComponent(lessonMatch[1]));
       return;
@@ -2069,6 +2238,11 @@
     }
     if (playMatch) {
       renderPlay(playMatch[1] ? decodeURIComponent(playMatch[1]) : null);
+      return;
+    }
+    if (cinemaMatch) {
+      if (cinemaMatch[1]) renderCinemaStory(decodeURIComponent(cinemaMatch[1]));
+      else renderCinemaHub();
       return;
     }
     if (hash === "#/you-in-topic") {
