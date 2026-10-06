@@ -60,7 +60,11 @@ jobs:
           for r in photos:
               chat=json.loads(r['chat'])
               print('PHOTO_SAMPLE',r['day'],str(chat),r['period'])
-              result=server.shared_media.send_photo(vars(server),chat,r['photo'],r['caption'])
+              try:result=server.shared_media.send_photo(vars(server),chat,r['photo'],r['caption'])
+              except urllib.error.HTTPError as e:
+                  try:result=json.loads(e.read())
+                  except Exception:result={'ok':False,'error_code':e.code}
+              except Exception as e:result={'ok':False,'description':type(e).__name__}
               print('PHOTO_RESULT',json.dumps({k:result.get(k) for k in ('ok','error_code','description')} if result else None,ensure_ascii=False))
               if result and result.get('ok'):
                   with server.conn() as c:c.execute('update notification_photo_outbox set delivered=1 where day=? and period=? and chat=? and user_id=?',(r['day'],r['period'],r['chat'],r['user_id']))
