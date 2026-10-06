@@ -40,6 +40,12 @@ jobs:
                       groups[(r['day'],platform,str(chat))]+=1
                   print('GROUPS',json.dumps([{'day':k[0],'platform':k[1],'recipient':k[2],'count':v} for k,v in groups.items()],ensure_ascii=False))
               samples=c.execute('select day,chat,message_key,body,keyboard from notification_outbox where delivered=0 order by day desc limit 3').fetchall()
+          import subprocess
+          def telegram_api(method,data=None):
+              response=subprocess.run(['curl','-4','-sS','--connect-timeout','8','--max-time','18','-H','Content-Type: application/json','--data-binary','@-','https://api.telegram.org/bot'+server.TOKEN+'/'+method],input=json.dumps(data or {}),text=True,capture_output=True,timeout=22)
+              try:return json.loads(response.stdout)
+              except Exception:return {}
+          server.api=telegram_api
           original_max=server.max_transport.api
           def diagnosed(*args,**kw):
               try:return original_max(*args,**kw)
@@ -49,6 +55,15 @@ jobs:
                   except Exception:print('MAX_ERROR',e.code)
                   raise
           server.max_transport.api=diagnosed
+          with server.conn() as c:
+              photos=c.execute('select * from notification_photo_outbox where delivered=0 order by day desc limit 2').fetchall()
+          for r in photos:
+              chat=json.loads(r['chat'])
+              print('PHOTO_SAMPLE',r['day'],str(chat),r['period'])
+              result=server.shared_media.send_photo(vars(server),chat,r['photo'],r['caption'])
+              print('PHOTO_RESULT',json.dumps({k:result.get(k) for k in ('ok','error_code','description')} if result else None,ensure_ascii=False))
+              if result and result.get('ok'):
+                  with server.conn() as c:c.execute('update notification_photo_outbox set delivered=1 where day=? and period=? and chat=? and user_id=?',(r['day'],r['period'],r['chat'],r['user_id']))
           for r in samples:
               chat=json.loads(r['chat'])
               print('SAMPLE',r['day'],str(chat),'title',r['body'].split('\n')[0][:90])
