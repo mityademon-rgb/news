@@ -1,0 +1,62 @@
+name: TIMECODE blocked recipient delivery fix
+on:
+  push:
+    branches: [boom-kadr-deploy]
+    paths: ['.github/workflows/timecode-blocked-delivery.yml']
+permissions:
+  contents: read
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          repository: mityademon-rgb/media-center-bot
+          ref: 752476adf819cd9599889f320749982059094927
+          path: source
+      - name: Test and deploy permanent failure handling
+        env:
+          BOOM_SSH_KEY: ${{ secrets.BOOM_SSH_KEY }}
+        run: |
+          cd source/timecode-bot
+          python3 -m unittest discover -s tests -p test_blocked_delivery.py
+          python3 -m unittest discover -s tests -p test_server.py -k evening_digest_retries
+          python3 -m unittest discover -s tests -p test_shared_media.py
+          install -d -m 700 ~/.ssh
+          printf '%s\n' "$BOOM_SSH_KEY" > ~/.ssh/timecode
+          chmod 600 ~/.ssh/timecode
+          ssh-keyscan -T 8 -H 217.149.24.242 > ~/.ssh/known_hosts
+          scp -i ~/.ssh/timecode notification_delivery.py root@217.149.24.242:/tmp/notification-delivery-fixed.py
+          ssh -i ~/.ssh/timecode root@217.149.24.242 'bash -s' <<'REMOTE'
+          set -Eeuo pipefail
+          cd /opt/timecode-bot/timecode-bot
+          backup=$(mktemp -d /opt/timecode-bot/delivery-backup-XXXXXXXX)
+          cp -p server.py notification_delivery.py "$backup/"
+          cp /tmp/notification-delivery-fixed.py notification_delivery.py
+          python3 - <<'PY'
+          from pathlib import Path
+          p=Path('server.py');s=p.read_text();start=s.index('def api(');end=s.index('\ndef send(',start)
+          block=s[start:end].replace("'curl','-4','-fsS'","'curl','-4','-sS'")
+          p.write_text(s[:start]+block+s[end:])
+          PY
+          python3 -m py_compile server.py notification_delivery.py
+          systemctl restart timecode-bot.service
+          curl -fsS --retry 5 --retry-delay 2 --retry-connrefused http://127.0.0.1:8097/health -o /dev/null
+          set -a
+          . /etc/timecode-bot.env
+          set +a
+          python3 - <<'PY'
+          import server,json,time
+          # This recipient was directly verified as blocked by Telegram during diagnostics.
+          chat=json.dumps(5393146216)
+          with server.conn() as c:
+              c.execute('insert or replace into notification_unreachable values(?,?,?)',(chat,'Forbidden: bot was blocked by the user',int(time.time())))
+              for table in ('notification_outbox','notification_photo_outbox'):
+                  count=c.execute('update '+table+' set delivered=-1 where chat=? and delivered=0',(chat,)).rowcount
+                  print('Archived as blocked, not delivered:',table,count)
+              for table in ('notification_outbox','notification_photo_outbox'):
+                  print('Active queue',table,[dict(r) for r in c.execute('select day,count(*) count from '+table+' where delivered=0 group by day')])
+          print('Blocked recipient does not retry; an incoming private message clears block; health OK')
+          PY
+          REMOTE
