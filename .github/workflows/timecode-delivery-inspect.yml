@@ -1,0 +1,60 @@
+name: Inspect TIMECODE delivery queue
+on:
+  push:
+    branches: [boom-kadr-deploy]
+    paths: ['.github/workflows/timecode-delivery-inspect.yml']
+permissions:
+  contents: read
+jobs:
+  inspect:
+    runs-on: ubuntu-latest
+    timeout-minutes: 8
+    steps:
+      - name: Inspect live queue and provider errors
+        env:
+          BOOM_SSH_KEY: ${{ secrets.BOOM_SSH_KEY }}
+        run: |
+          install -d -m 700 ~/.ssh
+          printf '%s\n' "$BOOM_SSH_KEY" > ~/.ssh/timecode
+          chmod 600 ~/.ssh/timecode
+          ssh-keyscan -T 8 -H 217.149.24.242 > ~/.ssh/known_hosts
+          ssh -i ~/.ssh/timecode root@217.149.24.242 'bash -s' <<'REMOTE'
+          set -Eeuo pipefail
+          cd /opt/timecode-bot/timecode-bot
+          systemctl is-active timecode-bot.service
+          curl -fsS http://127.0.0.1:8097/health -o /dev/null
+          set -a
+          . /etc/timecode-bot.env
+          set +a
+          python3 - <<'PY'
+          import server,json,urllib.error,collections
+          print('CLOCK',server.now().isoformat())
+          with server.conn() as c:
+              for table in ('notification_outbox','notification_photo_outbox'):
+                  rows=c.execute('select * from '+table+' where delivered=0 order by day').fetchall()
+                  print('QUEUE',table,'total',len(rows))
+                  groups=collections.Counter()
+                  for r in rows:
+                      chat=json.loads(r['chat'])
+                      platform='MAX' if c.execute('select 1 from messenger_identities where user_id=? and platform=?',(chat,'max')).fetchone() else 'Telegram'
+                      groups[(r['day'],platform,str(chat))]+=1
+                  print('GROUPS',json.dumps([{'day':k[0],'platform':k[1],'recipient':k[2],'count':v} for k,v in groups.items()],ensure_ascii=False))
+              samples=c.execute('select day,chat,message_key,body,keyboard from notification_outbox where delivered=0 order by day desc limit 3').fetchall()
+          original_max=server.max_transport.api
+          def diagnosed(*args,**kw):
+              try:return original_max(*args,**kw)
+              except urllib.error.HTTPError as e:
+                  try:
+                      d=json.loads(e.read());print('MAX_ERROR',e.code,d.get('code'),str(d.get('message',''))[:250])
+                  except Exception:print('MAX_ERROR',e.code)
+                  raise
+          server.max_transport.api=diagnosed
+          for r in samples:
+              chat=json.loads(r['chat'])
+              print('SAMPLE',r['day'],str(chat),'title',r['body'].split('\n')[0][:90])
+              result=server.send(chat,r['body'],json.loads(r['keyboard']))
+              print('RESULT',json.dumps({k:result.get(k) for k in ('ok','error_code','description')} if result else None,ensure_ascii=False))
+              if result and result.get('ok'):
+                  with server.conn() as c:c.execute('update notification_outbox set delivered=1 where day=? and chat=? and message_key=?',(r['day'],r['chat'],r['message_key']))
+          PY
+          REMOTE
