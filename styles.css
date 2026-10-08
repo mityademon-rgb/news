@@ -3711,11 +3711,9 @@ body.topic-active { background: #09090d; color: #f5f0e7; }
 }
 
 .title-camera {
-  mix-blend-mode: normal;
+  mix-blend-mode: screen;
   transform:
-    translate3d(calc(var(--hero-x) * 20px), calc(var(--hero-y) * 13px), 42px)
-    rotateX(calc(var(--hero-y) * -1.5deg))
-    rotateY(calc(var(--hero-x) * 3.5deg))
+    translate(calc(var(--hero-x) * 20px), calc(var(--hero-y) * 13px))
     rotateZ(-5deg);
   transform-origin: 55% 55%;
   transition: transform 170ms ease-out;
@@ -3723,11 +3721,9 @@ body.topic-active { background: #09090d; color: #f5f0e7; }
 }
 
 .title-mic {
-  mix-blend-mode: normal;
+  mix-blend-mode: screen;
   transform:
-    translate3d(calc(var(--hero-x) * -22px), calc(var(--hero-y) * -17px), 116px)
-    rotateX(calc(var(--hero-y) * 2deg))
-    rotateY(calc(var(--hero-x) * -4deg))
+    translate(calc(var(--hero-x) * -22px), calc(var(--hero-y) * -17px))
     rotateZ(5deg);
   transform-origin: 76% 26%;
   transition: transform 150ms ease-out;
