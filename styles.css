@@ -3711,6 +3711,7 @@ body.topic-active { background: #09090d; color: #f5f0e7; }
 }
 
 .title-camera {
+  mix-blend-mode: normal;
   transform:
     translate3d(calc(var(--hero-x) * 20px), calc(var(--hero-y) * 13px), 42px)
     rotateX(calc(var(--hero-y) * -1.5deg))
@@ -3722,6 +3723,7 @@ body.topic-active { background: #09090d; color: #f5f0e7; }
 }
 
 .title-mic {
+  mix-blend-mode: normal;
   transform:
     translate3d(calc(var(--hero-x) * -22px), calc(var(--hero-y) * -17px), 116px)
     rotateX(calc(var(--hero-y) * 2deg))
