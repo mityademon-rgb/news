@@ -1,0 +1,109 @@
+name: TIMECODE teacher buttons and schedule editor
+on:
+  push:
+    branches: [boom-kadr-deploy]
+    paths: ['.github/workflows/timecode-teacher-controls.yml']
+permissions:
+  contents: read
+concurrency:
+  group: timecode-teacher-controls
+  cancel-in-progress: false
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          repository: mityademon-rgb/media-center-bot
+          ref: f1ec281c1132d299fe74b1a0c94ea55cc354119b
+          path: source
+      - name: Verify teacher actions and editor
+        run: |
+          cd source/timecode-bot
+          python3 -m unittest discover -s tests -p test_admin_controls.py
+          python3 -m unittest discover -s tests -p test_chat_schedule.py
+          python3 -m unittest discover -s tests -p test_schedule_editor.py
+          python3 -m unittest discover -s tests -p test_week_plan.py
+          python3 -m py_compile server.py admin_controls.py chat_schedule.py schedule_editor.py week_plan.py
+          node --check static/schedule-editor.js
+      - name: Install scoped changes and restore teacher buttons
+        env:
+          BOOM_SSH_KEY: ${{ secrets.BOOM_SSH_KEY }}
+        run: |
+          install -d -m 700 ~/.ssh
+          printf '%s\n' "$BOOM_SSH_KEY" > ~/.ssh/timecode
+          chmod 600 ~/.ssh/timecode
+          ssh-keyscan -T 8 -H 217.149.24.242 > ~/.ssh/known_hosts
+          stage=$(ssh -i ~/.ssh/timecode root@217.149.24.242 'mktemp -d /tmp/timecode-controls-XXXXXXXX')
+          scp -i ~/.ssh/timecode source/timecode-bot/admin_controls.py source/timecode-bot/chat_schedule.py source/timecode-bot/schedule_editor.py source/timecode-bot/static/schedule-editor.js root@217.149.24.242:"$stage/"
+          ssh -i ~/.ssh/timecode root@217.149.24.242 "bash -s -- '$stage'" <<'REMOTE'
+          set -Eeuo pipefail
+          stage="$1"
+          cd /opt/timecode-bot/timecode-bot
+          backup=$(mktemp -d /opt/timecode-bot/teacher-controls-backup-XXXXXXXX)
+          mkdir -p "$backup/static"
+          cp -p server.py chat_schedule.py week_plan.py "$backup/"
+          cp -p static/index.html "$backup/static/"
+          for f in admin_controls.py schedule_editor.py static/schedule-editor.js; do
+            if test -f "$f"; then cp -p "$f" "$backup/$f"; fi
+          done
+          rollback() {
+            cp -p "$backup/server.py" "$backup/chat_schedule.py" "$backup/week_plan.py" .
+            cp -p "$backup/static/index.html" static/
+            for f in admin_controls.py schedule_editor.py static/schedule-editor.js; do
+              if test -f "$backup/$f"; then cp -p "$backup/$f" "$f"; else rm -f "$f"; fi
+            done
+            systemctl restart timecode-bot.service || true
+          }
+          trap rollback ERR
+          cp "$stage/admin_controls.py" "$stage/chat_schedule.py" "$stage/schedule_editor.py" .
+          cp "$stage/schedule-editor.js" static/
+          python3 - <<'PY'
+          from pathlib import Path
+          p=Path('server.py');s=p.read_text()
+          if "'/schedule-editor.js'" not in s:
+              anchor="'/cinema-library.js',"
+              if s.count(anchor)!=1:raise RuntimeError('Static whitelist anchor changed')
+              s=s.replace(anchor,anchor+"'/schedule-editor.js',",1)
+          if 'admin_controls.install(globals())' not in s:
+              anchor="if __name__=='__main__':"
+              if s.count(anchor)!=1:raise RuntimeError('Server initialization anchor changed')
+              s=s.replace(anchor,"import admin_controls\nadmin_controls.install(globals())\nimport schedule_editor\nschedule_editor.install(globals())\n\n"+anchor,1)
+          s=s.replace("[{'text':'📅 Расписание'}]","[{'text':'📅 Редактировать расписание'}]")
+          p.write_text(s)
+          p=Path('week_plan.py');s=p.read_text()
+          anchor="        uid=(msg.get('from') or {}).get('id');text=(msg.get('text') or msg.get('caption') or '').strip()\n"
+          guard="        if uid in s['ADMINS']:return old_message(msg)\n"
+          if anchor+guard not in s:
+              if s.count(anchor)!=1:raise RuntimeError('Weekly message anchor changed')
+              s=s.replace(anchor,anchor+guard,1);p.write_text(s)
+          p=Path('static/index.html');s=p.read_text()
+          if 'schedule-editor.js' not in s:
+              if s.count('</body>')!=1:raise RuntimeError('App document anchor changed')
+              s=s.replace('</body>','<script src="schedule-editor.js?v=20261008"></script></body>',1);p.write_text(s)
+          PY
+          python3 -m py_compile server.py admin_controls.py chat_schedule.py schedule_editor.py week_plan.py
+          systemctl restart timecode-bot.service
+          curl -fsS --retry 5 --retry-delay 2 --retry-connrefused http://127.0.0.1:8097/health -o /dev/null
+          curl -fsS http://127.0.0.1:8097/schedule-editor.js -o "$stage/served.js"
+          cmp static/schedule-editor.js "$stage/served.js"
+          trap - ERR
+          set -a
+          . /etc/timecode-bot.env
+          set +a
+          python3 - <<'PY'
+          import server
+          for uid in sorted(server.ADMINS):
+              result=server.admin_menu(uid)
+              print('Teacher reply menu:', 'OK' if result and result.get('ok') else 'FAILED')
+              result=server.send(uid,'Управление вернулось: «Написать всем», «Подписчики» и «Редактировать расписание» — на кнопках ниже. В расписании открой удобный редактор: все поля в одной форме, можно удалять занятия. После сохранения я сообщу всем об изменении.')
+              print('Teacher inline controls:', 'OK' if result and result.get('ok') else 'FAILED')
+          print('Health and schedule editor asset OK; existing schedule unchanged')
+          PY
+          REMOTE
+      - name: Verify public mini app editor
+        run: |
+          curl -fsS --retry 3 https://timecode-lab.ru/tc/schedule-editor.js -o /tmp/public-editor.js
+          cmp source/timecode-bot/static/schedule-editor.js /tmp/public-editor.js
+          curl -fsS https://timecode-lab.ru/tc/ | grep -q 'schedule-editor.js'
