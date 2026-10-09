@@ -1,0 +1,86 @@
+name: TIMECODE playful checkins selfies and truth game
+on:
+  push:
+    branches: [boom-kadr-deploy]
+    paths: ['.github/workflows/timecode-playful-checkins.yml']
+permissions:
+  contents: read
+concurrency:
+  group: timecode-playful-checkins
+  cancel-in-progress: false
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    timeout-minutes: 12
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          repository: mityademon-rgb/media-center-bot
+          ref: 0617ad2c261ae47d91ddc934caa9d23111257e10
+          path: source
+      - name: Verify shared gameplay
+        run: |
+          cd source/timecode-bot
+          python3 -m unittest discover -s tests -p test_playful_checkins.py
+          python3 -m unittest discover -s tests -p test_truth_game.py
+          python3 -m unittest discover -s tests -p test_shared_media.py
+          python3 -m unittest discover -s tests -p test_editorial_chat.py
+          python3 -m py_compile server.py playful_checkins.py truth_game.py editorial_voice.py shared_media.py
+      - name: Install scoped bot changes
+        env:
+          BOOM_SSH_KEY: ${{ secrets.BOOM_SSH_KEY }}
+        run: |
+          install -d -m 700 ~/.ssh
+          printf '%s\n' "$BOOM_SSH_KEY" > ~/.ssh/timecode
+          chmod 600 ~/.ssh/timecode
+          ssh-keyscan -T 8 -H 217.149.24.242 > ~/.ssh/known_hosts
+          stage=$(ssh -i ~/.ssh/timecode root@217.149.24.242 'mktemp -d /tmp/timecode-playful-XXXXXXXX')
+          scp -i ~/.ssh/timecode source/timecode-bot/playful_checkins.py source/timecode-bot/truth_game.py source/timecode-bot/editorial_voice.py source/timecode-bot/shared_media.py source/timecode-bot/static/truth-true.png source/timecode-bot/static/truth-false.png root@217.149.24.242:"$stage/"
+          ssh -i ~/.ssh/timecode root@217.149.24.242 "bash -s -- '$stage'" <<'REMOTE'
+          set -Eeuo pipefail
+          stage="$1"
+          cd /opt/timecode-bot/timecode-bot
+          backup=$(mktemp -d /opt/timecode-bot/playful-backup-XXXXXXXX)
+          mkdir -p "$backup/static"
+          for f in server.py playful_checkins.py truth_game.py editorial_voice.py shared_media.py static/truth-true.png static/truth-false.png; do
+            if test -f "$f"; then cp -p "$f" "$backup/$f"; fi
+          done
+          rollback() {
+            for f in server.py playful_checkins.py truth_game.py editorial_voice.py shared_media.py static/truth-true.png static/truth-false.png; do
+              if test -f "$backup/$f"; then cp -p "$backup/$f" "$f"; else rm -f "$f"; fi
+            done
+            systemctl restart timecode-bot.service || true
+          }
+          trap rollback ERR
+          cp "$stage/playful_checkins.py" "$stage/truth_game.py" "$stage/editorial_voice.py" "$stage/shared_media.py" .
+          cp "$stage/truth-true.png" "$stage/truth-false.png" static/
+          python3 - <<'PY'
+          from pathlib import Path
+          p=Path('server.py');s=p.read_text()
+          anchor="if __name__=='__main__':"
+          if s.count(anchor)!=1:raise RuntimeError('Server entry point changed')
+          for module in ('playful_checkins','truth_game'):
+              if module+'.install(globals())' not in s:s=s.replace(anchor,'import '+module+'\n'+module+'.install(globals())\n\n'+anchor,1)
+          p.write_text(s)
+          PY
+          python3 -m py_compile server.py playful_checkins.py truth_game.py editorial_voice.py shared_media.py
+          systemctl restart timecode-bot.service
+          curl -fsS --retry 5 --retry-delay 2 --retry-connrefused http://127.0.0.1:8097/health -o /dev/null
+          trap - ERR
+          set -a
+          . /etc/timecode-bot.env
+          set +a
+          python3 - <<'PY'
+          import server,shared_media
+          server.init()
+          assert callable(server.truth_invite)
+          assert callable(server.instant_photo)
+          for uid in sorted(server.ADMINS):
+              result=shared_media.send_photo(vars(server),uid,'truth-card:true','TIMECODE обновлён. Утром и вечером — игровые состояния и фотоохота. В 16:00 — селфи в роли ведущего или репортёра. В 17:00 — одна «Правда или вымысел»: игроку картинка и разгадка, всем имя и счёт. Общие истории с фотографиями остаются в 10:00 и 20:30.')
+              print('Teacher picture delivery:', 'OK' if result and result.get('ok') else 'FAILED')
+              if not result or not result.get('ok'):raise RuntimeError('Teacher picture delivery failed')
+          print('Bot health and new handlers OK; no mass messages replayed')
+          PY
+          REMOTE
+      - name: Check public app
+        run: curl -fsS --retry 3 https://timecode-lab.ru/tc/ -o /dev/null
