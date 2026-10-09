@@ -1,0 +1,113 @@
+name: TIMECODE daily virtual trophies
+on:
+  push:
+    branches: [boom-kadr-deploy]
+    paths: ['.github/workflows/timecode-daily-status.yml']
+permissions:
+  contents: read
+concurrency:
+  group: timecode-daily-status
+  cancel-in-progress: false
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          repository: mityademon-rgb/media-center-bot
+          ref: 9f005236c5480be6bef8b749f21c862430b9aa26
+          path: source
+      - name: Verify trophies and existing games
+        run: |
+          cd source/timecode-bot
+          python3 -m unittest discover -s tests -p test_daily_status.py
+          python3 -m unittest discover -s tests -p test_truth_game.py
+          python3 -m unittest discover -s tests -p test_playful_checkins.py
+          python3 -m unittest discover -s tests -p test_editorial_chat.py
+          python3 -m py_compile server.py daily_status.py truth_game.py notification_delivery.py
+          node --check static/daily-status.js
+      - name: Install daily statuses
+        env:
+          BOOM_SSH_KEY: ${{ secrets.BOOM_SSH_KEY }}
+        run: |
+          install -d -m 700 ~/.ssh
+          printf '%s\n' "$BOOM_SSH_KEY" > ~/.ssh/timecode
+          chmod 600 ~/.ssh/timecode
+          ssh-keyscan -T 8 -H 217.149.24.242 > ~/.ssh/known_hosts
+          stage=$(ssh -i ~/.ssh/timecode root@217.149.24.242 'mktemp -d /tmp/timecode-status-XXXXXXXX')
+          scp -i ~/.ssh/timecode source/timecode-bot/daily_status.py source/timecode-bot/static/daily-status.js root@217.149.24.242:"$stage/"
+          ssh -i ~/.ssh/timecode root@217.149.24.242 "bash -s -- '$stage'" <<'REMOTE'
+          set -Eeuo pipefail
+          stage="$1"
+          cd /opt/timecode-bot/timecode-bot
+          backup=$(mktemp -d /opt/timecode-bot/status-backup-XXXXXXXX)
+          mkdir -p "$backup/static"
+          for f in server.py notification_delivery.py truth_game.py daily_status.py static/index.html static/daily-status.js; do
+            if test -f "$f"; then cp -p "$f" "$backup/$f"; fi
+          done
+          rollback() {
+            for f in server.py notification_delivery.py truth_game.py daily_status.py static/index.html static/daily-status.js; do
+              if test -f "$backup/$f"; then cp -p "$backup/$f" "$f"; else rm -f "$f"; fi
+            done
+            systemctl restart timecode-bot.service || true
+          }
+          trap rollback ERR
+          cp "$stage/daily_status.py" .
+          cp "$stage/daily-status.js" static/
+          python3 - <<'PY'
+          from pathlib import Path
+          p=Path('server.py');t=p.read_text()
+          if 'daily_status.install(globals())' not in t:
+              anchor="if __name__=='__main__':"
+              if t.count(anchor)!=1:raise RuntimeError('Server entry point changed')
+              t=t.replace(anchor,'import daily_status\ndaily_status.install(globals())\n\n'+anchor,1)
+          if "'/daily-status.js'" not in t:
+              if t.count("'/schedule-editor.js',")!=1:raise RuntimeError('Static whitelist changed')
+              t=t.replace("'/schedule-editor.js',","'/schedule-editor.js','/daily-status.js',",1)
+          p.write_text(t)
+          p=Path('static/index.html');t=p.read_text()
+          if 'daily-status.js' not in t:t=t.replace('</body>','<script src="daily-status.js?v=20261009"></script></body>',1)
+          p.write_text(t)
+          p=Path('notification_delivery.py');t=p.read_text()
+          for old,new in [
+              ("pictures=[dict(r) for r in rows]","pictures=[dict(r,name=s.get('display_name',lambda uid,name:name)(r['user_id'],r['name'])) for r in rows]"),
+              ("pictures.append(dict(r,asset_period='pm-daily'))","pictures.append(dict(r,asset_period='pm-daily',name=s.get('display_name',lambda uid,name:name)(r['user_id'],r['name'])))")]:
+              if new not in t:
+                  if t.count(old)!=1:raise RuntimeError('Photo name anchor changed')
+                  t=t.replace(old,new,1)
+          p.write_text(t)
+          p=Path('truth_game.py');t=p.read_text()
+          if "name=s.get('display_name'" not in t:
+              anchor="            caption=('Попал"
+              if t.count(anchor)!=1:raise RuntimeError('Game name anchor changed')
+              t=t.replace(anchor,"            name=s.get('display_name',lambda uid,name:name)(uid,name)\n"+anchor,1)
+          p.write_text(t)
+          PY
+          python3 -m py_compile server.py daily_status.py truth_game.py notification_delivery.py
+          systemctl restart timecode-bot.service
+          curl -fsS --retry 5 --retry-delay 2 --retry-connrefused http://127.0.0.1:8097/health -o /dev/null
+          curl -fsS http://127.0.0.1:8097/daily-status.js -o "$stage/served.js"
+          cmp static/daily-status.js "$stage/served.js"
+          trap - ERR
+          set -a
+          . /etc/timecode-bot.env
+          set +a
+          python3 - <<'PY'
+          import server
+          server.init()
+          assert callable(server.status_settle)
+          with server.conn() as c:
+              assert c.execute("select 1 from sqlite_master where name='daily_status_history'").fetchone()
+          for uid in sorted(server.ADMINS):
+              result=server.send(uid,'Виртуальные призы включены. В 20:30 объявлю самых активных: золотой микрофон, видеокамера или шпионский объектив. При равной активности награждаются все. Значки появятся рядом с именем в моих сообщениях и в разделе «Моё». После дня без участия — личный «Лопушок на паузе». Игры и переклички продолжаются.')
+              assert result and result.get('ok')
+          print('Daily status migration, health, served avatar UI and teacher notification OK')
+          print('No awards settled early; first daily round at 20:30 Moscow')
+          PY
+          REMOTE
+      - name: Verify public avatar UI
+        run: |
+          curl -fsS --retry 3 https://timecode-lab.ru/tc/daily-status.js -o /tmp/daily-status.js
+          cmp source/timecode-bot/static/daily-status.js /tmp/daily-status.js
+          curl -fsS https://timecode-lab.ru/tc/ | grep -q 'daily-status.js'
