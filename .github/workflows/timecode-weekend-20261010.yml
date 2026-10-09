@@ -1,0 +1,79 @@
+name: TIMECODE illustrated announcement to Telegram and MAX
+on:
+  push:
+    branches: [boom-kadr-deploy]
+    paths: ['.github/workflows/timecode-weekend-20261010.yml']
+permissions:
+  contents: read
+concurrency:
+  group: timecode-weekend-20261010
+  cancel-in-progress: false
+jobs:
+  publish:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          repository: mityademon-rgb/media-center-bot
+          ref: 4aea81e080293ce91ff197a3862a739ff0f32075
+          path: source
+      - name: Validate photo bridge
+        run: |
+          cd source/timecode-bot
+          python3 -m unittest discover -s tests -p test_shared_media.py
+          python3 -m py_compile shared_media.py
+          test -s static/weekend-20261010.jpg
+      - name: Publish authorized illustrated announcement once
+        env:
+          BOOM_SSH_KEY: ${{ secrets.BOOM_SSH_KEY }}
+        run: |
+          install -d -m 700 ~/.ssh
+          printf '%s\n' "$BOOM_SSH_KEY" > ~/.ssh/timecode
+          chmod 600 ~/.ssh/timecode
+          ssh-keyscan -T 8 -H 217.149.24.242 > ~/.ssh/known_hosts
+          stage=$(ssh -i ~/.ssh/timecode root@217.149.24.242 'mktemp -d /tmp/timecode-announcement-XXXXXXXX')
+          scp -i ~/.ssh/timecode source/timecode-bot/shared_media.py source/timecode-bot/static/weekend-20261010.jpg source/timecode-bot/docs/weekend-20261010.txt root@217.149.24.242:"$stage/"
+          ssh -i ~/.ssh/timecode root@217.149.24.242 "bash -s -- '$stage'" <<'REMOTE'
+          set -Eeuo pipefail
+          stage="$1"
+          cd /opt/timecode-bot/timecode-bot
+          cp -p shared_media.py "$stage/shared_media.before.py"
+          cp "$stage/shared_media.py" .
+          cp "$stage/weekend-20261010.jpg" static/
+          python3 -m py_compile shared_media.py
+          systemctl restart timecode-bot.service
+          curl -fsS --retry 5 --retry-delay 2 --retry-connrefused http://127.0.0.1:8097/health -o /dev/null
+          set -a
+          . /etc/timecode-bot.env
+          set +a
+          python3 - "$stage/weekend-20261010.txt" <<'PY'
+          import json,sys
+          from pathlib import Path
+          import server
+          server.init()
+          body=Path(sys.argv[1]).read_text()
+          assert len(body)<=1024
+          day=server.today();period='weekend-20261010'
+          with server.conn() as c:
+              targets=[r['id'] for r in c.execute('select id from users where enabled=1')]
+              if server.GROUP:targets.append(server.GROUP)
+              for chat in set(targets):
+                  c.execute('insert or ignore into notification_photo_outbox(day,period,chat,user_id,photo,caption) values(?,?,?,?,?,?)',(day,period,json.dumps(chat),0,'truth-card:weekend-20261010',body))
+          for attempt in range(3):
+              server.retry_notifications()
+          with server.conn() as c:
+              rows=c.execute('select chat,delivered from notification_photo_outbox where day=? and period=?',(day,period)).fetchall()
+              counts={'telegram':{'delivered':0,'pending':0},'max':{'delivered':0,'pending':0}}
+              blocked=0
+              for r in rows:
+                  chat=json.loads(r['chat'])
+                  messenger='max' if isinstance(chat,int) and chat<0 and server.max_transport.internal_id(c,'max',-chat) is not None else 'telegram'
+                  counts[messenger]['delivered' if r['delivered'] else 'pending']+=1
+                  if not r['delivered'] and c.execute('select 1 from notification_unreachable where chat=?',(r['chat'],)).fetchone():blocked+=1
+          print('ANNOUNCEMENT_DELIVERY',json.dumps(counts))
+          print('UNREACHABLE_RECIPIENTS',blocked)
+          assert counts['telegram']['delivered']>0 and counts['max']['delivered']>0, 'No confirmed deliveries in one messenger'
+          print('Illustrated announcement confirmed in Telegram and MAX; duplicates prevented by outbox key')
+          PY
+          REMOTE
