@@ -1,0 +1,78 @@
+name: TIMECODE Friday Chef pilot
+on:
+  push:
+    branches: [boom-kadr-deploy]
+    paths: ['.github/workflows/timecode-chef-pilot.yml']
+permissions:
+  contents: read
+concurrency:
+  group: timecode-chef-pilot
+  cancel-in-progress: false
+jobs:
+  deploy-and-play:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          repository: mityademon-rgb/media-center-bot
+          ref: a224caad8049824b91642a2d608c3f5ce04dd292
+          path: source
+      - name: Verify pilot routing
+        run: |
+          cd source/timecode-bot
+          python3 -m unittest discover -s tests -p test_chef_voice.py
+          python3 -m unittest discover -s tests -p test_playful_checkins.py
+          python3 -m unittest discover -s tests -p test_truth_game.py
+          python3 -m py_compile chef_voice.py server.py
+      - name: Install Kimi memory and send Friday challenge
+        env:
+          BOOM_SSH_KEY: ${{ secrets.BOOM_SSH_KEY }}
+        run: |
+          install -d -m 700 ~/.ssh
+          printf '%s\n' "$BOOM_SSH_KEY" > ~/.ssh/timecode
+          chmod 600 ~/.ssh/timecode
+          ssh-keyscan -T 8 -H 217.149.24.242 > ~/.ssh/known_hosts
+          stage=$(ssh -i ~/.ssh/timecode root@217.149.24.242 'mktemp -d /tmp/timecode-chef-XXXXXXXX')
+          scp -i ~/.ssh/timecode source/timecode-bot/chef_voice.py source/timecode-bot/CHEF_MEMORY.md root@217.149.24.242:"$stage/"
+          ssh -i ~/.ssh/timecode root@217.149.24.242 "bash -s -- '$stage'" <<'REMOTE'
+          set -Eeuo pipefail
+          stage="$1"
+          cd /opt/timecode-bot/timecode-bot
+          cp -p server.py "$stage/server.before.py"
+          cp "$stage/chef_voice.py" "$stage/CHEF_MEMORY.md" .
+          python3 - <<'PY'
+          from pathlib import Path
+          p=Path('server.py');t=p.read_text()
+          if 'chef_voice.install(globals())' not in t:
+              anchor="if __name__=='__main__':"
+              if t.count(anchor)!=1:raise RuntimeError('Server initialization changed')
+              t=t.replace(anchor,'import chef_voice\nchef_voice.install(globals())\n\n'+anchor,1)
+              p.write_text(t)
+          PY
+          python3 -m py_compile server.py chef_voice.py
+          systemctl restart timecode-bot.service
+          curl -fsS --retry 5 --retry-delay 2 --retry-connrefused http://127.0.0.1:8097/health -o /dev/null
+          set -a
+          . /etc/timecode-bot.env
+          set +a
+          python3 - <<'PY'
+          import json,server
+          server.init()
+          assert 'Бот обязан признавать' in server.chef_memory
+          server.chef_launch()
+          server.retry_notifications('chef-pilot-20261009')
+          with server.conn() as c:
+              rows=c.execute("select chat,delivered from notification_outbox where day=? and message_key='chef-pilot-20261009'",(server.today(),)).fetchall()
+              stats={'telegram':{'delivered':0,'pending':0},'max':{'delivered':0,'pending':0}}
+              for r in rows:
+                  chat=json.loads(r['chat'])
+                  messenger='max' if isinstance(chat,int) and chat<0 and server.max_transport.internal_id(c,'max',-chat) is not None else 'telegram'
+                  stats[messenger]['delivered' if r['delivered'] else 'pending']+=1
+              assert c.execute("select body from daily_content where day=? and kind='chef-hunt-pm'",(server.today(),)).fetchone()
+          print('CHEF_PILOT_DELIVERY',json.dumps(stats))
+          print('KIMI_PERSISTENT_MEMORY_LOADED',len(server.chef_memory))
+          assert stats['telegram']['delivered']>0 and stats['max']['delivered']>0
+          print('Health OK. Friday pilot active until 20:00; common photo edition at 20:30.')
+          PY
+          REMOTE
