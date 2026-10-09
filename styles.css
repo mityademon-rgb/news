@@ -5,6 +5,14 @@
   font-display: swap;
 }
 
+@font-face {
+  font-family: "Oswald TC";
+  src: url("./assets/fonts/Oswald-TIMECODE.ttf") format("truetype-variations");
+  font-style: normal;
+  font-weight: 200 700;
+  font-display: swap;
+}
+
 /* CINEMA — stories that make you want to watch */
 .cinema-preview {
   padding: clamp(64px, 8vw, 120px) var(--page-pad);
@@ -7088,4 +7096,91 @@ body.camera-card-open { overflow: hidden; }
  .cinema-film-cast ul { grid-template-columns:1fr; gap:14px; }
  .cinema-watch-links a { padding:20px; }
  .cinema-story-footer a { min-width:0; flex-basis:100%; }
+}
+
+/* Industrial display type: condensed proportions plus the scanline texture
+   from the visual reference. Keep it on editorial headlines, not body copy. */
+:is(
+  .cinema-preview > header h2,
+  .cinema-intro h1,
+  .cinema-story-hero h1,
+  .topic-promo-copy h2,
+  .topic-hero h1,
+  .library-header h2,
+  .lifehack-catalog-page .library-header h1,
+  .about-copy h2,
+  .play-shelf > header h2,
+  .play-hub-intro h1,
+  .play-page-heading h1,
+  .teacher-login-copy h1,
+  .teacher-portal-hero h1,
+  .teacher-guide-hero h1
+),
+:is(
+  .cinema-preview > header h2,
+  .cinema-intro h1,
+  .cinema-story-hero h1,
+  .topic-promo-copy h2,
+  .topic-hero h1,
+  .library-header h2,
+  .lifehack-catalog-page .library-header h1,
+  .about-copy h2,
+  .play-shelf > header h2,
+  .play-hub-intro h1,
+  .play-page-heading h1,
+  .teacher-login-copy h1,
+  .teacher-portal-hero h1,
+  .teacher-guide-hero h1
+) * {
+  font-family: "Oswald TC", "Arial Narrow", sans-serif;
+  font-weight: 700;
+  font-variation-settings: "wght" 700;
+  letter-spacing: -.035em;
+  text-transform: uppercase;
+}
+
+@supports (-webkit-background-clip: text) {
+  :is(
+    .cinema-preview > header h2,
+    .cinema-intro h1,
+    .cinema-story-hero h1,
+    .topic-promo-copy h2,
+    .topic-hero h1,
+    .library-header h2,
+    .lifehack-catalog-page .library-header h1,
+    .about-copy h2,
+    .play-shelf > header h2,
+    .play-hub-intro h1,
+    .play-page-heading h1,
+    .teacher-login-copy h1,
+    .teacher-portal-hero h1,
+    .teacher-guide-hero h1
+  ),
+  :is(
+    .cinema-preview > header h2,
+    .cinema-intro h1,
+    .cinema-story-hero h1,
+    .topic-promo-copy h2,
+    .topic-hero h1,
+    .library-header h2,
+    .lifehack-catalog-page .library-header h1,
+    .about-copy h2,
+    .play-shelf > header h2,
+    .play-hub-intro h1,
+    .play-page-heading h1,
+    .teacher-login-copy h1,
+    .teacher-portal-hero h1,
+    .teacher-guide-hero h1
+  ) * {
+    background-image: repeating-linear-gradient(
+      180deg,
+      currentColor 0,
+      currentColor 1px,
+      transparent 1px,
+      transparent 3px
+    );
+    background-clip: text;
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+  }
 }
