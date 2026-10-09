@@ -16,7 +16,7 @@ jobs:
       - uses: actions/checkout@v4
         with:
           repository: mityademon-rgb/media-center-bot
-          ref: a224caad8049824b91642a2d608c3f5ce04dd292
+          ref: ecaaf7c1677ab19e7bf63df7ee867b4bc604c552
           path: source
       - name: Verify pilot routing
         run: |
@@ -34,13 +34,13 @@ jobs:
           chmod 600 ~/.ssh/timecode
           ssh-keyscan -T 8 -H 217.149.24.242 > ~/.ssh/known_hosts
           stage=$(ssh -i ~/.ssh/timecode root@217.149.24.242 'mktemp -d /tmp/timecode-chef-XXXXXXXX')
-          scp -i ~/.ssh/timecode source/timecode-bot/chef_voice.py source/timecode-bot/CHEF_MEMORY.md root@217.149.24.242:"$stage/"
+          scp -i ~/.ssh/timecode source/timecode-bot/chef_voice.py source/timecode-bot/CHEF_MEMORY.md source/timecode-bot/playful_checkins.py root@217.149.24.242:"$stage/"
           ssh -i ~/.ssh/timecode root@217.149.24.242 "bash -s -- '$stage'" <<'REMOTE'
           set -Eeuo pipefail
           stage="$1"
           cd /opt/timecode-bot/timecode-bot
           cp -p server.py "$stage/server.before.py"
-          cp "$stage/chef_voice.py" "$stage/CHEF_MEMORY.md" .
+          cp "$stage/chef_voice.py" "$stage/CHEF_MEMORY.md" "$stage/playful_checkins.py" .
           python3 - <<'PY'
           from pathlib import Path
           p=Path('server.py');t=p.read_text()
@@ -50,7 +50,7 @@ jobs:
               t=t.replace(anchor,'import chef_voice\nchef_voice.install(globals())\n\n'+anchor,1)
               p.write_text(t)
           PY
-          python3 -m py_compile server.py chef_voice.py
+          python3 -m py_compile server.py chef_voice.py playful_checkins.py
           systemctl restart timecode-bot.service
           curl -fsS --retry 5 --retry-delay 2 --retry-connrefused http://127.0.0.1:8097/health -o /dev/null
           set -a
