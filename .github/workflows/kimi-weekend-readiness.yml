@@ -1,0 +1,39 @@
+name: Inspect Kimi weekend readiness
+on:
+  push:
+    branches: [boom-kadr-deploy]
+    paths: ['.github/workflows/kimi-weekend-readiness.yml']
+permissions:
+  contents: read
+jobs:
+  inspect:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Read current bot readiness
+        env:
+          BOOM_SSH_KEY: ${{ secrets.BOOM_SSH_KEY }}
+        run: |
+          install -d -m 700 ~/.ssh
+          printf '%s\n' "$BOOM_SSH_KEY" > ~/.ssh/timecode
+          chmod 600 ~/.ssh/timecode
+          ssh-keyscan -T 8 -H 217.149.24.242 > ~/.ssh/known_hosts
+          ssh -i ~/.ssh/timecode root@217.149.24.242 'bash -s' <<'REMOTE'
+          set -e
+          cd /opt/timecode-bot/timecode-bot
+          set -a
+          . /etc/timecode-bot.env
+          set +a
+          python3 - <<'PY'
+          import server,json
+          from pathlib import Path
+          server.init()
+          with server.conn() as c:
+              print('ENABLED_RECIPIENTS',c.execute('select count(*) from users where enabled=1').fetchone()[0])
+              print('CROSS_PLATFORM_LINKS',c.execute('select count(*) from (select user_id from messenger_identities group by user_id having count(distinct platform)>1)').fetchone()[0])
+              print('AMBIGUOUS_NAMES',c.execute("select count(*) from (select lower(trim(name)) from users where enabled=1 and role!='admin' group by lower(trim(name)) having count(*)>1)").fetchone()[0])
+              print('WEEKEND_DELIVERY',[tuple(r) for r in c.execute("select day,period,delivered,count(*) from notification_photo_outbox where period like '%20261010%' group by 1,2,3")])
+          print('INSTALLS',[l for l in Path('server.py').read_text().splitlines() if '.install(globals())' in l])
+          print('CLOCK',server.now().isoformat())
+          PY
+          curl -fsS http://127.0.0.1:8097/health
+          REMOTE
