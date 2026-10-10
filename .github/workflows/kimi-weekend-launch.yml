@@ -1,0 +1,113 @@
+name: Deploy Kimi October 10-11 photo contest
+on:
+  push:
+    branches: [boom-kadr-deploy]
+    paths: ['.github/workflows/kimi-weekend-launch.yml']
+permissions:
+  contents: read
+concurrency:
+  group: kimi-weekend-launch
+  cancel-in-progress: false
+jobs:
+  launch:
+    runs-on: ubuntu-latest
+    timeout-minutes: 12
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          repository: mityademon-rgb/media-center-bot
+          ref: 4da51162f21740844868d507b787fc620a9ab3f9
+          path: source
+      - name: Verify contest and preserved bot functions
+        run: |
+          cd source/timecode-bot
+          python3 -m unittest discover -s tests -p test_kimi_weekend.py
+          python3 -m unittest discover -s tests -p test_shared_media.py
+          python3 -m unittest discover -s tests -p test_max_integration.py
+          python3 -m unittest discover -s tests -p test_admin_controls.py
+          python3 -m unittest discover -s tests -p test_playful_checkins.py
+          python3 -m unittest discover -s tests -p test_chat_schedule.py
+          python3 -m py_compile kimi_weekend.py
+      - name: Install only contest module and its hook
+        env:
+          BOOM_SSH_KEY: ${{ secrets.BOOM_SSH_KEY }}
+        run: |
+          install -d -m 700 ~/.ssh
+          printf '%s\n' "$BOOM_SSH_KEY" > ~/.ssh/timecode
+          chmod 600 ~/.ssh/timecode
+          ssh-keyscan -T 8 -H 217.149.24.242 > ~/.ssh/known_hosts
+          stage=$(ssh -i ~/.ssh/timecode root@217.149.24.242 'mktemp -d /tmp/kimi-weekend-XXXXXXXX')
+          scp -i ~/.ssh/timecode source/timecode-bot/kimi_weekend.py source/timecode-bot/CHEF_MEMORY.md root@217.149.24.242:"$stage/"
+          ssh -i ~/.ssh/timecode root@217.149.24.242 "bash -s -- '$stage'" <<'REMOTE'
+          set -Eeuo pipefail
+          stage="$1"
+          cd /opt/timecode-bot/timecode-bot
+          backup=$(mktemp -d /opt/timecode-bot/kimi-weekend-backup-XXXXXXXX)
+          cp -p server.py CHEF_MEMORY.md "$backup/"
+          if test -f kimi_weekend.py; then cp -p kimi_weekend.py "$backup/"; fi
+          rollback() {
+            cp -p "$backup/server.py" "$backup/CHEF_MEMORY.md" .
+            if test -f "$backup/kimi_weekend.py"; then cp -p "$backup/kimi_weekend.py" .; fi
+            systemctl restart timecode-bot.service || true
+          }
+          trap rollback ERR
+          cp "$stage/kimi_weekend.py" "$stage/CHEF_MEMORY.md" .
+          python3 - <<'PY'
+          from pathlib import Path
+          import difflib
+          p=Path('server.py');before=p.read_text()
+          anchor='chef_voice.install(globals())\n'
+          hook='import kimi_weekend\nkimi_weekend.install(globals())\n'
+          if hook not in before:
+              assert before.count(anchor)==1, 'Core installation anchor changed'
+              after=before.replace(anchor,anchor+hook,1)
+              added=[x for x in difflib.ndiff(before.splitlines(),after.splitlines()) if x.startswith('+ ')]
+              removed=[x for x in difflib.ndiff(before.splitlines(),after.splitlines()) if x.startswith('- ')]
+              assert added==['+ import kimi_weekend','+ kimi_weekend.install(globals())'] and not removed
+              p.write_text(after)
+          assert Path('static/weekend-20261010.jpg').stat().st_size>0
+          print('Core patch verified: only two installation lines')
+          PY
+          python3 -m py_compile server.py kimi_weekend.py
+          systemctl restart timecode-bot.service
+          curl -fsS --retry 5 --retry-delay 2 --retry-connrefused http://127.0.0.1:8097/health -o /dev/null
+          curl -fsS --retry 3 --retry-delay 2 https://timecode-lab.ru/tc/ -o /dev/null
+          trap - ERR
+          set -a
+          . /etc/timecode-bot.env
+          set +a
+          python3 - <<'PY'
+          import json,time
+          import server,kimi_weekend as k
+          assert hasattr(server,'kimi_weekend_tick')
+          assert server.AI_KEY, 'Vision provider is not configured'
+          assert server.now().date().isoformat()=='2026-10-10', 'Wrong launch day'
+          for attempt in range(25):
+              with server.conn() as c:
+                  photos=[dict(r) for r in c.execute('select chat,delivered from notification_photo_outbox where period=?',('kimi-20261010-morning',))]
+                  texts=[dict(r) for r in c.execute('select chat,delivered from notification_outbox where message_key=?',('kimi-20261010-morning',))]
+              if photos and texts and all(r['delivered']!=0 for r in photos+texts):break
+              time.sleep(2)
+          def counts(rows):
+              result={'telegram':{'delivered':0,'pending':0,'unreachable':0},'max':{'delivered':0,'pending':0,'unreachable':0}}
+              with server.conn() as c:
+                  for r in rows:
+                      chat=json.loads(r['chat'])
+                      platform='max' if isinstance(chat,int) and chat<0 and server.max_transport.internal_id(c,'max',-chat) is not None else 'telegram'
+                      key='delivered' if r['delivered']==1 else 'unreachable' if r['delivered']==-1 else 'pending'
+                      result[platform][key]+=1
+              return result
+          pc=counts(photos);tc=counts(texts)
+          print('MORNING_PHOTO_DELIVERY',json.dumps(pc))
+          print('MORNING_RULES_DELIVERY',json.dumps(tc))
+          print('RELEASES',[t[0] for t in k.TASKS])
+          print('CLOSE',k.CLOSE.isoformat(),'VOTE',k.VOTE.isoformat(),'FINAL',k.FINAL.isoformat())
+          with server.conn() as c:
+              print('CURRENT_FRAMES',c.execute('select count(*) from kimi_frames where campaign=?',(k.CAMPAIGN,)).fetchone()[0])
+              print('REGISTERED_PARTICIPANTS',c.execute('select count(*) from kimi_participants where campaign=?',(k.CAMPAIGN,)).fetchone()[0])
+              print('CURRENT_RESULTS',c.execute('select count(*) from kimi_results where campaign=?',(k.CAMPAIGN,)).fetchone()[0])
+          for result in (pc,tc):
+              assert all(result[p]['delivered']>0 and result[p]['pending']==0 for p in ('telegram','max')), 'Morning delivery not yet confirmed'
+          print('DEPLOYED_AND_DELIVERED_BOTH_PLATFORMS')
+          PY
+          REMOTE
