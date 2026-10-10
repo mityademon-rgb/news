@@ -16,7 +16,7 @@ jobs:
       - uses: actions/checkout@v4
         with:
           repository: mityademon-rgb/media-center-bot
-          ref: 4da51162f21740844868d507b787fc620a9ab3f9
+          ref: d7371280703c57824a93bd0bb7d540d8f4a5a374
           path: source
       - name: Verify contest and preserved bot functions
         run: |
