@@ -16,6 +16,8 @@
 | Связанный bot root | `/opt/timecode-bot/timecode-bot` |
 | Статус | Актуально для указанного commit и фактов production, проверенных 11.10.2026 |
 
+> **Живая память проекта:** текущее устройство хранится в этом handbook, а последовательность всех изменений — в [`PROJECT_CHANGELOG.md`](PROJECT_CHANGELOG.md). Перед работой прочитать оба файла. Корневой `AGENTS.md` делает это обязательным для AI-агентов.
+
 ## Статусы достоверности
 
 - **Проверено** — подтверждено исходниками, Git, безопасной локальной проверкой, живым HTTP/UI или успешным read-only production-аудитом.
@@ -129,10 +131,13 @@ flowchart TD
 
 ## 3. Структура репозитория
 
-Проверено 175 tracked-файлов, около 18 MB. В корне нет `package.json`, lock-файла, `.gitignore`, `AGENTS.md` или `CLAUDE.md`.
+После введения проектной памяти в репозитории 181 tracked-файл, около 18 MB. В корне нет `package.json`, lock-файла, `.gitignore` или `CLAUDE.md`; правила для агентов находятся в `AGENTS.md`.
 
 ```text
 news/                         # корень репозитория
+├── AGENTS.md                 # обязательный порядок работы AI-агентов
+├── PROJECT_AI_HANDBOOK.md    # актуальная архитектурная карта
+├── PROJECT_CHANGELOG.md      # последовательный журнал всех изменений
 ├── index.html                # единственная HTML-точка входа
 ├── styles.css                # глобальные стили и 3D hero
 ├── lesson03-kids.css         # отдельные overrides урока 03
@@ -146,7 +151,8 @@ news/                         # корень репозитория
 │   ├── brand/                # SVG-логотипы и знаки
 │   └── fonts/                # TTF и лицензии
 ├── .deploy/                  # nginx и исторические shell-deploy scripts
-└── .github/workflows/        # 91 workflow сайта/бота/диагностики
+├── scripts/                  # создание записи и локальная проверка памяти
+└── .github/workflows/        # 92 workflow, включая documentation guard
 ```
 
 ### Карта значимых файлов
@@ -165,6 +171,9 @@ news/                         # корень репозитория
 | `.deploy/boom-kadr-https.conf` | Текущая проектная схема nginx | Только с отдельной инфраструктурной проверкой | Сохранять `/tc/` proxy |
 | `.deploy/install.sh`, `update.sh`, `https.sh` | Старый pull-based deploy | Не запускать | Содержат старый IP и неполный набор файлов |
 | `.github/workflows/deploy-boom-kadr.yml` | Текущий static deploy | Только после review | Имеет неполные path triggers и неполный rollback |
+| `PROJECT_CHANGELOG.md` | Хронология каждого изменения | Обновлять в каждом commit | Не содержит секретов; newest-first после маркера |
+| `AGENTS.md` | Обязательные правила следующему AI | Менять вместе с handbook/changelog | Действует на весь репозиторий |
+| `scripts/check-project-documentation.sh` | Локальный и CI guard | Да, с self-test | Требует changelog всегда и handbook для structural paths |
 | остальные workflows | Bot deploy/диагностика/разовые операции | Не запускать для исследования | Многие рестартуют сервис, пишут БД или шлют сообщения |
 
 ### Исходники, сборка и serving directory
@@ -553,9 +562,9 @@ SQLite читать URI `mode=ro`, не импортировать прилож�
 
 ### Workflow inventory
 
-В `.github/workflows/` — 91 YAML:
+В `.github/workflows/` — 92 YAML после добавления documentation guard:
 
-- все 91 содержат push trigger;
+- все 92 содержат push trigger;
 - 15 дополнительно имеют `workflow_dispatch`;
 - 87 содержат SSH-контур;
 - 51 содержит restart/start/stop service;
@@ -857,10 +866,15 @@ node --check site.js
 7. Сверить документ с живым состоянием затронутого компонента.
 8. Не удалять историческое предупреждение, если причина не устранена.
 
+Каждое изменение проекта, включая контент, дизайн, assets, конфигурацию и документацию, дополнительно получает запись в `PROJECT_CHANGELOG.md` в том же commit. Запись содержит цель, файлы, связи, проверки, статус публикации, способ отката и оставшиеся риски. Helper `scripts/new-change-entry.sh` создаёт заготовку, а `scripts/check-project-documentation.sh` и workflow `Require TIMECODE project memory` проверяют соблюдение правила.
+
+CI-проверка не заменяет branch protection: на push она только помечает уже созданный commit как failed. Чтобы нарушение физически не попадало в основную ветку через pull request, GitHub check `documentation-guard` нужно назначить обязательным в правилах ветки.
+
 Мелкие текстовые правки без operational impact не требуют полного переписывания.
 
 ### Журнал
 
+- **2026-10-11** — введены `PROJECT_CHANGELOG.md`, обязательный `AGENTS.md`, helper и CI guard: любое изменение фиксируется в журнале; структурное изменение требует также обновить handbook.
 - **2026-10-11** — создан полный site/project handbook на commit `1760d973`; проверены repo, bundle drift, content/assets, deploy/nginx configs, workflows, live hashes/routes/health и обезличенные результаты отдельного production bot-аудита. Рабочий код, сервер, БД и сервисы не изменялись.
 
 ---

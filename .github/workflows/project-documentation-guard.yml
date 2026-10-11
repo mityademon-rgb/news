@@ -1,0 +1,37 @@
+name: Require TIMECODE project memory
+
+on:
+  pull_request:
+  push:
+    branches: [boom-kadr-deploy]
+
+permissions:
+  contents: read
+
+jobs:
+  documentation-guard:
+    runs-on: ubuntu-latest
+    timeout-minutes: 3
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Resolve comparison base
+        id: base
+        shell: bash
+        run: |
+          set -euo pipefail
+          if [[ "${{ github.event_name }}" == "pull_request" ]]; then
+            base="${{ github.event.pull_request.base.sha }}"
+          else
+            base="${{ github.event.before }}"
+            if [[ "$base" == "0000000000000000000000000000000000000000" ]]; then
+              base="$(git rev-parse HEAD^)"
+            fi
+          fi
+          echo "base=$base" >> "$GITHUB_OUTPUT"
+
+      - name: Verify project memory was updated
+        run: bash scripts/check-project-documentation.sh "${{ steps.base.outputs.base }}" "${{ github.sha }}"
+
