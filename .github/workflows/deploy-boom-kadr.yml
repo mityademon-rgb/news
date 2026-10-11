@@ -9,6 +9,9 @@ on:
       - 'lesson03-kids.css'
       - 'app.js'
       - 'lessons.js'
+      - 'lesson-plans.js'
+      - 'site.js'
+      - 'scripts/build-site.sh'
       - 'assets/**'
       - '.deploy/boom-kadr-http.conf'
       - '.deploy/boom-kadr-https.conf'
@@ -27,6 +30,14 @@ jobs:
       - uses: actions/checkout@v4
         with:
           ref: boom-kadr-deploy
+
+      - name: Verify site bundle
+        run: |
+          bash scripts/build-site.sh --check
+          node --check lessons.js
+          node --check lesson-plans.js
+          node --check app.js
+          node --check site.js
 
       - name: Configure SSH
         env:

@@ -977,7 +977,9 @@
           </div>
           <h1 class="timecode-title" id="hero-title" aria-label="TIMECODE — лаборатория креативных медиа">
             <span class="timecode-title-mark" aria-hidden="true"><i></i><i></i></span>
-            <strong>TIME<span>:</span>CODE</strong>
+            <span class="timecode-word-3d">
+              <strong data-title="TIME:CODE">TIME<span>:</span>CODE</strong>
+            </span>
             <small>Лаборатория креативных медиа</small>
           </h1>
           <p class="title-action-line"><b>Смотри.</b><b>Слушай.</b><b>Снимай.</b></p>
@@ -988,6 +990,7 @@
         </div>
 
         <div class="title-stage-picture" aria-hidden="true">
+          <div class="studio-depth-lines"><i></i><i></i><i></i></div>
           <div class="camera-flash"></div>
           <img class="title-camera" src="./assets/camera-hero.webp" alt="" />
           <img class="title-mic" src="./assets/boom-mic-hero.webp" alt="" />
@@ -1640,15 +1643,28 @@
   }
 
   function bindTitleInteractions() {
-    const stage = document.querySelector(".title-stage-picture");
+    const stage = document.querySelector(".title-stage");
     const reducedMotion = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
     if (stage && !reducedMotion) {
+      let frame = 0;
       stage.addEventListener("pointermove", (event) => {
         const rect = stage.getBoundingClientRect();
         const x = ((event.clientX - rect.left) / rect.width) * 100;
         const y = ((event.clientY - rect.top) / rect.height) * 100;
-        stage.style.setProperty("--hero-x", `${(x - 50) / 50}`);
-        stage.style.setProperty("--hero-y", `${(y - 50) / 50}`);
+        cancelAnimationFrame(frame);
+        frame = requestAnimationFrame(() => {
+          stage.style.setProperty("--hero-x", `${(x - 50) / 50}`);
+          stage.style.setProperty("--hero-y", `${(y - 50) / 50}`);
+          stage.style.setProperty("--hero-light-x", `${x}%`);
+          stage.style.setProperty("--hero-light-y", `${y}%`);
+        });
+      });
+      stage.addEventListener("pointerleave", () => {
+        cancelAnimationFrame(frame);
+        stage.style.setProperty("--hero-x", "0");
+        stage.style.setProperty("--hero-y", "0");
+        stage.style.setProperty("--hero-light-x", "72%");
+        stage.style.setProperty("--hero-light-y", "38%");
       });
     }
   }

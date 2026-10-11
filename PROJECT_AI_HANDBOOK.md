@@ -109,14 +109,14 @@ flowchart TD
 
 | Область | Состояние |
 |---|---|
-| Уроки | 13 записей: 12 готовы, урок 01 KIDS LAB имеет статус `soon` |
-| KIDS LAB | 8 записей, из них 7 готовых |
-| MEDIA LAB | 5 готовых уроков A01–A05 |
-| Сцены уроков | 311 экранов |
-| Планы преподавателя | 12, по одному для каждого готового урока |
+| Уроки | 15 записей: 14 готовы, урок 01 KIDS LAB имеет статус `soon` |
+| KIDS LAB | 9 записей, из них 8 готовых |
+| MEDIA LAB | 6 готовых уроков A01–A06 |
+| Сцены уроков | 361 экран |
+| Планы преподавателя | 14, по одному для каждого готового урока |
 | PLAY | 4 сценария: talk, crew, hack, frame |
 | Киноистории | 6 фильмов, по 2 в трёх категориях |
-| Лайфхаки | 48 карточек из уроков, 5 фильтров |
+| Лайфхаки | 59 карточек из уроков, 5 фильтров |
 | «Ты в теме!» | Отдельная страница, ссылка на VK Видео и сообщество |
 | Бот `/tc/` | Служба и HTTP health доступны на момент проверки |
 
@@ -125,7 +125,7 @@ flowchart TD
 - KIDS LAB урок 01 `studio-start` — карточка «Скоро», без сцен и плана преподавателя.
 - В production-аудите бот-конкурса Kimi было 16 участников, но ещё не было кадров, голосов, шорт-листа и результата на момент снимка.
 - Нет автоматизированного полного e2e/regression-набора сайта.
-- Нет воспроизводимой команды сборки `site.js`; текущий live bundle содержит ручное отклонение от исходников.
+- Для `site.js` введены детерминированная сборка и проверка соответствия исходникам; публикация этой версии требует отдельной live-проверки.
 
 ---
 
@@ -144,14 +144,14 @@ news/                         # корень репозитория
 ├── lessons.js                # данные уроков и 48 лайфхаков
 ├── lesson-plans.js           # актуальные планы преподавателя
 ├── teacher-guides.js         # устаревший дубликат; не подключён
-├── app.js                    # читаемый runtime-исходник, но без части 3D-правок
-├── site.js                   # фактически загружаемый production bundle
+├── app.js                    # читаемый runtime-исходник, включая 3D hero
+├── site.js                   # генерируемый production bundle
 ├── README.txt                # устаревшая инструкция
 ├── assets/                   # изображения, бренд и шрифты
 │   ├── brand/                # SVG-логотипы и знаки
 │   └── fonts/                # TTF и лицензии
 ├── .deploy/                  # nginx и исторические shell-deploy scripts
-├── scripts/                  # создание записи и локальная проверка памяти
+├── scripts/                  # сборка site.js, создание записи и локальные проверки
 └── .github/workflows/        # 92 workflow, включая documentation guard
 ```
 
@@ -162,15 +162,16 @@ news/                         # корень репозитория
 | `index.html` | Каркас, header/footer, CSS/JS подключения | Да, с проверкой всех маршрутов | При изменении bundle/CSS обновлять cache-busting query |
 | `styles.css` | Основной визуальный слой | Да | 7 186 строк и много исторических media-query; проверять каскад |
 | `lesson03-kids.css` | Изолированные стили конкретного урока | Только если затронут этот урок | Не переносить вслепую в общий CSS |
-| `lessons.js` | Контент и сцены уроков | Да | После правки нужно синхронизировать `site.js` безопасным способом |
+| `lessons.js` | Контент и сцены уроков | Да | После правки выполнить `scripts/build-site.sh` |
 | `lesson-plans.js` | Актуальные учительские планы | Да | Должны соответствовать ready-урокам |
 | `teacher-guides.js` | Старый набор планов | Не использовать как source of truth | Не подключён и не публикуется текущим workflow |
-| `app.js` | Основная SPA-логика | Да | Сейчас не содержит всех live 3D-изменений |
-| `site.js` | Файл, реально выполняемый браузером | Только осознанно | Нельзя слепо пересобирать конкатенацией |
+| `app.js` | Основная SPA-логика | Да | Содержит подтверждённые 3D-изменения hero |
+| `site.js` | Файл, реально выполняемый браузером | Генерируется | Не редактировать вручную; собирать `scripts/build-site.sh` |
+| `scripts/build-site.sh` | Детерминированная сборка и consistency-check | Да, с проверкой workflow | Порядок: `lessons.js` + `lesson-plans.js` + `app.js` |
 | `assets/` | Изображения, SVG, шрифты | Да | Сверять пути, размер и лицензию |
 | `.deploy/boom-kadr-https.conf` | Текущая проектная схема nginx | Только с отдельной инфраструктурной проверкой | Сохранять `/tc/` proxy |
 | `.deploy/install.sh`, `update.sh`, `https.sh` | Старый pull-based deploy | Не запускать | Содержат старый IP и неполный набор файлов |
-| `.github/workflows/deploy-boom-kadr.yml` | Текущий static deploy | Только после review | Имеет неполные path triggers и неполный rollback |
+| `.github/workflows/deploy-boom-kadr.yml` | Текущий static deploy | Только после review | Проверяет bundle; rollback статических файлов всё ещё неполный |
 | `PROJECT_CHANGELOG.md` | Хронология каждого изменения | Обновлять в каждом commit | Не содержит секретов; newest-first после маркера |
 | `AGENTS.md` | Обязательные правила следующему AI | Менять вместе с handbook/changelog | Действует на весь репозиторий |
 | `scripts/check-project-documentation.sh` | Локальный и CI guard | Да, с self-test | Требует changelog всегда и handbook для structural paths |
@@ -326,39 +327,31 @@ news/                         # корень репозитория
 
 ## 7. Сборка и источник истины
 
-### Критическое расхождение
+### Детерминированная сборка
 
-Исторически `site.js` задуман как:
+`site.js` собирается в фиксированном порядке:
 
 ```text
 lessons.js + lesson-plans.js + app.js
 ```
 
-Но на commit `1760d97` это **не так**. Сравнение показало 20 добавленных и 6 удалённых строк относительно простой конкатенации. Только `site.js` содержит:
+Историческое расхождение 3D hero устранено: wrapper `.timecode-word-3d`, `.studio-depth-lines`, pointer handler через `requestAnimationFrame`, координаты света и reset на `pointerleave` перенесены из bundle в `app.js`.
 
-- wrapper `.timecode-word-3d` и `data-title="TIME:CODE"`;
-- `.studio-depth-lines`;
-- обновлённый pointer handler через `requestAnimationFrame`;
-- координаты света и reset на `pointerleave`.
+Source of truth:
 
-`app.js` обновлялся позже по кино-ссылке, а 3D-правки были внесены только в `site.js`. Следовательно:
+1. `lessons.js` — данные уроков и лайфхаков.
+2. `lesson-plans.js` — планы преподавателя.
+3. `app.js` — runtime-логика, маршруты и шаблоны.
+4. `site.js` — генерируемый browser bundle; вручную не редактируется.
 
-1. `site.js` — фактический runtime source of truth для поведения live-сайта.
-2. `lessons.js` и `lesson-plans.js` — source of truth для данных.
-3. `app.js` — основной читаемый исходник логики, но не полная копия runtime.
-4. Простая конкатенация сейчас удалит 3D-функциональность.
+Команды:
 
-### Безопасный путь исправления сборки
+```bash
+scripts/build-site.sh
+scripts/build-site.sh --check
+```
 
-Отдельной согласованной задачей:
-
-1. Перенести подтверждённые 3D-различия из `site.js` в `app.js`.
-2. Сравнить runtime до/после на главной, при pointerleave и reduced-motion.
-3. Ввести детерминированный script сборки, например shell/Node, который пишет `site.js` в фиксированном порядке.
-4. Добавить CI-check: сгенерированный temp bundle должен побайтно совпадать с tracked `site.js`.
-5. Только после этого считать `site.js` генерируемым и запрещать ручное редактирование.
-
-До выполнения этих шагов **не выполнять** `cat lessons.js lesson-plans.js app.js > site.js`.
+Deploy workflow выполняет `--check` и `node --check` до SSH. Если tracked `site.js` не совпадает с тремя исходниками, публикация останавливается до подключения к серверу.
 
 ### Cache busting
 
@@ -367,10 +360,10 @@ lessons.js + lesson-plans.js + app.js
 ```text
 styles.css?v=20261009-industrial-type
 lesson03-kids.css?v=20260917-2
-site.js?v=20261008-3d1
+site.js?v=20261011-host-voice
 ```
 
-Nginx кэширует CSS/JS/images 7 дней. Любая правка содержимого должна сопровождаться изменением соответствующего `?v=`. Query для `site.js` меняется вручную и не проверяется CI.
+Nginx кэширует CSS/JS/images 7 дней. Любая правка содержимого должна сопровождаться изменением соответствующего `?v=`. Query для `site.js` пока меняется вручную.
 
 ---
 
@@ -394,17 +387,18 @@ Nginx кэширует CSS/JS/images 7 дней. Любая правка сод�
 
 `.github/workflows/deploy-boom-kadr.yml`:
 
-1. Запускается на push в `boom-kadr-deploy` для ограниченного списка путей или вручную.
+1. Запускается на push в `boom-kadr-deploy` для сайта, его исходников, bundle, build-script и конфигурации либо вручную.
 2. Checkout фиксированной ветки.
-3. Создаёт archive из HTML, CSS, `site.js`, исходных JS, assets и README.
-4. Загружает archive и nginx configs по SSH.
-5. Распаковывает поверх `/var/www/boom-kadr`.
-6. Проверяет nginx config, локальный HTTP, DNS, сертификат и локальный HTTPS.
-7. Проверяет public canonical/www/legacy и два соседних сайта.
+3. Проверяет, что `site.js` совпадает с исходниками, и запускает JS syntax checks.
+4. Создаёт archive из HTML, CSS, `site.js`, исходных JS, assets и README.
+5. Загружает archive и nginx configs по SSH.
+6. Распаковывает поверх `/var/www/boom-kadr`.
+7. Проверяет nginx config, локальный HTTP, DNS, сертификат и локальный HTTPS.
+8. Проверяет public canonical/www/legacy и два соседних сайта.
 
 ### Проблемы deployment workflow
 
-- Path trigger не включает `site.js` и `lesson-plans.js`. Commit только этих файлов **не запустит deploy**.
+- Cache query `site.js?v=` меняется вручную и пока не связан автоматической проверкой с изменением bundle.
 - Path trigger не включает `teacher-guides.js`, а archive тоже не включает его; сейчас это соответствует тому, что файл устарел.
 - Archive содержит `app.js`, `lessons.js`, `lesson-plans.js`, хотя браузер их не подключает напрямую.
 - Распаковка идёт поверх существующих файлов без очистки removed assets.
@@ -597,9 +591,9 @@ SQLite читать URI `mode=ro`, не импортировать прилож�
 - `node --check`: `lessons.js`, `lesson-plans.js`, `app.js`, `site.js` — пройдено.
 - Проверка duplicate lesson id — дублей нет.
 - Проверка ready lessons без scenes — отсутствуют.
-- Покрытие guides — 12/12 ready lessons.
+- Покрытие guides — 14/14 ready lessons.
 - Проверка локальных asset references — 59 ссылок, 0 missing.
-- Сравнение expected concatenation с `site.js` — обнаружен 3D drift.
+- Исторический 3D drift подтверждён аудитом и затем устранён переносом изменений в `app.js`; `scripts/build-site.sh --check` подтверждает точное совпадение bundle.
 - SHA-256 live/repo для 4 обслуживаемых core-файлов — полное совпадение.
 - HTTP root и `/tc/health` — 200.
 - UI smoke восьми ключевых routes — отрисовка успешна.
@@ -613,6 +607,7 @@ node --check lessons.js
 node --check lesson-plans.js
 node --check app.js
 node --check site.js
+scripts/build-site.sh --check
 git diff --check
 ```
 
@@ -636,7 +631,7 @@ python3 -m http.server 4173 --bind 127.0.0.1
 | Teacher | Login failure/success без публикации credential, logout, print |
 | PLAY | Каждый из 4 flows до результата и повторный запуск |
 | Cinema | 6 routes, source/watch links, возврат в каталог |
-| Lifehacks | 48 cards, каждый filter, reset/count |
+| Lifehacks | 59 cards, каждый filter, reset/count |
 | SPA transitions | Все body classes после переходов в обе стороны |
 | Console/network | 404 assets, JS errors, cache version |
 
@@ -650,8 +645,8 @@ python3 -m http.server 4173 --bind 127.0.0.1
 
 ### Сценарий: изменить 3D-шапку или дизайн главной
 
-1. Найти все правила hero в `styles.css` и markup/interaction в `app.js` и `site.js`.
-2. Из-за текущего drift изменить согласованно runtime `site.js` и source `app.js`; лучше сначала закрыть задачу воспроизводимой сборки.
+1. Найти все правила hero в `styles.css` и markup/interaction в `app.js`.
+2. Изменить source `app.js`, затем собрать `site.js` через `scripts/build-site.sh`; bundle вручную не править.
 3. Не менять исходные изображения без проверки размеров/crop на 320–1440 px.
 4. Проверить pointer, pointerleave, keyboard CTA, reduced-motion и no-overflow.
 5. Обновить CSS/JS cache version в `index.html`.
@@ -672,13 +667,13 @@ python3 -m http.server 4173 --bind 127.0.0.1
 2. Для ready-урока добавить guide в `lesson-plans.js`.
 3. Добавить assets и проверить каждую ссылку.
 4. Проверить scene types и escape paths; не вставлять непроверенный HTML в контент.
-5. Синхронизировать `site.js`, сохранив 3D drift, либо использовать уже исправленный deterministic build.
+5. Выполнить `scripts/build-site.sh`, затем `scripts/build-site.sh --check`.
 6. Проверить homepage counts, route, progress, teacher plan, fullscreen, mobile.
 7. Обновить query `site.js?v=` и публиковать.
 
 ### Сценарий: изменить киноисторию/внешнюю ссылку
 
-1. Править `cinemaCatalog` в `app.js` и runtime `site.js` до устранения drift.
+1. Править `cinemaCatalog` в `app.js`, затем пересобирать `site.js` через `scripts/build-site.sh`.
 2. Различать editorial source URL и `watchUrl`.
 3. Проверить доступность/региональность ссылки и права; не заявлять непроверенные факты.
 4. Сохранить `target="_blank" rel="noopener noreferrer"`.
@@ -724,7 +719,6 @@ python3 -m http.server 4173 --bind 127.0.0.1
 
 | Риск | Доказательство | Что требуется |
 |---|---|---|
-| `site.js` невоспроизводим из declared sources | 20 additions/6 deletions, 3D существует только в bundle | Перенести drift в `app.js`, добавить build+CI check |
 | Production bot не воспроизводим из Git | Modified/untracked production files, HEAD не описывает полный runtime | Inventory, backup, безопасная нормализация в Git |
 | Нет доказанного backup/restore SQLite | Есть ad hoc backup dirs, но нет подтверждённого цикла/off-server restore | Согласовать backup policy и тест восстановления |
 | Большой blast radius workflows | 91 push workflow, root SSH, restart/message/DB операции | Архивировать/отключить one-off flows, добавить environments/approvals |
@@ -734,8 +728,8 @@ python3 -m http.server 4173 --bind 127.0.0.1
 | Риск | Последствие | Рекомендация |
 |---|---|---|
 | Teacher gate публичный client-side | Любой может получить доступ | Считать материалы публичными или вынести auth на server |
-| Deploy triggers пропускают `site.js` и plans | Изменение может не попасть на production | Исправить paths и добавить CI consistency check |
 | Нет static content rollback | Failed deploy оставляет mixed/new bytes | Версионированный release dir/symlink или архив всего root |
+| Cache query меняется вручную | Браузер может сохранить старый bundle до 7 дней | Добавить CI-проверку изменения `site.js?v=` вместе с bundle |
 | Deploy не удаляет stale files | Удалённые assets остаются доступны | Release-dir strategy или manifest-based cleanup |
 | Root SSH в Actions | Высокий impact компрометации | Ограниченный deploy user/key/command, GitHub Environment |
 | Bot disabled bearer risk | Disabled user может сохранить доступ по ранее выданному bearer | Исправить server-side identity check с тестом |
@@ -802,7 +796,7 @@ node --check site.js
 
 1. Делай минимальный адресный diff.
 2. Не переписывай архитектуру в рамках content/design задачи.
-3. Не пересобирай `site.js` простой конкатенацией.
+3. Не редактируй `site.js` вручную: после изменения трёх исходников выполняй `scripts/build-site.sh`, затем `scripts/build-site.sh --check`.
 4. Не запускай исторические workflows для диагностики.
 5. Не запускай server scripts/imports с production DB без понимания side effects.
 6. Не публикуй реальные credentials, user rows, tokens, keys, chat content или private logs.
@@ -903,4 +897,4 @@ CI-проверка не заменяет branch protection: на push она т
 
 ### Контрольный вывод
 
-Проект можно передать резервному AI для безопасной работы **при условии**, что он следует источникам истины и ограничениям этого handbook. До воспроизводимой сборки `site.js`, нормализации production bot Git и доказанного backup/restore нельзя считать эксплуатацию полностью воспроизводимой.
+Проект можно передать резервному AI для безопасной работы **при условии**, что он следует источникам истины и ограничениям этого handbook. Сборка `site.js` воспроизводима и проверяется до deploy; до нормализации production bot Git и доказанного backup/restore нельзя считать эксплуатацию целиком воспроизводимой.
