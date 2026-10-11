@@ -5977,6 +5977,122 @@ body.teacher-portal-active #main {
   .teacher-control-grid article { min-height: 0; }
 }
 
+/* Host school: reusable choice, sequence and readiness trainer */
+.host-choice,
+.host-order,
+.host-checklist {
+  width: min(1180px, 100%);
+  margin: 0 auto;
+}
+
+.host-choice {
+  display: grid;
+  grid-template-columns: minmax(260px, .8fr) minmax(360px, 1.2fr);
+  gap: clamp(16px, 2.4vw, 34px);
+  align-items: start;
+}
+
+.host-choice .magic-photo { grid-row: 1 / span 2; min-height: 430px; }
+.host-choice-options { display: grid; gap: 10px; }
+.host-choice-options button {
+  display: grid;
+  grid-template-columns: 42px 1fr;
+  gap: 14px;
+  align-items: center;
+  min-height: 74px;
+  padding: 12px 18px;
+  border: 1px solid rgba(255,255,255,.16);
+  border-radius: 18px;
+  background: rgba(255,255,255,.055);
+  color: var(--paper);
+  text-align: left;
+  cursor: pointer;
+}
+.host-choice-options button:hover { border-color: rgba(36,216,255,.75); transform: translateY(-2px); }
+.host-choice-options button > span {
+  display: grid;
+  place-items: center;
+  width: 38px;
+  aspect-ratio: 1;
+  border-radius: 50%;
+  background: rgba(255,255,255,.1);
+  color: var(--cyan, #24d8ff);
+  font-weight: 900;
+}
+.host-choice-options button strong { font-size: clamp(15px, 1.45vw, 21px); line-height: 1.18; }
+.host-choice-options button.is-correct { border-color: #71f5a6; background: rgba(49,198,108,.15); }
+.host-choice-options button.is-wrong { border-color: #ff6c76; background: rgba(255,72,82,.13); }
+.host-choice-feedback {
+  padding: 18px 20px;
+  border-radius: 18px;
+  background: #f4efe5;
+  color: #151319;
+}
+.host-choice-feedback b { display: block; margin-bottom: 6px; color: #e34750; font-size: 18px; text-transform: uppercase; }
+.host-choice-feedback p { margin: 0; font-size: 16px; line-height: 1.4; }
+.host-choice-feedback small { display: block; margin-top: 8px; font-weight: 850; }
+.host-choice-feedback button,
+.host-order-actions button,
+.host-checklist-actions button {
+  margin-top: 14px;
+  padding: 11px 16px;
+  border: 0;
+  border-radius: 999px;
+  background: #151319;
+  color: #fff;
+  font-weight: 850;
+  cursor: pointer;
+}
+
+.host-order { display: grid; grid-template-columns: .78fr 1.22fr; gap: 16px 26px; align-items: start; }
+.host-order .magic-photo { grid-row: 1 / span 4; min-height: 440px; }
+.host-order-slots { display: grid; gap: 8px; }
+.host-order-slots span {
+  display: flex;
+  align-items: center;
+  min-height: 48px;
+  padding: 8px 14px;
+  border: 1px dashed rgba(255,255,255,.25);
+  border-radius: 14px;
+  color: rgba(255,255,255,.4);
+}
+.host-order-slots span.is-filled { border-style: solid; border-color: rgba(36,216,255,.7); color: var(--paper); background: rgba(36,216,255,.08); }
+.host-order-items { display: flex; flex-wrap: wrap; gap: 8px; }
+.host-order-items button { padding: 10px 13px; border: 1px solid rgba(255,255,255,.18); border-radius: 12px; background: rgba(255,255,255,.07); color: var(--paper); font-weight: 800; cursor: pointer; }
+.host-order-items button:disabled { opacity: .35; cursor: default; }
+.host-order-actions { display: flex; gap: 10px; }
+.host-order-actions button { margin: 0; }
+.host-order-actions button:last-child { background: var(--cyan, #24d8ff); color: #101014; }
+.host-order-actions button:disabled { opacity: .35; cursor: default; }
+.host-order-feedback { margin: 0; padding: 12px 14px; border-radius: 12px; background: rgba(255,255,255,.06); }
+.host-order.is-correct .host-order-feedback { background: rgba(49,198,108,.16); color: #9affbd; }
+.host-order.is-wrong .host-order-feedback { background: rgba(255,72,82,.15); color: #ff9ba2; }
+
+.host-checklist-head { display: flex; justify-content: space-between; gap: 20px; padding: 13px 16px; border-radius: 14px; background: var(--cyan, #24d8ff); color: #101014; font-weight: 950; }
+.host-checklist-head i { font-style: normal; }
+.host-checklist-groups { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 12px; margin-top: 12px; }
+.host-checklist-groups section { padding: 15px; border: 1px solid rgba(255,255,255,.13); border-radius: 18px; background: rgba(255,255,255,.05); }
+.host-checklist-groups h3 { margin: 0 0 10px; font-size: 16px; text-transform: uppercase; letter-spacing: .06em; }
+.host-checklist-groups button { display: grid; grid-template-columns: 28px 1fr; gap: 9px; align-items: center; width: 100%; padding: 7px 0; border: 0; background: transparent; color: var(--paper); text-align: left; cursor: pointer; }
+.host-checklist-groups button span { display: grid; place-items: center; width: 25px; aspect-ratio: 1; border: 1px solid rgba(255,255,255,.3); border-radius: 7px; color: transparent; }
+.host-checklist-groups button.is-checked { color: #a7f7bf; }
+.host-checklist-groups button.is-checked span { border-color: #71f5a6; background: #71f5a6; color: #101014; }
+.host-checklist-actions { display: flex; gap: 10px; justify-content: flex-end; }
+.host-checklist-actions button:last-child { background: var(--cyan, #24d8ff); color: #101014; }
+.host-checklist-pass { margin-top: 12px; padding: 16px; border: 1px solid #71f5a6; border-radius: 16px; background: rgba(49,198,108,.13); text-align: center; }
+.host-checklist-pass span { display: block; color: #71f5a6; font-weight: 950; letter-spacing: .08em; }
+.host-checklist-pass strong { display: block; margin-top: 5px; font-size: 18px; }
+
+@media (max-width: 760px) {
+  .host-choice,
+  .host-order { grid-template-columns: 1fr; }
+  .host-choice .magic-photo,
+  .host-order .magic-photo { grid-row: auto; min-height: 220px; }
+  .host-checklist-groups { grid-template-columns: 1fr; }
+  .host-checklist-actions { flex-direction: column; }
+  .host-checklist-actions button { width: 100%; }
+}
+
 @media print {
   .site-header,
   .site-footer,
@@ -6005,6 +6121,21 @@ body.teacher-portal-active #main {
   .teacher-run { padding: 34px 0; }
   .teacher-run-block { break-inside: avoid; padding: 20px 0; }
   .teacher-control-grid article { break-inside: avoid; }
+  body.lesson-active .lesson-topbar,
+  body.lesson-active .lesson-progress,
+  body.lesson-active .lesson-controls,
+  body.lesson-active .scene-copy,
+  body.lesson-active .scene-visual > :not(.host-checklist) { display: none !important; }
+  body.lesson-active .lesson-player,
+  body.lesson-active .lesson-stage,
+  body.lesson-active .scene,
+  body.lesson-active .scene-visual { position: static !important; display: block !important; width: 100% !important; height: auto !important; min-height: 0 !important; padding: 0 !important; background: #fff !important; color: #111 !important; overflow: visible !important; }
+  body.lesson-active .host-checklist { color: #111 !important; }
+  body.lesson-active .host-checklist-head { background: #111 !important; color: #fff !important; }
+  body.lesson-active .host-checklist-groups section { break-inside: avoid; border-color: #ccc; background: #f5f5f5; }
+  body.lesson-active .host-checklist-groups button { color: #111 !important; }
+  body.lesson-active .host-checklist-actions,
+  body.lesson-active .host-checklist-pass { display: none !important; }
 }
 
 /* TIME:CODE PLAY — short, phone-first experiences */

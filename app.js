@@ -1954,6 +1954,29 @@
       stage = `<div class="lesson-timer" data-seconds="${seconds}" data-remaining="${seconds}"><span class="timer-display">${formatTime(seconds)}</span><div class="timer-ring" aria-hidden="true"><i></i></div><div class="timer-actions"><button type="button" data-timer-start>Запустить таймер</button><button type="button" data-timer-reset>Сбросить</button></div></div>`;
     } else if (layout === "check") {
       stage = `<div class="magic-checks">${scene.items.map((item) => `<div><span>✓</span><strong>${escapeHtml(item[0])}</strong><p>${escapeHtml(item[1])}</p></div>`).join("")}</div>`;
+    } else if (layout === "host-choice") {
+      stage = `<div class="host-choice" data-host-choice>
+        ${image("host-choice-image")}
+        <div class="host-choice-options">${scene.options.map((option, index) => `<button type="button" data-host-choice-option="${index}"><span>${String.fromCharCode(1040 + index)}</span><strong>${escapeHtml(option.text)}</strong></button>`).join("")}</div>
+        <div class="host-choice-feedback" data-host-choice-feedback hidden><b data-host-choice-title></b><p data-host-choice-copy></p><small data-host-choice-consequence></small><button type="button" data-host-choice-retry>Попробовать ещё раз</button></div>
+      </div>`;
+    } else if (layout === "host-order") {
+      const displayOrder = scene.displayOrder || scene.items.map((_, index) => index).reverse();
+      stage = `<div class="host-order" data-host-order>
+        ${image("host-order-image")}
+        <div class="host-order-slots" data-host-order-slots>${scene.items.map((_, index) => `<span>${index + 1}</span>`).join("")}</div>
+        <div class="host-order-items">${displayOrder.map((index) => `<button type="button" data-host-order-item="${index}">${escapeHtml(scene.items[index])}</button>`).join("")}</div>
+        <div class="host-order-actions"><button type="button" data-host-order-reset>Сбросить</button><button type="button" data-host-order-check disabled>Проверить порядок</button></div>
+        <p class="host-order-feedback" data-host-order-feedback aria-live="polite">Нажимайте действия по порядку.</p>
+      </div>`;
+    } else if (layout === "host-checklist") {
+      const checklistTotal = scene.groups.reduce((sum, group) => sum + group.items.length, 0);
+      stage = `<div class="host-checklist" data-host-checklist data-total="${checklistTotal}">
+        <div class="host-checklist-head"><span>ГОТОВНОСТЬ К ЭФИРУ</span><b><i data-host-checklist-count>0</i> / ${checklistTotal}</b></div>
+        <div class="host-checklist-groups">${scene.groups.map((group) => `<section><h3>${escapeHtml(group.title)}</h3>${group.items.map((item) => `<button type="button" data-host-check-item aria-pressed="false"><span>✓</span>${escapeHtml(item)}</button>`).join("")}</section>`).join("")}</div>
+        <div class="host-checklist-actions"><button type="button" data-host-checklist-reset>Сбросить</button><button type="button" data-print-host-checklist>Распечатать чек-лист</button></div>
+        <div class="host-checklist-pass" data-host-checklist-pass hidden><span>● ЭФИР РАЗРЕШЁН</span><strong>${escapeHtml(scene.passText || "Команда готова к учебной записи")}</strong></div>
+      </div>`;
     } else if (layout === "big-question") {
       stage = `${image("magic-photo-question")}<div class="question-mark">?</div>${hint}`;
     } else if (layout === "grid") {
@@ -2035,6 +2058,12 @@
         </div>
       </div>`;
     } else if (layout === "camera-cards") {
+      const roleLabels = Array.isArray(scene.roleLabels) && scene.roleLabels.length === 2
+        ? scene.roleLabels
+        : ["🎙 ВЕДУЩИЙ", "🎥 ОПЕРАТОР"];
+      const timing = Array.isArray(scene.timing) && scene.timing.length === 4
+        ? scene.timing
+        : ["20 секунд", "на подготовку", "до 30 секунд", "на один дубль"];
       stage = `<div class="camera-card-deck" data-camera-card-deck>
         <div class="camera-card-toolbar"><span><b data-camera-card-count>0</b> / ${scene.cards.length} открыто</span><button type="button" data-camera-card-reset>Вернуть карточки</button></div>
         <div class="camera-card-grid">${scene.cards.map((card, index) => `<button type="button" class="camera-task-card" data-camera-card="${index}" aria-label="Открыть карточку ${index + 1}">
@@ -2048,11 +2077,11 @@
             <div class="camera-card-modal-head"><span data-camera-card-number></span><button type="button" data-camera-card-close aria-label="Закрыть задание">×</button></div>
             <h3 id="camera-card-modal-title" data-camera-card-title></h3>
             <div class="camera-role-grid">
-              <section><span>🎙 ВЕДУЩИЙ</span><p data-camera-presenter></p></section>
-              <section><span>🎥 ОПЕРАТОР</span><p data-camera-operator></p></section>
+              <section><span>${escapeHtml(roleLabels[0])}</span><p data-camera-presenter></p></section>
+              <section><span>${escapeHtml(roleLabels[1])}</span><p data-camera-operator></p></section>
             </div>
-            <div class="camera-card-rule"><b>20 секунд</b><span>на подготовку</span><i></i><b>до 30 секунд</b><span>на один дубль</span></div>
-            <button type="button" class="camera-card-accept" data-camera-card-close>Задание принято — снимаем</button>
+            <div class="camera-card-rule"><b>${escapeHtml(timing[0])}</b><span>${escapeHtml(timing[1])}</span><i></i><b>${escapeHtml(timing[2])}</b><span>${escapeHtml(timing[3])}</span></div>
+            <button type="button" class="camera-card-accept" data-camera-card-close>${escapeHtml(scene.acceptText || "Задание принято — снимаем")}</button>
           </div>
         </div>
       </div>`;
@@ -2128,6 +2157,89 @@
         showToast("Выбор принят. Ответ — дальше.");
       });
     });
+
+    const hostChoice = document.querySelector("[data-host-choice]");
+    if (hostChoice) {
+      const options = Array.from(hostChoice.querySelectorAll("[data-host-choice-option]"));
+      const panel = hostChoice.querySelector("[data-host-choice-feedback]");
+      const reset = () => {
+        options.forEach((button) => button.classList.remove("is-correct", "is-wrong"));
+        panel.hidden = true;
+      };
+      options.forEach((button) => button.addEventListener("click", () => {
+        const index = Number(button.dataset.hostChoiceOption);
+        const option = scene.options[index];
+        const correct = index === scene.correct;
+        options.forEach((item) => item.classList.remove("is-correct", "is-wrong"));
+        button.classList.add(correct ? "is-correct" : "is-wrong");
+        panel.querySelector("[data-host-choice-title]").textContent = correct ? (scene.successTitle || "Точно") : (scene.retryTitle || "Эфир проседает");
+        panel.querySelector("[data-host-choice-copy]").textContent = option.feedback;
+        panel.querySelector("[data-host-choice-consequence]").textContent = option.consequence || "";
+        panel.querySelector("[data-host-choice-retry]").hidden = correct;
+        panel.hidden = false;
+        if (correct) markAnswered();
+      }));
+      hostChoice.querySelector("[data-host-choice-retry]")?.addEventListener("click", reset);
+    }
+
+    const hostOrder = document.querySelector("[data-host-order]");
+    if (hostOrder) {
+      const buttons = Array.from(hostOrder.querySelectorAll("[data-host-order-item]"));
+      const slots = Array.from(hostOrder.querySelectorAll("[data-host-order-slots] span"));
+      const check = hostOrder.querySelector("[data-host-order-check]");
+      const feedback = hostOrder.querySelector("[data-host-order-feedback]");
+      const selected = [];
+      const reset = () => {
+        selected.length = 0;
+        buttons.forEach((button) => { button.disabled = false; button.classList.remove("is-selected"); });
+        slots.forEach((slot, index) => { slot.textContent = String(index + 1); slot.classList.remove("is-filled"); });
+        hostOrder.classList.remove("is-correct", "is-wrong");
+        check.disabled = true;
+        feedback.textContent = "Нажимайте действия по порядку.";
+      };
+      buttons.forEach((button) => button.addEventListener("click", () => {
+        const index = Number(button.dataset.hostOrderItem);
+        selected.push(index);
+        button.disabled = true;
+        button.classList.add("is-selected");
+        const slot = slots[selected.length - 1];
+        slot.textContent = scene.items[index];
+        slot.classList.add("is-filled");
+        check.disabled = selected.length !== scene.items.length;
+      }));
+      check.addEventListener("click", () => {
+        const correctOrder = scene.correctOrder || scene.items.map((_, index) => index);
+        const correct = selected.every((value, index) => value === correctOrder[index]);
+        hostOrder.classList.toggle("is-correct", correct);
+        hostOrder.classList.toggle("is-wrong", !correct);
+        feedback.textContent = correct ? scene.success : scene.fail;
+        if (correct) markAnswered();
+      });
+      hostOrder.querySelector("[data-host-order-reset]")?.addEventListener("click", reset);
+    }
+
+    const hostChecklist = document.querySelector("[data-host-checklist]");
+    if (hostChecklist) {
+      const items = Array.from(hostChecklist.querySelectorAll("[data-host-check-item]"));
+      const count = hostChecklist.querySelector("[data-host-checklist-count]");
+      const pass = hostChecklist.querySelector("[data-host-checklist-pass]");
+      const update = () => {
+        const done = items.filter((item) => item.classList.contains("is-checked")).length;
+        count.textContent = String(done);
+        pass.hidden = done !== items.length;
+        if (done === items.length) markAnswered();
+      };
+      items.forEach((item) => item.addEventListener("click", () => {
+        const checked = item.classList.toggle("is-checked");
+        item.setAttribute("aria-pressed", String(checked));
+        update();
+      }));
+      hostChecklist.querySelector("[data-host-checklist-reset]")?.addEventListener("click", () => {
+        items.forEach((item) => { item.classList.remove("is-checked"); item.setAttribute("aria-pressed", "false"); });
+        update();
+      });
+      hostChecklist.querySelector("[data-print-host-checklist]")?.addEventListener("click", () => window.print());
+    }
 
     const sequenceBuilder = document.querySelector("[data-sequence-builder]");
     if (sequenceBuilder) {
