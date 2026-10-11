@@ -1,0 +1,54 @@
+name: Owner-approved TIMECODE full read-only audit
+on:
+  push:
+    branches: [boom-kadr-deploy]
+    paths: ['.github/workflows/timecode-full-audit-approved-20261011.yml']
+permissions:
+  contents: read
+jobs:
+  audit:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - name: Explicitly approved schemas, aggregates and operational metadata only
+        env:
+          BOOM_SSH_KEY: ${{ secrets.BOOM_SSH_KEY }}
+        run: |
+          install -d -m 700 ~/.ssh
+          printf '%s\n' "$BOOM_SSH_KEY" > ~/.ssh/timecode
+          chmod 600 ~/.ssh/timecode
+          ssh-keyscan -T 8 -H 217.149.24.242 > ~/.ssh/known_hosts
+          ssh -i ~/.ssh/timecode -o BatchMode=yes -o ConnectTimeout=15 root@217.149.24.242 'python3 -' <<'PY'
+          import sqlite3,json,hashlib,subprocess,datetime,re
+          from pathlib import Path
+          r=Path('/opt/timecode-bot/timecode-bot')
+          def cmd(*a):
+           p=subprocess.run(a,capture_output=True,text=True,timeout=20);print('COMMAND',a,p.returncode,p.stdout[:8000])
+          print('AUDIT_TIME',datetime.datetime.now(datetime.timezone.utc).isoformat())
+          print('OS',Path('/etc/os-release').read_text())
+          for a in [('systemctl','show','timecode-bot.service','-p','ActiveState','-p','SubState','-p','User','-p','WorkingDirectory','-p','ExecMainStartTimestamp','-p','FragmentPath'),('systemctl','list-timers','--all','--no-pager'),('df','-h','/opt','/var/lib'),('python3','--version')]:cmd(*a)
+          e={}
+          for l in Path('/etc/timecode-bot.env').read_text().splitlines():
+           if '=' in l and not l.lstrip().startswith('#'):
+            k,v=l.split('=',1);e[k.strip()]=v.strip().strip("'").strip('"')
+          print('CONFIG_SAFE',{k:e.get(k) for k in ('DATABASE','BASE_URL','PORT','KIMI_MODEL','KIMI_VISION_MODEL','MAX_CA_FILE')})
+          for p in sorted(r.glob('*.py')):print('HASH',p.name,hashlib.sha256(p.read_bytes()).hexdigest())
+          print('INSTALL_CHAIN',re.findall(r'([a-z_]+)\.install\(globals\(\)\)',(r/'server.py').read_text()))
+          db=Path(e.get('DATABASE','/var/lib/timecode-bot/timecode.db'))
+          with sqlite3.connect('file:'+str(db)+'?mode=ro',uri=True,timeout=5) as c:
+           print('INTEGRITY',c.execute('pragma quick_check').fetchall())
+           for name,sql in c.execute("select name,sql from sqlite_master where type='table' order by name"):print('SCHEMA',name,sql)
+           for q in ["select enabled,role,count(*) from users group by enabled,role","select day,slot from sent where day>='2026-10-09' order by day,slot","select day,delivered,count(*) from notification_outbox where day>='2026-10-09' group by day,delivered","select day,period,delivered,count(*) from notification_photo_outbox where day>='2026-10-09' group by day,period,delivered","select assessed,review_delivered,count(*) from kimi_frames where campaign='20261010' group by assessed,review_delivered","select count(distinct person),count(distinct task) from kimi_frames where campaign='20261010'","select count(*) from kimi_participants","select count(*) from kimi_votes","select count(*) from kimi_results","select count(*) from kimi_shortlist","select lab,weekday,start,enabled from lessons"]:
+            try:print('AGGREGATE',q,c.execute(q).fetchall())
+            except Exception as ex:print('QUERY_ERROR',type(ex).__name__)
+          print('DB_SIZE',db.stat().st_size)
+          print('PERMISSIONS',oct(db.stat().st_mode & 0o777),oct(Path('/etc/timecode-bot.env').stat().st_mode & 0o777))
+          print('BACKUP_DIRS',[p.name for p in r.parent.iterdir() if 'backup' in p.name])
+          cmd('git','-C',str(r),'rev-parse','HEAD');cmd('git','-C',str(r),'status','--short')
+          p=subprocess.run(['nginx','-T'],capture_output=True,text=True,timeout=20)
+          ls=p.stdout.splitlines()
+          for i,l in enumerate(ls):
+           if 'location /tc' in l:print('NGINX_TC','\n'.join(ls[i:i+10]))
+          print('READ_ONLY_COMPLETE')
+          
+          PY
