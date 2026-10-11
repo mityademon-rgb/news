@@ -1,0 +1,21 @@
+name: TIMECODE minimal health check
+on:
+  push:
+    branches: [boom-kadr-deploy]
+    paths: ['.github/workflows/timecode-health-20261011.yml']
+permissions:
+  contents: read
+jobs:
+  health:
+    runs-on: ubuntu-latest
+    timeout-minutes: 3
+    steps:
+      - name: Check only active state and public health
+        env:
+          BOOM_SSH_KEY: ${{ secrets.BOOM_SSH_KEY }}
+        run: |
+          install -d -m 700 ~/.ssh
+          printf '%s\n' "$BOOM_SSH_KEY" > ~/.ssh/timecode
+          chmod 600 ~/.ssh/timecode
+          ssh-keyscan -T 8 -H 217.149.24.242 > ~/.ssh/known_hosts
+          ssh -i ~/.ssh/timecode -o BatchMode=yes -o ConnectTimeout=15 root@217.149.24.242 'systemctl is-active timecode-bot.service; curl -fsS --max-time 10 http://127.0.0.1:8097/health; curl -fsS --max-time 10 https://timecode-lab.ru/tc/health'
