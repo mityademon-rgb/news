@@ -1,0 +1,48 @@
+name: Verify recovered evening delivery
+on:
+  push:
+    branches: [boom-kadr-deploy]
+    paths: ['.github/workflows/timecode-evening-delivery-verify-20261012.yml']
+permissions:
+  contents: read
+jobs:
+  verify:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - name: Read delivery acknowledgments with correct messenger identity mapping
+        env:
+          BOOM_SSH_KEY: ${{ secrets.BOOM_SSH_KEY }}
+        run: |
+          install -d -m 700 ~/.ssh
+          printf '%s\n' "$BOOM_SSH_KEY" > ~/.ssh/timecode
+          chmod 600 ~/.ssh/timecode
+          ssh-keyscan -T 8 -H 217.149.24.242 > ~/.ssh/known_hosts
+          ssh -i ~/.ssh/timecode root@217.149.24.242 'python3 -' <<'PY'
+          import sqlite3,time,json,subprocess,hashlib
+          from pathlib import Path
+          db='file:/var/lib/timecode-bot/timecode.db?mode=ro'
+          for attempt in range(120):
+              with sqlite3.connect(db,uri=True) as c:
+                  job=c.execute("select status,reason from kimi_edition_jobs where day='2026-10-12' and period='pm'").fetchone()
+                  photos=c.execute("select count(*),sum(delivered=0) from notification_photo_outbox where day='2026-10-12' and period in ('pm','pm-daily')").fetchone()
+                  texts=c.execute("select count(*),sum(delivered=0) from notification_outbox where day='2026-10-12' and body like '%20:30 / КАК ПРОШЁЛ ДЕНЬ%'").fetchone()
+              if job and job[0]=='done' and photos[0]>0 and texts[0]>0 and not photos[1] and not texts[1]:break
+              time.sleep(4)
+          with sqlite3.connect(db,uri=True) as c:
+              print('EVENING_JOB',c.execute("select attempts,status,reason from kimi_edition_jobs where day='2026-10-12' and period='pm'").fetchall())
+              print('EDITION_LENGTH',c.execute("select length(body),length(captions) from kimi_editions where day='2026-10-12' and period='pm'").fetchall())
+              for kind,q in [('photos',"select chat,delivered from notification_photo_outbox where day='2026-10-12' and period in ('pm','pm-daily')"),('text',"select chat,delivered from notification_outbox where day='2026-10-12' and body like '%20:30 / КАК ПРОШЁЛ ДЕНЬ%'")]:
+                  result={}
+                  for chat,status in c.execute(q):
+                      uid=json.loads(chat)
+                      platform='max' if isinstance(uid,int) and uid<0 and c.execute("select 1 from messenger_identities where platform='max' and user_id=?",(uid,)).fetchone() else 'telegram'
+                      result[(platform,status)]=result.get((platform,status),0)+1
+                  print('DELIVERY',kind,[(p,d,n) for (p,d),n in result.items()])
+                  assert all(any(p==wanted and d==1 for p,d in result) for wanted in ('telegram','max'))
+              assert job and job[0]=='done' and not photos[1] and not texts[1]
+          assert hashlib.sha256(Path('/opt/timecode-bot/timecode-bot/creative_digest.py').read_bytes()).hexdigest()=='9c270470a7334020367d2d4b33c57b659da0aa46017c7b5c7e2d84a16077383a'
+          assert subprocess.run(['systemctl','is-active','--quiet','timecode-bot.service']).returncode==0
+          assert subprocess.run(['curl','-fsS','--max-time','10','https://timecode-lab.ru/tc/health'],capture_output=True).returncode==0
+          print('EVENING_DELIVERY_CONFIRMED_BOTH_PLATFORMS')
+          PY
