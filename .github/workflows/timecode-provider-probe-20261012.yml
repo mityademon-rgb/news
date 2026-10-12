@@ -1,0 +1,40 @@
+name: Diagnose Kimi provider HTTP status safely
+on:
+  push:
+    branches: [boom-kadr-deploy]
+    paths: ['.github/workflows/timecode-provider-probe-20261012.yml']
+permissions:
+  contents: read
+jobs:
+  probe:
+    runs-on: ubuntu-latest
+    timeout-minutes: 3
+    steps:
+      - name: Query minimal API status without exposing credentials or content
+        env:
+          BOOM_SSH_KEY: ${{ secrets.BOOM_SSH_KEY }}
+        run: |
+          install -d -m 700 ~/.ssh
+          printf '%s\n' "$BOOM_SSH_KEY" > ~/.ssh/timecode
+          chmod 600 ~/.ssh/timecode
+          ssh-keyscan -T 8 -H 217.149.24.242 > ~/.ssh/known_hosts
+          ssh -i ~/.ssh/timecode root@217.149.24.242 'bash -s' <<'REMOTE'
+          cd /opt/timecode-bot/timecode-bot
+          set -a
+          . /etc/timecode-bot.env
+          set +a
+          python3 - <<'PY'
+          import server,subprocess,json
+          payload={'model':server.AI_MODEL,'max_tokens':50,'messages':[{'role':'user','content':'Return JSON {"ok":true}.'}],**server.kimi_params()}
+          p=subprocess.run(['curl','-4','-sS','--connect-timeout','8','--max-time','25','-H','Content-Type: application/json','-H','Authorization: Bearer '+server.AI_KEY,'--data-binary','@-','--write-out','\\n%{http_code}',server.AI_API+'/chat/completions'],input=json.dumps(payload),capture_output=True,text=True)
+          body,sep,status=p.stdout.rpartition('\\n')
+          print('PROVIDER_HTTP',status,'transport',p.returncode)
+          try:
+           j=json.loads(body);e=j.get('error') or {};message=str(e.get('message','')).lower()
+           print('PROVIDER_ERROR_TYPE',e.get('type'),e.get('code'))
+           print('PROVIDER_CATEGORIES',[w for w in ('rate','balance','credit','quota','token','limit','suspend','auth','model','key','payment') if w in message])
+           print('FINISH_REASON',(j.get('choices') or [{}])[0].get('finish_reason'))
+          except Exception as error:print('BODY_TYPE',type(error).__name__)
+          
+          PY
+          REMOTE
