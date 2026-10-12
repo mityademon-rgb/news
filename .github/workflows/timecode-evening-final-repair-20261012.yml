@@ -1,0 +1,103 @@
+name: Final repair and deliver evening Kimi edition
+on:
+  push:
+    branches: [boom-kadr-deploy]
+    paths: ['.github/workflows/timecode-evening-final-repair-20261012.yml']
+permissions:
+  contents: read
+concurrency:
+  group: timecode-evening-final-repair
+  cancel-in-progress: false
+jobs:
+  repair:
+    runs-on: ubuntu-latest
+    timeout-minutes: 12
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          repository: mityademon-rgb/media-center-bot
+          ref: 345d75e87d839820b6537565b382170a469a64f0
+          path: source
+      - name: Verify retries and media handling
+        run: |
+          cd source/timecode-bot
+          python3 -m unittest discover -s tests -p test_creative_digest.py
+          python3 -m py_compile creative_digest.py
+      - name: Install bounded reviewer and prepare real edition without duplicate sends
+        env:
+          BOOM_SSH_KEY: ${{ secrets.BOOM_SSH_KEY }}
+        run: |
+          install -d -m 700 ~/.ssh
+          printf '%s\n' "$BOOM_SSH_KEY" > ~/.ssh/timecode
+          chmod 600 ~/.ssh/timecode
+          ssh-keyscan -T 8 -H 217.149.24.242 > ~/.ssh/known_hosts
+          scp -i ~/.ssh/timecode source/timecode-bot/creative_digest.py root@217.149.24.242:/tmp/creative-final-repair.py
+          ssh -i ~/.ssh/timecode root@217.149.24.242 'bash -s' <<'REMOTE'
+          set -Eeuo pipefail
+          cd /opt/timecode-bot/timecode-bot
+          python3 - <<'PY'
+          from pathlib import Path
+          import hashlib
+          assert hashlib.sha256(Path('creative_digest.py').read_bytes()).hexdigest()=='9c270470a7334020367d2d4b33c57b659da0aa46017c7b5c7e2d84a16077383a'
+          PY
+          backup=$(mktemp -d /opt/timecode-bot/creative-review-repair-backup-XXXXXXXX)
+          cp -p creative_digest.py "$backup/"
+          rollback() { cp -p "$backup/creative_digest.py" .; systemctl restart timecode-bot.service || true; }
+          trap rollback ERR
+          cp /tmp/creative-final-repair.py creative_digest.py
+          set -a
+          . /etc/timecode-bot.env
+          set +a
+          python3 - <<'PY'
+          import server,creative_digest,time
+          assert server.today()=='2026-10-12'
+          with server.conn() as c:
+              c.execute("update kimi_edition_jobs set next_at=? where day=? and period='pm' and status='pending'",(int(time.time())+600,server.today()))
+              rows=c.execute("select u.id user_id,u.name,e.mood,e.highlight,e.satisfied,e.photo from evening_checkins e join users u on u.id=e.user_id where e.day=? and e.step='done' and e.mood!=''",(server.today(),)).fetchall()
+          for attempt in range(3):
+              try:
+                  body=creative_digest.render(vars(server),rows,False)
+                  print('REAL_EDITION_PREPARED',len(body))
+                  break
+              except creative_digest.EditorialPending as e:
+                  print('PREPARATION_RETRY',attempt+1,str(e))
+                  if attempt==2:raise
+                  time.sleep(3)
+          PY
+          systemctl restart timecode-bot.service
+          curl -fsS --retry 5 --retry-delay 2 --retry-connrefused --max-time 10 http://127.0.0.1:8097/health -o /dev/null
+          python3 - <<'PY'
+          import sqlite3
+          with sqlite3.connect('/var/lib/timecode-bot/timecode.db') as c:c.execute("update kimi_edition_jobs set next_at=0 where day='2026-10-12' and period='pm' and status='pending'")
+          PY
+          trap - ERR
+          printf '%s\n' "$backup" > /opt/timecode-bot/creative-review-repair-latest-backup-path
+          REMOTE
+      - name: Verify actual story and all photo deliveries
+        run: |
+          ssh -i ~/.ssh/timecode root@217.149.24.242 'python3 -' <<'PY'
+          import sqlite3,time,json,hashlib,subprocess
+          from pathlib import Path
+          db='file:/var/lib/timecode-bot/timecode.db?mode=ro'
+          for _ in range(90):
+              with sqlite3.connect(db,uri=True) as c:
+                  job=c.execute("select status from kimi_edition_jobs where day='2026-10-12' and period='pm'").fetchone()
+                  ph=c.execute("select count(*),sum(delivered=0) from notification_photo_outbox where day='2026-10-12' and period in ('pm','pm-daily')").fetchone()
+                  tx=c.execute("select count(*),sum(delivered=0) from notification_outbox where day='2026-10-12' and body like '%20:30 / КАК ПРОШЁЛ ДЕНЬ%'").fetchone()
+              if job and job[0]=='done' and ph[0] and tx[0] and not ph[1] and not tx[1]:break
+              time.sleep(3)
+          with sqlite3.connect(db,uri=True) as c:
+              print('JOB',c.execute("select attempts,status,reason from kimi_edition_jobs where day='2026-10-12' and period='pm'").fetchall())
+              for kind,q in [('photos',"select chat,delivered from notification_photo_outbox where day='2026-10-12' and period in ('pm','pm-daily')"),('text',"select chat,delivered from notification_outbox where day='2026-10-12' and body like '%20:30 / КАК ПРОШЁЛ ДЕНЬ%'")]:
+                  totals={}
+                  for chat,d in c.execute(q):
+                      uid=json.loads(chat)
+                      p='max' if isinstance(uid,int) and uid<0 and c.execute("select 1 from messenger_identities where platform='max' and user_id=?",(uid,)).fetchone() else 'telegram'
+                      totals[(p,d)]=totals.get((p,d),0)+1
+                  print('CONFIRMED_DELIVERY',kind,[(p,d,n) for (p,d),n in totals.items()])
+                  assert all(any(p==wanted and d==1 for p,d in totals) for wanted in ('telegram','max'))
+              assert job[0]=='done' and not ph[1] and not tx[1]
+          assert hashlib.sha256(Path('/opt/timecode-bot/timecode-bot/creative_digest.py').read_bytes()).hexdigest()=='017e48f27da022d65ad433478faffe9bf58cb6eea38dc28abd552ea10c23677d'
+          assert subprocess.run(['systemctl','is-active','--quiet','timecode-bot.service']).returncode==0
+          print('EVENING_RESTORED_AND_DELIVERED')
+          PY
