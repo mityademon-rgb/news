@@ -6005,7 +6005,7 @@ body.teacher-portal-active #main {
 .host-drill-step h3,
 .host-drill-finish h3 { max-width: 19ch; margin: 18px 0 12px; font-size: clamp(28px, 4.2vw, 58px); line-height: .96; letter-spacing: -.035em; }
 .host-drill-step p { max-width: 760px; margin: 0; font-size: clamp(17px, 1.75vw, 23px); line-height: 1.35; }
-.host-drill-step blockquote { max-width: 920px; margin: 22px 0 0; padding: 16px 20px; border-left: 4px solid var(--cyan, #24d8ff); border-radius: 0 14px 14px 0; background: rgba(255,255,255,.07); font-size: clamp(18px, 2.1vw, 29px); font-weight: 850; }
+.host-drill-step blockquote { max-width: 920px; margin: 22px 0 0; padding: 16px 20px; border-left: 4px solid var(--cyan, #24d8ff); border-radius: 0 14px 14px 0; background: rgba(255,255,255,.07); font-size: clamp(18px, 2.1vw, 29px); font-weight: 850; white-space: pre-line; }
 .host-drill-step small { display: block; margin-top: 18px; color: rgba(255,255,255,.68); font-size: 14px; font-weight: 750; }
 .host-drill-actions { display: flex; justify-content: space-between; gap: 12px; padding: 0 18px 18px; }
 .host-drill-actions button,
