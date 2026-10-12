@@ -7171,7 +7171,7 @@ body.play-active #main { min-height: 100svh; background: #0d0c12; }
 .camera-role-grid section { min-width: 0; padding: clamp(18px, 3vw, 30px); border-radius: 19px; background: var(--paper); color: var(--ink); }
 .camera-role-grid section + section { background: var(--camera-red); }
 .camera-role-grid span { display: block; margin-bottom: 13px; font: 950 11px/1 ui-monospace, SFMono-Regular, Menlo, monospace; letter-spacing: .09em; }
-.camera-role-grid p { margin: 0; font-size: clamp(18px, 2vw, 25px); font-weight: 830; line-height: 1.32; }
+.camera-role-grid p { margin: 0; font-size: clamp(18px, 2vw, 25px); font-weight: 830; line-height: 1.32; white-space: pre-line; }
 
 .camera-card-rule {
   display: grid;
