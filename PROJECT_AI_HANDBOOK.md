@@ -360,9 +360,9 @@ Deploy workflow выполняет `--check` и `node --check` до SSH. Есл�
 `index.html` подключает:
 
 ```text
-styles.css?v=20261009-industrial-type
+styles.css?v=20261012-host-drills
 lesson03-kids.css?v=20260917-2
-site.js?v=20261011-host-voice
+site.js?v=20261012-host-drills
 ```
 
 Nginx кэширует CSS/JS/images 7 дней. Любая правка содержимого должна сопровождаться изменением соответствующего `?v=`. Query для `site.js` пока меняется вручную.
