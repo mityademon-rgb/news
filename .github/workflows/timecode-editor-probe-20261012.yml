@@ -1,0 +1,51 @@
+name: Diagnose edition validation without exposing participant content
+on:
+  push:
+    branches: [boom-kadr-deploy]
+    paths: ['.github/workflows/timecode-editor-probe-20261012.yml']
+permissions:
+  contents: read
+jobs:
+  probe:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - name: Run real generation with safe structural diagnostics
+        env:
+          BOOM_SSH_KEY: ${{ secrets.BOOM_SSH_KEY }}
+        run: |
+          install -d -m 700 ~/.ssh
+          printf '%s\n' "$BOOM_SSH_KEY" > ~/.ssh/timecode
+          chmod 600 ~/.ssh/timecode
+          ssh-keyscan -T 8 -H 217.149.24.242 > ~/.ssh/known_hosts
+          ssh -i ~/.ssh/timecode root@217.149.24.242 'bash -s' <<'REMOTE'
+          cd /opt/timecode-bot/timecode-bot
+          set -a
+          . /etc/timecode-bot.env
+          set +a
+          python3 - <<'PY'
+          import server,creative_digest,json
+          real=server.ai_json
+          def diagnostic(system,request,tokens):
+              result=real(system,request,tokens)
+              if isinstance(result,dict) and 'text' in result:
+                  frames=json.loads(request).get('frames',[])
+                  captions=result.get('captions',[])
+                  print('DRAFT_STRUCTURE',type(result.get('text')).__name__,len(str(result.get('text',''))),type(captions).__name__,len(captions) if isinstance(captions,list) else -1,'expected',len(frames))
+                  print('BODY_FLAGS',bool(creative_digest.BANNED.search(str(result.get('text','')))))
+                  if isinstance(captions,list):
+                      print('CAPTION_STRUCTURE',[(len(str(c.get('text',''))),bool(creative_digest.BANNED.search(str(c.get('text','')))),bool(creative_digest.UNSEEN.search(str(c.get('text','')))),c.get('key') in {f['key'] for f in frames}) for c in captions if isinstance(c,dict)])
+                  print('VALID',creative_digest.valid(result,frames))
+              elif isinstance(result,dict):
+                  reason=str(result.get('reason','')).lower()
+                  print('EDITOR_RESULT',result.get('ok'),'categories',[w for w in ('имя','дат','кален','факт','выдум','придум','образ','свет','юмор','подпис','список','счёт','ошиб') if w in reason])
+              else:print('GENERATION_RESULT',type(result).__name__)
+              return result
+          scope=dict(vars(server));scope['ai_json']=diagnostic
+          with server.conn() as c:rows=c.execute("select u.id user_id,u.name,e.mood,e.highlight,e.satisfied,e.photo from evening_checkins e join users u on u.id=e.user_id where e.day=? and e.step='done' and e.mood!=''",(server.today(),)).fetchall()
+          try:
+              result=creative_digest.render(scope,rows,False)
+              print('REAL_EDITION_RENDERED',len(result))
+          except Exception as e:print('RENDER_BLOCKED',type(e).__name__,str(e))
+          PY
+          REMOTE
