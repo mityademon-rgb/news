@@ -1,0 +1,40 @@
+name: Diagnose missing evening Kimi edition
+on:
+  push:
+    branches: [boom-kadr-deploy]
+    paths: ['.github/workflows/timecode-evening-diagnostic-20261012.yml']
+permissions:
+  contents: read
+jobs:
+  inspect:
+    runs-on: ubuntu-latest
+    timeout-minutes: 4
+    steps:
+      - name: Read sanitized job and delivery state without triggering messages
+        env:
+          BOOM_SSH_KEY: ${{ secrets.BOOM_SSH_KEY }}
+        run: |
+          install -d -m 700 ~/.ssh
+          printf '%s\n' "$BOOM_SSH_KEY" > ~/.ssh/timecode
+          chmod 600 ~/.ssh/timecode
+          ssh-keyscan -T 8 -H 217.149.24.242 > ~/.ssh/known_hosts
+          ssh -i ~/.ssh/timecode root@217.149.24.242 'python3 -' <<'PY'
+          from pathlib import Path
+          import sqlite3,json,subprocess,datetime,re,hashlib
+          print('TIME',datetime.datetime.now(datetime.timezone.utc).isoformat())
+          for name in ('timecode-bot.service','timecode-watchdog.service','timecode-health-guard.service'):
+           p=subprocess.run(['systemctl','show',name,'-p','ActiveState','-p','SubState','-p','ExecMainStartTimestamp','-p','NRestarts'],capture_output=True,text=True);print('SERVICE',name,p.stdout)
+          r=Path('/opt/timecode-bot/timecode-bot')
+          for name in ('server.py','creative_digest.py','notification_delivery.py'):
+           print('HASH',name,hashlib.sha256((r/name).read_bytes()).hexdigest())
+          with sqlite3.connect('file:/var/lib/timecode-bot/timecode.db?mode=ro',uri=True,timeout=5) as c:
+           qs=["select day,period,attempts,next_at,status,reason,alerted from kimi_edition_jobs order by day desc","select day,period,length(body),length(captions) from kimi_editions order by day desc","select slot,day from sent where day='2026-10-12' order by slot","select day,delivered,count(*) from notification_outbox where day='2026-10-12' group by day,delivered","select period,delivered,count(*) from notification_photo_outbox where day='2026-10-12' group by period,delivered","select delivered,count(*) from notification_outbox where message_key='kimi-edition-alert:pm' and day='2026-10-12' group by delivered","select step,count(*) from evening_checkins where day='2026-10-12' group by step","select length(photo)>0,count(*) from evening_checkins where day='2026-10-12' group by 1","select count(*),sum(length(comment)>0) from photo_hunts where day='2026-10-12' and period='pm'"]
+           for q in qs:
+            try:print('QUERY',q,c.execute(q).fetchall())
+            except Exception as e:print('QUERY_ERROR',type(e).__name__)
+          logs=subprocess.run(['journalctl','-u','timecode-bot.service','--since','2026-10-12 17:20 UTC','--no-pager'],capture_output=True,text=True).stdout
+          for pattern in (r'Kimi edition pending:.*',r'Kimi edition retry:.*',r'Scheduler: ([A-Za-z0-9 _-]+)',r'Kimi transport code (\d+)',r'AI research: ([A-Za-z0-9 _-]+)',r'Notification retry: ([A-Za-z0-9 _-]+)',r'Photo retry: ([A-Za-z0-9 _-]+)'):
+           print('LOG_CATEGORY',pattern,re.findall(pattern,logs)[-30:])
+          print('HTTP',subprocess.run(['curl','-fsS','--max-time','10','http://127.0.0.1:8097/health'],capture_output=True,text=True).stdout)
+          
+          PY
