@@ -1,0 +1,43 @@
+name: Diagnose real photo access without exposing images
+on:
+  push:
+    branches: [boom-kadr-deploy]
+    paths: ['.github/workflows/timecode-photo-probe-20261012.yml']
+permissions:
+  contents: read
+jobs:
+  inspect:
+    runs-on: ubuntu-latest
+    timeout-minutes: 4
+    steps:
+      - name: Check existing media bridge in memory only
+        env:
+          BOOM_SSH_KEY: ${{ secrets.BOOM_SSH_KEY }}
+        run: |
+          install -d -m 700 ~/.ssh
+          printf '%s\n' "$BOOM_SSH_KEY" > ~/.ssh/timecode
+          chmod 600 ~/.ssh/timecode
+          ssh-keyscan -T 8 -H 217.149.24.242 > ~/.ssh/known_hosts
+          ssh -i ~/.ssh/timecode root@217.149.24.242 'bash -s' <<'REMOTE'
+          set -e
+          cd /opt/timecode-bot/timecode-bot
+          set -a
+          . /etc/timecode-bot.env
+          set +a
+          python3 - <<'PY'
+          import server,shared_media,json
+          from pathlib import Path
+          with server.conn() as c:
+           rows=[dict(r) for r in c.execute("select e.user_id,e.photo from evening_checkins e where e.day='2026-10-12' and e.photo!=''")]
+          for i,row in enumerate(rows):
+           try:
+            shared_media.remember(vars(server),row['photo'])
+            with server.conn() as c:asset=c.execute('select * from shared_photo_assets where photo=?',(row['photo'],)).fetchone()
+            raw=shared_media.download(vars(server),row['photo'],asset)
+            print('IMAGE_PROBE',i,'bytes',len(raw),'mime',raw[:12].hex(),'platform','max' if row['photo'].startswith('max:') else 'telegram')
+           except Exception as e:
+            print('IMAGE_PROBE_ERROR',i,type(e).__name__,getattr(e,'code',None))
+          print('VISION_MODEL',server.VISION_MODEL)
+          
+          PY
+          REMOTE
