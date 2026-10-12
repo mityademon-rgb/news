@@ -1,0 +1,105 @@
+name: Repair evening Kimi photos and recover edition
+on:
+  push:
+    branches: [boom-kadr-deploy]
+    paths: ['.github/workflows/timecode-evening-repair-20261012.yml']
+permissions:
+  contents: read
+concurrency:
+  group: timecode-evening-repair
+  cancel-in-progress: false
+jobs:
+  repair:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          repository: mityademon-rgb/media-center-bot
+          ref: 7a02ca5cdb7035d3e92a4f97c12c746d45debcca
+          path: source
+      - name: Verify real byte handling and durable retry behavior
+        run: |
+          cd source/timecode-bot
+          python3 -m unittest discover -s tests -p test_creative_digest.py
+          python3 -m py_compile creative_digest.py
+      - name: Install photo bridge repair with backup
+        env:
+          BOOM_SSH_KEY: ${{ secrets.BOOM_SSH_KEY }}
+        run: |
+          install -d -m 700 ~/.ssh
+          printf '%s\n' "$BOOM_SSH_KEY" > ~/.ssh/timecode
+          chmod 600 ~/.ssh/timecode
+          ssh-keyscan -T 8 -H 217.149.24.242 > ~/.ssh/known_hosts
+          scp -i ~/.ssh/timecode source/timecode-bot/creative_digest.py root@217.149.24.242:/tmp/creative-digest-repair-20261012.py
+          ssh -i ~/.ssh/timecode root@217.149.24.242 'bash -s' <<'REMOTE'
+          set -Eeuo pipefail
+          cd /opt/timecode-bot/timecode-bot
+          python3 - <<'PY'
+          import hashlib
+          from pathlib import Path
+          assert hashlib.sha256(Path('creative_digest.py').read_bytes()).hexdigest()=='7d9ce9c4da1511faf3ef2eae230f38ab019b4b1a3ebfdf4c46bc84c6cb96d815'
+          PY
+          backup=$(mktemp -d /opt/timecode-bot/creative-photo-repair-backup-XXXXXXXX)
+          cp -p creative_digest.py "$backup/"
+          rollback() { cp -p "$backup/creative_digest.py" .; systemctl restart timecode-bot.service || true; }
+          trap rollback ERR
+          cp /tmp/creative-digest-repair-20261012.py creative_digest.py
+          python3 -m py_compile creative_digest.py
+          set -a
+          . /etc/timecode-bot.env
+          set +a
+          python3 - <<'PY'
+          import server,creative_digest
+          assert server.today()=='2026-10-12'
+          with server.conn() as c:
+              rows=[dict(r) for r in c.execute("select user_id,photo from evening_checkins where day=? and photo!=''",(server.today(),))]
+          for i,r in enumerate(rows):
+              result=creative_digest.inspect_photo(vars(server),r['photo'])
+              assert result
+              with server.conn() as c:
+                  c.execute('update photo_hunts set comment=? where user_id=? and day=? and period=?',(result,r['user_id'],server.today(),'pm'))
+              print('REAL_IMAGE_ANALYZED',i,'observation_length',len(result))
+          with server.conn() as c:
+              c.execute("update kimi_edition_jobs set next_at=0 where day=? and period='pm' and status='pending'",(server.today(),))
+          print('RECOVERY_READY')
+          PY
+          systemctl restart timecode-bot.service
+          curl -fsS --retry 5 --retry-delay 2 --retry-connrefused --max-time 10 http://127.0.0.1:8097/health -o /dev/null
+          curl -fsS --max-time 15 https://timecode-lab.ru/tc/health -o /dev/null
+          trap - ERR
+          printf '%s\n' "$backup" > /opt/timecode-bot/creative-photo-repair-latest-backup-path
+          python3 - <<'PY'
+          from pathlib import Path
+          p=Path('PROJECT_AI_HANDBOOK.md')
+          p.write_text(p.read_text()+'\n### 12 октября вечером: исправление анализа фото\nВечерний job завис после photo-analysis-empty: исходный анализатор не поддерживал WebP и обходил общий media bridge. creative_digest.inspect_photo теперь использует shared_media с проверенными хостами/TLS, поддерживает JPEG/PNG/WebP, проверяет visible/observation в JSON. Ошибка визуального анализа остаётся причиной повторной попытки, шаблон не подставляется. Таймер повторной попытки отсчитывается после завершения сетевого вызова. Реальные фото анализируются без вывода изображений, имён и комментариев в logs.\n')
+          PY
+          REMOTE
+      - name: Confirm recovery and delivery aggregates in both messengers
+        env:
+          BOOM_SSH_KEY: ${{ secrets.BOOM_SSH_KEY }}
+        run: |
+          ssh -i ~/.ssh/timecode root@217.149.24.242 'python3 -' <<'PY'
+          import sqlite3,time,json
+          from pathlib import Path
+          db='file:/var/lib/timecode-bot/timecode.db?mode=ro'
+          for attempt in range(90):
+              with sqlite3.connect(db,uri=True) as c:
+                  row=c.execute("select status,reason from kimi_edition_jobs where day='2026-10-12' and period='pm'").fetchone()
+                  pending=c.execute("select count(*) from notification_photo_outbox where day='2026-10-12' and period in ('pm','pm-daily') and delivered=0").fetchone()[0]
+              if row and row[0]=='done' and pending==0:break
+              time.sleep(4)
+          with sqlite3.connect(db,uri=True) as c:
+              print('EVENING_JOB',c.execute("select attempts,status,reason from kimi_edition_jobs where day='2026-10-12' and period='pm'").fetchall())
+              rows=c.execute("select chat,delivered from notification_photo_outbox where day='2026-10-12' and period in ('pm','pm-daily')").fetchall()
+              platforms={}
+              for chat,status in rows:
+                  uid=json.loads(chat)
+                  key='max' if isinstance(uid,int) and uid<0 and c.execute("select 1 from platform_identities where platform='max' and internal_id=?",(uid,)).fetchone() else 'telegram'
+                  platforms[(key,status)]=platforms.get((key,status),0)+1
+              print('EVENING_PHOTO_DELIVERY',[(p,d,n) for (p,d),n in platforms.items()])
+              print('EDITION_LENGTH',c.execute("select length(body),length(captions) from kimi_editions where day='2026-10-12' and period='pm'").fetchall())
+              assert row and row[0]=='done' and pending==0, 'Evening edition still not recovered'
+              assert all(any(p==wanted and d==1 for p,d in platforms) for wanted in ('telegram','max')), 'No confirmed photo delivery on one platform'
+          print('EVENING_RECOVERED_BOTH_PLATFORMS')
+          PY
