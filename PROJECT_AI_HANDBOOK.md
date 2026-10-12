@@ -360,7 +360,7 @@ Deploy workflow выполняет `--check` и `node --check` до SSH. Есл�
 `index.html` подключает:
 
 ```text
-styles.css?v=20261012-exact-host-scripts-2
+styles.css?v=20261012-exact-host-scripts-3
 lesson03-kids.css?v=20260917-2
 site.js?v=20261012-exact-host-scripts
 ```
