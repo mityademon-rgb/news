@@ -1,0 +1,114 @@
+name: Deploy Kimi authored daily editions
+on:
+  push:
+    branches: [boom-kadr-deploy]
+    paths: ['.github/workflows/timecode-creative-digest-20261012.yml']
+permissions:
+  contents: read
+concurrency:
+  group: timecode-creative-digest
+  cancel-in-progress: false
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          repository: mityademon-rgb/media-center-bot
+          ref: 8867e2e0d0174e5e51ec0e23aac9d8edbacdd104
+          path: source
+      - name: Verify retry persistence and grounded photo delivery
+        run: |
+          cd source/timecode-bot
+          python3 -m unittest discover -s tests -p test_creative_digest.py
+          python3 -m py_compile creative_digest.py notification_delivery.py
+      - name: Addressed deployment preserving live core and restoring on failure
+        env:
+          BOOM_SSH_KEY: ${{ secrets.BOOM_SSH_KEY }}
+        run: |
+          install -d -m 700 ~/.ssh
+          printf '%s\n' "$BOOM_SSH_KEY" > ~/.ssh/timecode
+          chmod 600 ~/.ssh/timecode
+          ssh-keyscan -T 8 -H 217.149.24.242 > ~/.ssh/known_hosts
+          stage=$(ssh -i ~/.ssh/timecode root@217.149.24.242 'mktemp -d /tmp/creative-digest-XXXXXXXX')
+          scp -i ~/.ssh/timecode source/timecode-bot/creative_digest.py source/timecode-bot/notification_delivery.py root@217.149.24.242:"$stage/"
+          ssh -i ~/.ssh/timecode root@217.149.24.242 "bash -s -- '$stage'" <<'REMOTE'
+          set -Eeuo pipefail
+          stage="$1"
+          cd /opt/timecode-bot/timecode-bot
+          python3 - <<'PY'
+          from pathlib import Path
+          import hashlib
+          expected={'server.py':'07f998c5bd49c6c93e18e18987ddf6a7d779c632268914bdbbf8fd20f04273fc','notification_delivery.py':'25655a78312211ba505bc1799205e155b9acd305b2c12ffb569bca23db3e982d'}
+          for name,h in expected.items():
+              assert hashlib.sha256(Path(name).read_bytes()).hexdigest()==h, 'Live file changed since inspection: '+name
+          PY
+          backup=$(mktemp -d /opt/timecode-bot/creative-digest-backup-XXXXXXXX)
+          cp -p server.py notification_delivery.py "$backup/"
+          if test -f creative_digest.py; then cp -p creative_digest.py "$backup/"; fi
+          rollback() {
+            cp -p "$backup/server.py" "$backup/notification_delivery.py" .
+            if test -f "$backup/creative_digest.py"; then cp -p "$backup/creative_digest.py" .; else rm -f creative_digest.py; fi
+            systemctl restart timecode-bot.service || true
+          }
+          trap rollback ERR
+          cp "$stage/creative_digest.py" "$stage/notification_delivery.py" .
+          python3 - <<'PY'
+          from pathlib import Path
+          import difflib
+          p=Path('server.py');old=p.read_text();anchor='kimi_weekend.install(globals())\n'
+          hook='import creative_digest\ncreative_digest.install(globals())\n'
+          assert old.count(anchor)==1 and hook not in old
+          new=old.replace(anchor,anchor+hook,1)
+          added=[x for x in difflib.ndiff(old.splitlines(),new.splitlines()) if x.startswith('+ ')]
+          removed=[x for x in difflib.ndiff(old.splitlines(),new.splitlines()) if x.startswith('- ')]
+          assert added==['+ import creative_digest','+ creative_digest.install(globals())'] and not removed
+          p.write_text(new)
+          PY
+          python3 -m py_compile server.py creative_digest.py notification_delivery.py
+          set -a
+          . /etc/timecode-bot.env
+          set +a
+          python3 - <<'PY'
+          import server,creative_digest,tempfile,sqlite3,datetime
+          from contextlib import contextmanager
+          from pathlib import Path
+          with tempfile.TemporaryDirectory() as folder:
+              db=Path(folder)/'probe.db'
+              @contextmanager
+              def conn():
+                  c=sqlite3.connect(db);c.row_factory=sqlite3.Row
+                  try:
+                      with c:yield c
+                  finally:c.close()
+              scope=dict(vars(server));scope['conn']=conn
+              rows=[{'user_id':i,'name':'Тестовый автор '+str(i),'mood':'Я зомби, несу свой рюкзак','important':'','photo':''} for i in (1,2,3)]
+              body=creative_digest.render(scope,rows,True)
+              assert not creative_digest.BANNED.search(body)
+              print('LIVE_KIMI_SYNTHETIC_PREVIEW',body)
+              print('LIVE_AI_VALIDATION_OK')
+          PY
+          systemctl restart timecode-bot.service
+          curl -fsS --retry 5 --retry-delay 2 --retry-connrefused --max-time 10 http://127.0.0.1:8097/health -o /dev/null
+          curl -fsS --max-time 15 https://timecode-lab.ru/tc/health -o /dev/null
+          systemctl is-active --quiet timecode-bot.service
+          python3 - <<'PY'
+          import sqlite3
+          with sqlite3.connect('file:/var/lib/timecode-bot/timecode.db?mode=ro',uri=True) as c:
+              print('CREATIVE_TABLES',[r[0] for r in c.execute("select name from sqlite_master where name in ('kimi_editions','kimi_edition_jobs')")])
+              print('PENDING_EDITION_COUNT',c.execute("select count(*) from kimi_edition_jobs where status='pending'").fetchone()[0])
+          PY
+          trap - ERR
+          python3 - <<'PY'
+          from pathlib import Path
+          p=Path('PROJECT_AI_HANDBOOK.md')
+          note='\n## Изменение 12 октября 2026: авторские таблоиды Kimi\n\ncreative_digest.py установлен последним после kimi_weekend. Он заменяет editorial_voice.story, сохраняет виртуальные статусы, готовит авторский сюжет и отдельные подписи всех кадров. notification_delivery отправляет рассказ отдельным сообщением и фото с личными рецензиями. Старые daily_content fallback-выпуски этим путём не используются.\n\nПри ошибке — отложенная повторная попытка через 30 секунд, затем 90 секунд. После третьей неудачи уведомление администраторам через outbox, затем попытки раз в 15 минут до конца текущего дня. Попытки и дедлайны сохраняются в kimi_edition_jobs; успешные тексты и подписи — kimi_editions. Уже завершённый job не выполняется повторно. Это защита на уровне задания и outbox, не абсолютная exactly-once гарантия при падении между API-send и записью delivered.\n\nНедоступное изображение блокирует выпуск до повторного анализа. Фактчек допускает явную шутку и риторический вопрос, но не выдуманные реальные события. 23 выполнения локальных тестов (включая повторные наследуемые кейсы) прошли; реальная генерация проверена на синтетических данных без рассылки. Утренний уже доставленный выпуск 12 октября не пересылался. Источник: media-center-bot commit 8867e2e0d0174e5e51ec0e23aac9d8edbacdd104; изменены только notification_delivery, новый creative_digest и две строки hook в live server.py.\n'
+          if p.exists() and '## Изменение 12 октября 2026: авторские таблоиды Kimi' not in p.read_text():
+              p.write_text(p.read_text()+note)
+          print('HANDBOOK_UPDATED')
+          PY
+          printf '%s\n' "$backup" > /opt/timecode-bot/creative-digest-latest-backup-path
+          print_ok='CREATIVE_DIGEST_DEPLOYED_BOTH_HEALTH_OK'
+          printf '%s\n' "$print_ok"
+          REMOTE
