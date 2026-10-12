@@ -1,0 +1,44 @@
+name: Verify installed Kimi editions and project memory
+on:
+  push:
+    branches: [boom-kadr-deploy]
+    paths: ['.github/workflows/timecode-creative-verify-20261012.yml']
+permissions:
+  contents: read
+jobs:
+  verify:
+    runs-on: ubuntu-latest
+    timeout-minutes: 3
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 2
+      - name: Verify documentation and whitespace
+        run: |
+          bash scripts/check-project-documentation.sh HEAD~1 HEAD
+          git diff --check HEAD~1 HEAD
+      - name: Verify installed fingerprints and HTTP without sending
+        env:
+          BOOM_SSH_KEY: ${{ secrets.BOOM_SSH_KEY }}
+        run: |
+          install -d -m 700 ~/.ssh
+          printf '%s\n' "$BOOM_SSH_KEY" > ~/.ssh/timecode
+          chmod 600 ~/.ssh/timecode
+          ssh-keyscan -T 8 -H 217.149.24.242 > ~/.ssh/known_hosts
+          ssh -i ~/.ssh/timecode root@217.149.24.242 'python3 -' <<'PY'
+          from pathlib import Path
+          import hashlib,subprocess,sqlite3
+          r=Path('/opt/timecode-bot/timecode-bot')
+          expected={'creative_digest.py':'7d9ce9c4da1511faf3ef2eae230f38ab019b4b1a3ebfdf4c46bc84c6cb96d815','notification_delivery.py':'e9e8a002637e814e524fd7959b40f93d24037a544a83d8ff0b3d105a6c3402c2'}
+          for n,h in expected.items():
+              assert hashlib.sha256((r/n).read_bytes()).hexdigest()==h
+              print('INSTALLED_VERIFIED',n)
+          assert (r/'server.py').read_text().count('creative_digest.install(globals())')==1
+          assert subprocess.run(['systemctl','is-active','--quiet','timecode-bot.service']).returncode==0
+          for url in ('http://127.0.0.1:8097/health','https://timecode-lab.ru/tc/health'):
+              assert subprocess.run(['curl','-fsS','--max-time','10',url],capture_output=True).returncode==0
+          with sqlite3.connect('file:/var/lib/timecode-bot/timecode.db?mode=ro',uri=True) as c:
+              assert len(c.execute("select name from sqlite_master where name in ('kimi_editions','kimi_edition_jobs')").fetchall())==2
+          assert 'авторские таблоиды Kimi' in (r/'PROJECT_AI_HANDBOOK.md').read_text()
+          print('FINAL_VERIFIED_NO_MESSAGES_SENT')
+          PY
