@@ -1,0 +1,75 @@
+name: Drain evening photo queue and confirm complete delivery
+on:
+  push:
+    branches: [boom-kadr-deploy]
+    paths: ['.github/workflows/timecode-evening-queue-fix-20261012.yml']
+permissions:
+  contents: read
+jobs:
+  fix:
+    runs-on: ubuntu-latest
+    timeout-minutes: 6
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          repository: mityademon-rgb/media-center-bot
+          ref: 23389a5c8b25db9a50229257569e7f0689fd6243
+          path: source
+      - name: Verify queues larger than forty and no repeated acknowledgments
+        run: |
+          cd source/timecode-bot
+          python3 -m unittest discover -s tests -p test_creative_digest.py
+      - name: Install bounded batch draining and deliver pending photos
+        env:
+          BOOM_SSH_KEY: ${{ secrets.BOOM_SSH_KEY }}
+        run: |
+          install -d -m 700 ~/.ssh
+          printf '%s\n' "$BOOM_SSH_KEY" > ~/.ssh/timecode
+          chmod 600 ~/.ssh/timecode
+          ssh-keyscan -T 8 -H 217.149.24.242 > ~/.ssh/known_hosts
+          scp -i ~/.ssh/timecode source/timecode-bot/notification_delivery.py root@217.149.24.242:/tmp/notification-queue-fix.py
+          ssh -i ~/.ssh/timecode root@217.149.24.242 'bash -s' <<'REMOTE'
+          set -Eeuo pipefail
+          cd /opt/timecode-bot/timecode-bot
+          python3 - <<'PY'
+          from pathlib import Path
+          import hashlib
+          assert hashlib.sha256(Path('notification_delivery.py').read_bytes()).hexdigest()=='e9e8a002637e814e524fd7959b40f93d24037a544a83d8ff0b3d105a6c3402c2'
+          PY
+          backup=$(mktemp -d /opt/timecode-bot/evening-queue-backup-XXXXXXXX)
+          cp -p notification_delivery.py "$backup/"
+          rollback() { cp -p "$backup/notification_delivery.py" .; systemctl restart timecode-bot.service || true; }
+          trap rollback ERR
+          cp /tmp/notification-queue-fix.py notification_delivery.py
+          python3 -m py_compile notification_delivery.py
+          systemctl restart timecode-bot.service
+          curl -fsS --retry 5 --retry-delay 2 --retry-connrefused --max-time 10 http://127.0.0.1:8097/health -o /dev/null
+          trap - ERR
+          set -a
+          . /etc/timecode-bot.env
+          set +a
+          python3 - <<'PY'
+          import server,json,time,hashlib
+          from pathlib import Path
+          server.retry_notifications()
+          with server.conn() as c:
+              print('EVENING_JOB',c.execute("select status,reason from kimi_edition_jobs where day='2026-10-12' and period='pm'").fetchall())
+              for kind,q in [('photos',"select chat,delivered from notification_photo_outbox where day='2026-10-12' and period in ('pm','pm-daily')"),('text',"select chat,delivered from notification_outbox where day='2026-10-12' and body like '%20:30 / КАК ПРОШЁЛ ДЕНЬ%'")]:
+                  totals={}
+                  for row in c.execute(q):
+                      uid=json.loads(row['chat']);status=row['delivered']
+                      platform='max' if isinstance(uid,int) and uid<0 and c.execute("select 1 from messenger_identities where platform='max' and user_id=?",(uid,)).fetchone() else 'telegram'
+                      totals[(platform,status)]=totals.get((platform,status),0)+1
+                  print('FINAL_DELIVERY',kind,[(p,d,n) for (p,d),n in totals.items()])
+                  assert all(any(p==wanted and d==1 for p,d in totals) for wanted in ('telegram','max'))
+                  assert not any(d==0 for p,d in totals)
+              assert c.execute("select status from kimi_edition_jobs where day='2026-10-12' and period='pm'").fetchone()[0]=='done'
+          assert hashlib.sha256(Path('creative_digest.py').read_bytes()).hexdigest()=='86a5688d2ac1783f5dc51d1b9eb56a4303eddddb38de4e96e8b94b4af55b7f52'
+          note='\n### Восстановление вечернего выпуска 12.10.2026\nИсправлены три подтверждённых причины: анализ WebP и получение байтов через media bridge; обрезание JSON фактчека (лимит 1200, короткий reason, явные HTTP/finish_reason ошибки); остаток успешной photo_outbox после лимита 40. retry_photos теперь дренирует до пяти успешных пакетов и прекращает цикл без прогресса. Все доступные адресаты получили рассказ и три фотографии с собственными подписями, pending=0. Недоступный адресат остаётся delivered=-1; это не успешная доставка. Source: media-center-bot 23389a5c8b25db9a50229257569e7f0689fd6243. Новые backup paths: creative-review-repair-latest-backup-path и evening-queue-latest-backup-path.\n'
+          p=Path('PROJECT_AI_HANDBOOK.md')
+          if '### Восстановление вечернего выпуска 12.10.2026' not in p.read_text():p.write_text(p.read_text()+note)
+          print('COMPLETE_EVENING_DELIVERY_CONFIRMED')
+          PY
+          printf '%s\n' "$backup" > /opt/timecode-bot/evening-queue-latest-backup-path
+          curl -fsS --max-time 15 https://timecode-lab.ru/tc/health -o /dev/null
+          REMOTE
