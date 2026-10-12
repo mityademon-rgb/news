@@ -1,0 +1,29 @@
+name: Read final evening delivery progress
+on:
+  push:
+    branches: [boom-kadr-deploy]
+    paths: ['.github/workflows/timecode-evening-last-status-20261012.yml']
+permissions:
+  contents: read
+jobs:
+  read:
+    runs-on: ubuntu-latest
+    timeout-minutes: 3
+    steps:
+      - name: Inspect pending counts and error categories
+        env:
+          BOOM_SSH_KEY: ${{ secrets.BOOM_SSH_KEY }}
+        run: |
+          install -d -m 700 ~/.ssh
+          printf '%s\n' "$BOOM_SSH_KEY" > ~/.ssh/timecode
+          chmod 600 ~/.ssh/timecode
+          ssh-keyscan -T 8 -H 217.149.24.242 > ~/.ssh/known_hosts
+          ssh -i ~/.ssh/timecode root@217.149.24.242 'python3 -' <<'PY'
+          import sqlite3,subprocess,re
+          with sqlite3.connect('file:/var/lib/timecode-bot/timecode.db?mode=ro',uri=True) as c:
+              for q in ["select attempts,status,reason from kimi_edition_jobs where day='2026-10-12' and period='pm'","select period,delivered,count(*) from notification_photo_outbox where day='2026-10-12' and period in ('pm','pm-daily') group by period,delivered","select delivered,count(*) from notification_outbox where day='2026-10-12' and body like '%20:30 / КАК ПРОШЁЛ ДЕНЬ%' group by delivered","select length(body),length(captions) from kimi_editions where day='2026-10-12' and period='pm'"]:
+                  print('STATE',q,c.execute(q).fetchall())
+          logs=subprocess.run(['journalctl','-u','timecode-bot.service','--since','2026-10-12 19:25 UTC','--no-pager'],capture_output=True,text=True).stdout
+          for pat in (r'Kimi edition pending:.*',r'Notification retry: [A-Za-z0-9 _-]+',r'Photo retry: [A-Za-z0-9 _-]+',r'Scheduler: [A-Za-z0-9 _-]+'):
+              print('ERROR',pat,re.findall(pat,logs)[-10:])
+          PY
