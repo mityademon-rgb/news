@@ -1,0 +1,32 @@
+name: TIMECODE digest preflight
+on:
+  push:
+    branches: [boom-kadr-deploy]
+    paths: ['.github/workflows/timecode-digest-preflight-20261012.yml']
+permissions:
+  contents: read
+jobs:
+  inspect:
+    runs-on: ubuntu-latest
+    timeout-minutes: 3
+    steps:
+      - name: Read code fingerprints and error categories without participant data
+        env:
+          BOOM_SSH_KEY: ${{ secrets.BOOM_SSH_KEY }}
+        run: |
+          install -d -m 700 ~/.ssh
+          printf '%s\n' "$BOOM_SSH_KEY" > ~/.ssh/timecode
+          chmod 600 ~/.ssh/timecode
+          ssh-keyscan -T 8 -H 217.149.24.242 > ~/.ssh/known_hosts
+          ssh -i ~/.ssh/timecode root@217.149.24.242 'python3 -' <<'PY'
+          from pathlib import Path
+          import hashlib,subprocess,re,json
+          root=Path('/opt/timecode-bot/timecode-bot')
+          for n in ('server.py','editorial_voice.py','notification_delivery.py','daily_status.py','chef_voice.py'):
+              print('HASH',n,hashlib.sha256((root/n).read_bytes()).hexdigest())
+          print('INSTALLS',re.findall(r'([a-z_]+)\.install\(globals\(\)\)',(root/'server.py').read_text()))
+          logs=subprocess.run(['journalctl','-u','timecode-bot.service','--since','2026-10-12 06:00:00 UTC','--no-pager'],capture_output=True,text=True).stdout
+          print('ERROR_COUNTS',{x:logs.count(x) for x in ('AI research:','Kimi transport code','Slot failed:','Scheduler:','Notification retry:')})
+          print('TRANSPORT_CODES',re.findall(r'Kimi transport code (\d+)',logs))
+          print('SERVICE',subprocess.run(['systemctl','is-active','timecode-bot.service'],capture_output=True,text=True).stdout.strip())
+          PY
