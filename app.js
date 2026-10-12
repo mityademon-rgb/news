@@ -1954,6 +1954,26 @@
       stage = `<div class="lesson-timer" data-seconds="${seconds}" data-remaining="${seconds}"><span class="timer-display">${formatTime(seconds)}</span><div class="timer-ring" aria-hidden="true"><i></i></div><div class="timer-actions"><button type="button" data-timer-start>Запустить таймер</button><button type="button" data-timer-reset>Сбросить</button></div></div>`;
     } else if (layout === "check") {
       stage = `<div class="magic-checks">${scene.items.map((item) => `<div><span>✓</span><strong>${escapeHtml(item[0])}</strong><p>${escapeHtml(item[1])}</p></div>`).join("")}</div>`;
+    } else if (layout === "host-drill") {
+      const firstStep = scene.steps[0];
+      stage = `<div class="host-drill" data-host-drill>
+        <div class="host-drill-head"><span>ДЕЛАЕМ ПО ШАГАМ</span><b><i data-host-drill-current>1</i> / ${scene.steps.length}</b></div>
+        <div class="host-drill-meter" aria-hidden="true"><i data-host-drill-meter style="width:${100 / scene.steps.length}%"></i></div>
+        <section class="host-drill-step" data-host-drill-step>
+          <span data-host-drill-count>${escapeHtml(firstStep.count)}</span>
+          <h3 data-host-drill-label>${escapeHtml(firstStep.label)}</h3>
+          <p data-host-drill-instruction>${escapeHtml(firstStep.instruction)}</p>
+          <blockquote data-host-drill-line ${firstStep.line ? "" : "hidden"}>${escapeHtml(firstStep.line || "")}</blockquote>
+          <small data-host-drill-check>${escapeHtml(firstStep.check || "")}</small>
+        </section>
+        <section class="host-drill-finish" data-host-drill-finish hidden>
+          <span>СРАВНИТЕ С ПЕРВОЙ ПОПЫТКОЙ</span>
+          <h3>${escapeHtml(scene.finishQuestion)}</h3>
+          <div><button type="button" data-host-drill-success>${escapeHtml(scene.successButton || "Да, стало лучше")}</button><button type="button" data-host-drill-retry>${escapeHtml(scene.retryButton || "Пока нет — повторить")}</button></div>
+          <p data-host-drill-result aria-live="polite"></p>
+        </section>
+        <div class="host-drill-actions"><button type="button" data-host-drill-restart>Начать заново</button><button type="button" data-host-drill-next>${escapeHtml(firstStep.button || "Сделал →")}</button></div>
+      </div>`;
     } else if (layout === "host-choice") {
       stage = `<div class="host-choice" data-host-choice>
         ${image("host-choice-image")}
@@ -2180,6 +2200,64 @@
         if (correct) markAnswered();
       }));
       hostChoice.querySelector("[data-host-choice-retry]")?.addEventListener("click", reset);
+    }
+
+    const hostDrill = document.querySelector("[data-host-drill]");
+    if (hostDrill) {
+      const current = hostDrill.querySelector("[data-host-drill-current]");
+      const meter = hostDrill.querySelector("[data-host-drill-meter]");
+      const stepPanel = hostDrill.querySelector("[data-host-drill-step]");
+      const count = hostDrill.querySelector("[data-host-drill-count]");
+      const label = hostDrill.querySelector("[data-host-drill-label]");
+      const instruction = hostDrill.querySelector("[data-host-drill-instruction]");
+      const line = hostDrill.querySelector("[data-host-drill-line]");
+      const check = hostDrill.querySelector("[data-host-drill-check]");
+      const finish = hostDrill.querySelector("[data-host-drill-finish]");
+      const result = hostDrill.querySelector("[data-host-drill-result]");
+      const next = hostDrill.querySelector("[data-host-drill-next]");
+      let stepIndex = 0;
+
+      const showStep = (index) => {
+        const step = scene.steps[index];
+        current.textContent = String(index + 1);
+        meter.style.width = `${((index + 1) / scene.steps.length) * 100}%`;
+        count.textContent = step.count;
+        label.textContent = step.label;
+        instruction.textContent = step.instruction;
+        line.textContent = step.line || "";
+        line.hidden = !step.line;
+        check.textContent = step.check || "";
+        next.textContent = step.button || (index === scene.steps.length - 1 ? "Проверить результат →" : "Сделал →");
+        stepPanel.hidden = false;
+        finish.hidden = true;
+        next.hidden = false;
+        result.textContent = "";
+      };
+
+      const restart = () => {
+        stepIndex = 0;
+        hostDrill.classList.remove("is-complete");
+        showStep(stepIndex);
+      };
+
+      next.addEventListener("click", () => {
+        if (stepIndex < scene.steps.length - 1) {
+          stepIndex += 1;
+          showStep(stepIndex);
+          return;
+        }
+        stepPanel.hidden = true;
+        finish.hidden = false;
+        next.hidden = true;
+        meter.style.width = "100%";
+      });
+      hostDrill.querySelector("[data-host-drill-success]")?.addEventListener("click", () => {
+        hostDrill.classList.add("is-complete");
+        result.textContent = scene.successText || "Отлично. Теперь переносим навык в эфирную сцену.";
+        markAnswered();
+      });
+      hostDrill.querySelector("[data-host-drill-retry]")?.addEventListener("click", restart);
+      hostDrill.querySelector("[data-host-drill-restart]")?.addEventListener("click", restart);
     }
 
     const hostOrder = document.querySelector("[data-host-order]");

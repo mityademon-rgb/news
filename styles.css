@@ -5979,11 +5979,42 @@ body.teacher-portal-active #main {
 
 /* Host school: reusable choice, sequence and readiness trainer */
 .host-choice,
+.host-drill,
 .host-order,
 .host-checklist {
   width: min(1180px, 100%);
   margin: 0 auto;
 }
+
+.host-drill {
+  overflow: hidden;
+  border: 1px solid rgba(255,255,255,.14);
+  border-radius: 24px;
+  background: linear-gradient(145deg, rgba(36,216,255,.08), rgba(255,255,255,.035) 42%, rgba(227,71,80,.07));
+}
+.host-drill-head { display: flex; justify-content: space-between; gap: 20px; padding: 14px 18px 10px; font-weight: 950; letter-spacing: .08em; }
+.host-drill-head span { color: var(--cyan, #24d8ff); font-size: 13px; }
+.host-drill-head b { font-size: 14px; }
+.host-drill-head i { color: var(--cyan, #24d8ff); font-style: normal; }
+.host-drill-meter { height: 4px; background: rgba(255,255,255,.09); }
+.host-drill-meter i { display: block; width: 0; height: 100%; background: linear-gradient(90deg, var(--cyan, #24d8ff), #e34750); transition: width .28s ease; }
+.host-drill-step,
+.host-drill-finish { min-height: 300px; padding: clamp(24px, 4vw, 52px); }
+.host-drill-step > span,
+.host-drill-finish > span { display: inline-flex; padding: 8px 13px; border-radius: 999px; background: var(--cyan, #24d8ff); color: #101014; font-size: 13px; font-weight: 950; letter-spacing: .08em; text-transform: uppercase; }
+.host-drill-step h3,
+.host-drill-finish h3 { max-width: 19ch; margin: 18px 0 12px; font-size: clamp(28px, 4.2vw, 58px); line-height: .96; letter-spacing: -.035em; }
+.host-drill-step p { max-width: 760px; margin: 0; font-size: clamp(17px, 1.75vw, 23px); line-height: 1.35; }
+.host-drill-step blockquote { max-width: 920px; margin: 22px 0 0; padding: 16px 20px; border-left: 4px solid var(--cyan, #24d8ff); border-radius: 0 14px 14px 0; background: rgba(255,255,255,.07); font-size: clamp(18px, 2.1vw, 29px); font-weight: 850; }
+.host-drill-step small { display: block; margin-top: 18px; color: rgba(255,255,255,.68); font-size: 14px; font-weight: 750; }
+.host-drill-actions { display: flex; justify-content: space-between; gap: 12px; padding: 0 18px 18px; }
+.host-drill-actions button,
+.host-drill-finish button { padding: 13px 18px; border: 0; border-radius: 999px; background: rgba(255,255,255,.1); color: var(--paper); font-weight: 900; cursor: pointer; }
+.host-drill-actions button:last-child,
+.host-drill-finish button:first-child { background: var(--cyan, #24d8ff); color: #101014; }
+.host-drill-finish > div { display: flex; flex-wrap: wrap; gap: 10px; margin-top: 22px; }
+.host-drill-finish p { min-height: 24px; margin: 18px 0 0; color: #9affbd; font-weight: 900; }
+.host-drill.is-complete { border-color: rgba(113,245,166,.62); box-shadow: 0 0 40px rgba(113,245,166,.08); }
 
 .host-choice {
   display: grid;
@@ -6091,6 +6122,13 @@ body.teacher-portal-active #main {
   .host-checklist-groups { grid-template-columns: 1fr; }
   .host-checklist-actions { flex-direction: column; }
   .host-checklist-actions button { width: 100%; }
+  .host-drill-step,
+  .host-drill-finish { min-height: 340px; padding: 26px 18px; }
+  .host-drill-step h3,
+  .host-drill-finish h3 { max-width: 100%; }
+  .host-drill-actions { flex-direction: column-reverse; }
+  .host-drill-actions button,
+  .host-drill-finish button { width: 100%; }
 }
 
 @media print {
