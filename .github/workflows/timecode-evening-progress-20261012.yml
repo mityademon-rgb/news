@@ -1,0 +1,31 @@
+name: Inspect evening recovery progress
+on:
+  push:
+    branches: [boom-kadr-deploy]
+    paths: ['.github/workflows/timecode-evening-progress-20261012.yml']
+permissions:
+  contents: read
+jobs:
+  status:
+    runs-on: ubuntu-latest
+    timeout-minutes: 3
+    steps:
+      - name: Read current recovery stage without sending
+        env:
+          BOOM_SSH_KEY: ${{ secrets.BOOM_SSH_KEY }}
+        run: |
+          install -d -m 700 ~/.ssh
+          printf '%s\n' "$BOOM_SSH_KEY" > ~/.ssh/timecode
+          chmod 600 ~/.ssh/timecode
+          ssh-keyscan -T 8 -H 217.149.24.242 > ~/.ssh/known_hosts
+          ssh -i ~/.ssh/timecode root@217.149.24.242 'python3 -' <<'PY'
+          import sqlite3,subprocess,re,time
+          with sqlite3.connect('file:/var/lib/timecode-bot/timecode.db?mode=ro',uri=True) as c:
+              print('JOB',c.execute("select attempts,next_at,status,reason from kimi_edition_jobs where day='2026-10-12' and period='pm'").fetchall())
+              print('CLOCK',int(time.time()))
+              print('OBSERVATIONS',c.execute("select count(*),sum(length(comment)>0) from photo_hunts where day='2026-10-12' and period='pm'").fetchall())
+              print('EDITION',c.execute("select length(body),length(captions) from kimi_editions where day='2026-10-12' and period='pm'").fetchall())
+          raw=subprocess.run(['journalctl','-u','timecode-bot.service','--since','2026-10-12 19:10 UTC','--no-pager'],capture_output=True,text=True).stdout
+          for p in (r'Kimi edition pending:.*',r'Kimi edition retry:.*',r'Scheduler: [A-Za-z0-9 _-]+',r'AI research: [A-Za-z0-9 _-]+'):
+              print('ERROR',p,re.findall(p,raw)[-15:])
+          PY
