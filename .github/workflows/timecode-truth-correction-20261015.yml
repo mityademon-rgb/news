@@ -1,0 +1,83 @@
+name: Correct disputed Oscars riddle and publish replacement
+on:
+  push:
+    branches: [boom-kadr-deploy]
+    paths: ['.github/workflows/timecode-truth-correction-20261015.yml']
+permissions:
+  contents: read
+concurrency:
+  group: timecode-truth-correction-20261015
+  cancel-in-progress: false
+jobs:
+  correction:
+    runs-on: ubuntu-latest
+    timeout-minutes: 8
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 2
+      - name: Validate documentation and Python
+        run: |
+          bash scripts/check-project-documentation.sh HEAD~1 HEAD
+          git diff --check HEAD~1 HEAD
+          python3 -m py_compile scripts/truth-correction-20261015/*.py
+      - name: Correct game and publish authorized replacement
+        env:
+          BOOM_SSH_KEY: ${{ secrets.BOOM_SSH_KEY }}
+        run: |
+          install -d -m 700 ~/.ssh
+          printf '%s\n' "$BOOM_SSH_KEY" > ~/.ssh/timecode
+          chmod 600 ~/.ssh/timecode
+          ssh-keyscan -T 8 -H 217.149.24.242 > ~/.ssh/known_hosts
+          ssh -i ~/.ssh/timecode root@217.149.24.242 'install -d -m 700 /tmp/truth-correction-20261015'
+          scp -i ~/.ssh/timecode scripts/truth-correction-20261015/*.py root@217.149.24.242:/tmp/truth-correction-20261015/
+          ssh -i ~/.ssh/timecode root@217.149.24.242 'bash -s' <<'REMOTE'
+          set -Eeuo pipefail
+          cd /opt/timecode-bot/timecode-bot
+          test -s PROJECT_AI_HANDBOOK.md
+          python3 - <<'PY'
+          from pathlib import Path
+          import subprocess
+          h=Path('PROJECT_AI_HANDBOOK.md').read_text()
+          assert 'truth_game' in h
+          print('PRODUCTION_HANDBOOK_READ',len(h))
+          print('BOT_HEAD',subprocess.check_output(['git','rev-parse','HEAD'],text=True).strip())
+          print('BOT_DIRTY_COUNT',len(subprocess.check_output(['git','status','--porcelain'],text=True).splitlines()))
+          import sys
+          sys.path.insert(0,'/tmp/truth-correction-20261015')
+          from patch_truth import patched
+          patched(Path('truth_game.py').read_text())
+          PY
+          set -a
+          . /etc/timecode-bot.env
+          set +a
+          backup=$(mktemp -d /opt/timecode-bot/truth-correction-backup-XXXXXXXX)
+          chmod 700 "$backup"
+          export TRUTH_BACKUP="$backup"
+          cp -p truth_game.py PROJECT_AI_HANDBOOK.md "$backup/"
+          systemctl stop timecode-bot.service
+          rollback() { cp -p "$backup/truth_game.py" .; systemctl start timecode-bot.service || true; }
+          trap rollback ERR
+          python3 - <<'PY'
+          import os,sqlite3
+          source=sqlite3.connect(os.environ['DATABASE'])
+          target=sqlite3.connect(os.environ['TRUTH_BACKUP']+'/before.sqlite')
+          source.backup(target);target.close();source.close()
+          os.chmod(os.environ['TRUTH_BACKUP']+'/before.sqlite',0o600)
+          PY
+          python3 /tmp/truth-correction-20261015/patch_truth.py
+          PYTHONPATH=/tmp/truth-correction-20261015 python3 /tmp/truth-correction-20261015/migrate.py
+          python3 -m py_compile truth_game.py
+          systemctl start timecode-bot.service
+          trap - ERR
+          printf '%s\n' "$backup" > /opt/timecode-bot/truth-correction-latest-backup-path
+          curl -fsS --retry 5 --retry-delay 2 --retry-connrefused --max-time 10 http://127.0.0.1:8097/health -o /dev/null
+          PYTHONPATH=.:/tmp/truth-correction-20261015 python3 /tmp/truth-correction-20261015/publish.py
+          python3 - <<'PY'
+          from pathlib import Path
+          p=Path('PROJECT_AI_HANDBOOK.md');h=p.read_text();marker='### 2026-10-15 — Исправление спорного вопроса об Академии'
+          if marker not in h:p.write_text(h+'\n'+marker+'\nПо прямому поручению владельца опубликованы опровержение и новый вопрос о голосе Чубакки (StarWars.com). Результаты спорного вопроса удалены только за 15 октября после полного SQLite backup. truth_daily содержит revision=r1; callbacks включают revision, старые кнопки отклоняются. У карточек и публичных результатов отдельные revision keys. Старые ожидающие отправки по спорной игре отменены. Backup указан в /opt/timecode-bot/truth-correction-latest-backup-path. Полный DB snapshot не восстанавливать поверх новой активности; для отката кода вернуть truth_game.py из backup. Отправленные сообщения откатом не удаляются.\n')
+          PY
+          systemctl is-active timecode-bot.service
+          curl -fsS --max-time 15 https://timecode-lab.ru/tc/health -o /dev/null
+          REMOTE
