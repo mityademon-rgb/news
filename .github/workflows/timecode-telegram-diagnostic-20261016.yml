@@ -1,4 +1,4 @@
-name: Diagnose Telegram bot without side effects 20261016
+name: Diagnose Telegram bot morning retry details 20261016
 on:
   push:
     branches: [boom-kadr-deploy]
@@ -25,12 +25,12 @@ jobs:
           printf '%s\n' "$BOOM_SSH_KEY" > ~/.ssh/timecode
           chmod 600 ~/.ssh/timecode
           ssh-keyscan -T 8 -H 217.149.24.242 > ~/.ssh/known_hosts
-          scp -i ~/.ssh/timecode scripts/telegram-diagnostic-20261016.py root@217.149.24.242:/tmp/telegram-diagnostic-20261016.py
+          scp -i ~/.ssh/timecode scripts/telegram-diagnostic-details-20261016.py root@217.149.24.242:/tmp/telegram-diagnostic-details-20261016.py
           ssh -i ~/.ssh/timecode root@217.149.24.242 'bash -s' <<'REMOTE'
           set -Eeuo pipefail
           cd /opt/timecode-bot/timecode-bot
           set -a
           . /etc/timecode-bot.env
           set +a
-          python3 /tmp/telegram-diagnostic-20261016.py
+          python3 /tmp/telegram-diagnostic-details-20261016.py
           REMOTE
