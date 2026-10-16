@@ -878,8 +878,9 @@
     state.homeTimer = null;
 
     const readyLessons = lessons.filter((lesson) => lesson.status === "ready");
-    const youthLessons = lessons.filter((lesson) => lesson.track !== "adult");
-    const adultLessons = lessons.filter((lesson) => lesson.track === "adult");
+    const lessonOrder = (a, b) => Number.parseInt(String(a.number).replace(/\D/g, ""), 10) - Number.parseInt(String(b.number).replace(/\D/g, ""), 10);
+    const youthLessons = lessons.filter((lesson) => lesson.track !== "adult").sort(lessonOrder);
+    const adultLessons = lessons.filter((lesson) => lesson.track === "adult").sort(lessonOrder);
     const latestLesson = readyLessons.at(-1) || lessons[0];
     const renderCards = (items) => items.map((lesson) => {
       const ready = lesson.status === "ready";
