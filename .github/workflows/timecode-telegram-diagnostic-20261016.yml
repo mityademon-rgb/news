@@ -1,0 +1,36 @@
+name: Diagnose Telegram bot without side effects 20261016
+on:
+  push:
+    branches: [boom-kadr-deploy]
+    paths: ['.github/workflows/timecode-telegram-diagnostic-20261016.yml']
+permissions:
+  contents: read
+jobs:
+  diagnostic:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 2
+      - name: Validate documentation
+        run: |
+          bash scripts/check-project-documentation.sh HEAD~1 HEAD
+          git diff --check HEAD~1 HEAD
+      - name: Read service logs and queues without consuming Telegram updates
+        env:
+          BOOM_SSH_KEY: ${{ secrets.BOOM_SSH_KEY }}
+        run: |
+          install -d -m 700 ~/.ssh
+          printf '%s\n' "$BOOM_SSH_KEY" > ~/.ssh/timecode
+          chmod 600 ~/.ssh/timecode
+          ssh-keyscan -T 8 -H 217.149.24.242 > ~/.ssh/known_hosts
+          scp -i ~/.ssh/timecode scripts/telegram-diagnostic-20261016.py root@217.149.24.242:/tmp/telegram-diagnostic-20261016.py
+          ssh -i ~/.ssh/timecode root@217.149.24.242 'bash -s' <<'REMOTE'
+          set -Eeuo pipefail
+          cd /opt/timecode-bot/timecode-bot
+          set -a
+          . /etc/timecode-bot.env
+          set +a
+          python3 /tmp/telegram-diagnostic-20261016.py
+          REMOTE

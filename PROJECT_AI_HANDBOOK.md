@@ -1074,3 +1074,6 @@ Deployment run 38253427099 / job 114825247970 завершён успешно; 2
 ### 2026-10-15 — Замена неоднозначной загадки
 
 По прямому поручению владельца подготовлен workflow timecode-truth-correction-20261015.yml: защищённый backup, адресный revision patch truth_game.py, замена truth_daily за 15 октября, аннулирование только прежних truth_results этого дня, отмена ожидающих уведомлений старой игры, опровержение и новая загадка через notification_outbox. Revision r1 отделяет кнопки, карточки и публичные результаты от отменённой загадки. Существующие callbacks без revision остаются совместимыми для обычных дней. Подтверждение доставки — только по live агрегатам обеих платформ. Backup pointer: /opt/timecode-bot/truth-correction-latest-backup-path. Полный snapshot нельзя восстанавливать поверх последующей активности. Секреты и индивидуальные результаты не выводятся.
+
+### 2026-10-16 — Диагностика Telegram
+Отдельный workflow timecode-telegram-diagnostic-20261016.yml выполняет только read-only проверки API (getMe/getWebhookInfo), service/health, journal категории и SQLite mode=ro агрегаты. Он не вызывает getUpdates, не меняет webhook, не импортирует server, не отправляет сообщений и не перезапускает службу. Вывод не содержит секретов и индивидуальных сообщений.
