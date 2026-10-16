@@ -1079,3 +1079,7 @@ Deployment run 38253427099 / job 114825247970 завершён успешно; 2
 Отдельный workflow timecode-telegram-diagnostic-20261016.yml выполняет только read-only проверки API (getMe/getWebhookInfo), service/health, journal категории и SQLite mode=ro агрегаты. Он не вызывает getUpdates, не меняет webhook, не импортирует server, не отправляет сообщений и не перезапускает службу. Вывод не содержит секретов и индивидуальных сообщений.
 
 Уточняющий скрипт telegram-diagnostic-details-20261016.py выводит только фиксированные reason-коды Kimi, время подготовки выпусков и код polling. Первый запуск уточнения остановился до доступа к production из-за отсутствия обновления handbook; документация дополнена, повтор не меняет production.
+
+### 2026-10-16 — Постоянный оператор бота
+
+Карта бота и операций сохранена в skills/timecode-bot-operator/{SKILL.md,references/*}. Для запросов о Кими и Telegram/MAX AGENTS требует её прочитать. Приватное приложение timecode-bot-operator содержит тот же навык без секретов и без нового MCP backend; используются существующие GitHub и разрешённые серверные возможности. Identity приложения сохранена в docs/ai/timecode-bot-operator-plugin.json для обновления вместо дублирования. Перед будущим обновлением получать текущий release через Plugin Creator; сохранённый ID release — исторический.

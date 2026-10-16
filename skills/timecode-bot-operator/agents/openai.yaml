@@ -1,0 +1,7 @@
+interface:
+  display_name: Оператор бота TIMECODE
+  short_description: Диагностика и управление Кими, Telegram и MAX
+  default_prompt: 'Используй $timecode-bot-operator: проверь бота TIMECODE и выполни
+    мою задачу по действующим инструкциям.'
+policy:
+  allow_implicit_invocation: true
