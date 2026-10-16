@@ -1711,7 +1711,9 @@
       </section>
       <div class="scene-toast" id="scene-toast" role="status" aria-live="polite"></div>`;
 
-    document.querySelector("#teacher-toggle").addEventListener("click", toggleTeacherMode);
+    const teacherToggle = document.querySelector("#teacher-toggle");
+    if (!hasTeacherAccess()) teacherToggle.hidden = true;
+    else teacherToggle.addEventListener("click", toggleTeacherMode);
     document.querySelector("#fullscreen-toggle").addEventListener("click", toggleFullscreen);
     document.querySelector("#prev-scene").addEventListener("click", () => changeScene(-1));
     document.querySelector("#next-scene").addEventListener("click", () => changeScene(1));
