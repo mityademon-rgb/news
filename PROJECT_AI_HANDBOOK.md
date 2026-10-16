@@ -1077,3 +1077,5 @@ Deployment run 38253427099 / job 114825247970 завершён успешно; 2
 
 ### 2026-10-16 — Диагностика Telegram
 Отдельный workflow timecode-telegram-diagnostic-20261016.yml выполняет только read-only проверки API (getMe/getWebhookInfo), service/health, journal категории и SQLite mode=ro агрегаты. Он не вызывает getUpdates, не меняет webhook, не импортирует server, не отправляет сообщений и не перезапускает службу. Вывод не содержит секретов и индивидуальных сообщений.
+
+Уточняющий скрипт telegram-diagnostic-details-20261016.py выводит только фиксированные reason-коды Kimi, время подготовки выпусков и код polling. Первый запуск уточнения остановился до доступа к production из-за отсутствия обновления handbook; документация дополнена, повтор не меняет production.

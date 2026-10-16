@@ -34,3 +34,5 @@ jobs:
           set +a
           python3 /tmp/telegram-diagnostic-details-20261016.py
           REMOTE
+
+# Read-only detail probe; handbook updated.
