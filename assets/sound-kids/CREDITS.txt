@@ -1,0 +1,62 @@
+TIMECODE — медиа двух уроков KIDS LAB, 17.10.2026
+
+НАСТОЯЩИЕ ЗАПИСИ
+1. door.ogg — hc: Open metallic door. Public domain (PDSounds).
+https://commons.wikimedia.org/wiki/File:Open_metallic_door.ogg
+2. rain.ogg — ezwa: Rain thunder steps. Public domain (PDSounds).
+https://commons.wikimedia.org/wiki/File:Rain_thunder_steps.ogg
+3. water.ogg — tamanders: Water sloshing in a small bottle. Public domain (PDSounds).
+https://commons.wikimedia.org/wiki/File:Water_sloshing_in_a_small_bottle.ogg
+4. clips.ogg — hugh: Paperclips dropped jangled. Public domain (PDSounds).
+https://commons.wikimedia.org/wiki/File:Paperclips_dropped_jangled.ogg
+5. page.ogg — planish / John Rose: Turning a page. Public domain (PDSounds).
+https://commons.wikimedia.org/wiki/File:Turning_a_page.ogg
+6. field-recording.mp4 — Free To Use Sounds, Sound Effect Recording, 2020.
+https://commons.wikimedia.org/wiki/File:Sound_Effect_Recording.webm
+CC BY-SA 4.0: https://creativecommons.org/licenses/by-sa/4.0/
+Преобразование WebM → MP4, уменьшение до 480 × 480 и сжатие, без изменения последовательности и содержания.
+Видео и его преобразованная версия распространяются по CC BY-SA 4.0.
+Это реальная запись скрипучего пирса; не студийный Foley и не историческое кино.
+
+ФОТОГРАФИИ
+radio-foley.webp — Yle Archives: A man is recording sound effects, 1930s 2.
+https://commons.wikimedia.org/wiki/File:A_man_is_recording_sound_effects,_1930s_2.jpg
+Public domain (Финляндия), no known copyright restrictions в архиве Yle.
+Уменьшено и преобразовано в WebP, композиция сохранена.
+welles.webp — Acme News Photos, Orson Welles War of the Worlds 1938, 31.10.1938.
+https://commons.wikimedia.org/wiki/File:Orson_Welles_War_of_the_Worlds_1938.jpg
+Wikimedia Commons: PD-US-no-notice; уменьшено и преобразовано в WebP.
+foley-room.webp — Vancouver Film School, crop Quenhitran, 2011.
+https://commons.wikimedia.org/wiki/File:Foley_Room_at_the_Sound_Design_Campus_(cropped).jpg
+CC BY 2.0: https://creativecommons.org/licenses/by/2.0/
+Уменьшено и преобразовано в WebP; композиция версии Commons сохранена.
+
+УЧЕБНЫЕ МОНТАЖИ И МОДЕЛИ
+radio-scene.mp3 — 40-секундный монтаж TIMECODE: дождь ezwa, дверь hc,
+страница planish и металл hugh. Нормализация, сдвиги во времени, обратная
+версия двери, затухание. Не архивный спектакль и не запись Орсона Уэллса.
+mystery-1…5.mp3 — фрагменты door/water/page/clips/rain; обрезка и нормализация.
+voice-clean.mp3 — синтезированный русский учебный голос, Google TTS:
+«Мы в медиацентре. Концерт начнётся через пять минут».
+Не запись настоящего человека на событии и не диктор конкретного СМИ.
+voice-clipped — намеренно обрезаны пики; voice-far — ослабление, отражения,
+синтетический шум; voice-rustle — добавлена страница planish;
+voice-place и voice-masked — тот же голос плюс дождь ezwa в разных пропорциях.
+Это иллюстрации проблем, не измерения характеристик конкретного микрофона.
+
+ОРИГИНАЛЬНЫЕ УЧЕБНЫЕ ВИЗУАЛЫ И МУЗЫКА
+neutral.mp4 — схематическая анимация TIMECODE, 15 секунд, без звука.
+thriller/comedy.mp3 — синтезированные музыкальные последовательности TIMECODE,
+не фонограммы из фильмов. thriller/comedy.mp4 — та же neutral.mp4 с ними.
+layers.svg, mic-map.svg, signal.svg — оригинальные учебные схемы TIMECODE.
+Оригинальные TIMECODE учебные схемы, анимация и синтезированная музыка:
+CC BY 4.0, https://creativecommons.org/licenses/by/4.0/ (кредит: TIMECODE).
+
+ФАКТОЛОГИЯ И МЕТОДИЧЕСКИЕ ОРИЕНТИРЫ
+Уэллс, 1938 и преувеличение масштабов паники:
+https://blogs.loc.gov/loc/2016/10/lcm-page-from-the-past-war-of-the-worlds/
+Микрофоны, размещение и среда:
+https://www.shure.com/en-US/docs/guide/CVL
+https://service.shure.com/articles/en_US/Knowledge/critical-distance-and-microphone-placement
+Учебные материалы о работе шумовиков:
+https://www.intofilm.org/resources/207 (справочный ресурс, не обязательная внешняя ссылка для проведения урока).

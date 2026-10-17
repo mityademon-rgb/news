@@ -7354,3 +7354,24 @@ body.camera-card-open { overflow: hidden; }
     -webkit-text-fill-color: transparent;
   }
 }
+
+/* KIDS sound lessons: contained media, readable explanations and native controls. */
+.sound-workbench { width:100%; min-width:0; display:grid; gap:14px; }
+.sound-picture { margin:0; border-radius:18px; overflow:hidden; background:#171422; }
+.sound-picture img { display:block; width:100%; max-height:390px; object-fit:contain; }
+.sound-credit { margin:0; padding:10px 14px; font-size:12px; color:#cec5df; }
+.sound-tracks { display:grid; gap:12px; }
+.sound-track { margin:0; padding:16px; border:1px solid #74618c; border-radius:16px; background:#211b2e; display:grid; gap:9px; }
+.sound-track figcaption { color:#f4ff37; font-size:18px; }
+.sound-track audio, .sound-track video { display:block; width:100%; min-width:0; }
+.sound-track video { max-height:320px; background:#100d17; border-radius:9px; }
+.sound-track small { color:#d2cadf; line-height:1.45; }
+.sound-workbench a { color:#71ede5; font-size:13px; }
+.sound-reveal, .sound-sources { border:1px solid #5b4b72; border-radius:12px; padding:12px 15px; font-size:14px; line-height:1.5; background:#211b2e; }
+.sound-reveal summary, .sound-sources summary { cursor:pointer; font-weight:700; }
+.sound-reveal p, .sound-sources p { font-size:14px; line-height:1.55; }
+.sound-error { color:#ffcb86; }
+.scene:has(.sound-workbench) { align-items:start; }
+.scene:has(.sound-workbench) .scene-visual { min-width:0; }
+@media(min-width:1000px) { .sound-tracks:has(video):has(.sound-track:nth-child(2)) { grid-template-columns:1fr 1fr; } }
+@media(max-width:760px) { .sound-picture img { max-height:300px; } .sound-track { padding:12px; } }

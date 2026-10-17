@@ -1725,6 +1725,7 @@
 
   function lessonKeydown(event) {
     if (!state.lesson || event.altKey || event.metaKey || event.ctrlKey) return;
+    if (event.target.closest("audio, video, input, textarea, select, summary, a, button")) return;
     if (event.key === "ArrowRight") changeScene(1);
     if (event.key === "ArrowLeft") changeScene(-1);
     if (event.key.toLowerCase() === "f") toggleFullscreen();
@@ -1815,6 +1816,7 @@
     clearSceneTimer();
     const scene = state.lesson.scenes[state.scene];
     const target = document.querySelector("#scene-content");
+    stopLessonMedia();
     target.innerHTML = sceneTemplate(scene);
     bindSceneActions(scene);
 
@@ -1830,8 +1832,42 @@
     window.scrollTo({ top: 0, behavior: "instant" });
   }
 
+  // Media is local, user-started and stopped on every scene/route change.
+  function stopLessonMedia() {
+    document.querySelectorAll("#scene-content audio, #scene-content video").forEach((media) => {
+      media.pause();
+      media.removeAttribute("src");
+      media.load();
+    });
+  }
+
+  function soundMediaMarkup(scene) {
+    const credits = scene.credit ? `<p class="sound-credit">${escapeHtml(scene.credit)}</p>` : "";
+    const picture = scene.image ? `<figure class="sound-picture"><img src="${escapeHtml(scene.image)}" alt="${escapeHtml(scene.imageAlt || scene.title)}" />${credits}</figure>` : "";
+    const tracks = (scene.media || []).map((item) => {
+      const tag = item.kind === "video" ? "video" : "audio";
+      return `<figure class="sound-track"><figcaption><strong>${escapeHtml(item.label)}</strong></figcaption><${tag} controls preload="metadata" ${tag === "video" ? 'playsinline' : ''} src="${escapeHtml(item.src)}" aria-label="${escapeHtml(item.label)}"></${tag}><small>${escapeHtml(item.note || "")}</small><a href="${escapeHtml(item.src)}" download>Скачать материал ↓</a><p class="sound-error" hidden>Не удалось открыть файл. Скачайте его по ссылке и откройте отдельно.</p></figure>`;
+    }).join("");
+    const reveal = scene.reveal ? `<details class="sound-reveal"><summary>Раскрыть звуковые улики</summary><p>${escapeHtml(scene.reveal)}</p></details>` : "";
+    const source = scene.source ? `<a class="sound-source" href="${escapeHtml(scene.source)}" target="_blank" rel="noopener noreferrer">Источник и сведения о материале ↗</a>` : "";
+    const registry = `<details class="sound-sources"><summary>Авторы и происхождение примеров</summary><p>Настоящие записи, обработанные учебные версии и оригинальная анимация перечислены раздельно.</p><a href="./assets/sound-kids/CREDITS.txt" target="_blank" rel="noopener noreferrer">Открыть реестр медиа и лицензий</a></details>`;
+    return `<div class="sound-workbench">${picture}<div class="sound-tracks">${tracks}</div>${reveal}${source}${registry}</div>`;
+  }
+
   function sceneTemplate(scene) {
+    let html = baseSceneTemplate(scene);
+    if (scene.type === "sound-media") {
+      return html.replace('</article>', `<div class="scene-visual">${soundMediaMarkup(scene)}</div></article>`);
+    }
+    if (scene.media?.length) {
+      html = html.replace('<div class="answer-panel">', `${soundMediaMarkup(scene)}<div class="answer-panel">`);
+    }
+    return html;
+  }
+
+  function baseSceneTemplate(scene) {
     const sceneLabels = {
+      "sound-media": "Смотрим и слушаем",
       cover: "Вход в тему",
       compare: "Смотрим и сравниваем",
       rule: "Разбираем приём",
@@ -2146,6 +2182,11 @@
   }
 
   function bindSceneActions(scene) {
+    const players = Array.from(document.querySelectorAll("#scene-content audio, #scene-content video"));
+    players.forEach((player) => {
+      player.addEventListener("play", () => players.forEach((other) => { if (other !== player) other.pause(); }));
+      player.addEventListener("error", () => { const message = player.closest(".sound-track")?.querySelector(".sound-error"); if (message) message.hidden = false; });
+    });
     document.querySelectorAll("[data-answer]").forEach((button) => {
       button.addEventListener("click", () => {
         const correct = button.dataset.answer === scene.answer;
@@ -2727,6 +2768,7 @@
   }
 
   function route() {
+    stopLessonMedia();
     document.removeEventListener("keydown", lessonKeydown);
     document.body.classList.remove("presentation-mode");
     state.lesson = null;
