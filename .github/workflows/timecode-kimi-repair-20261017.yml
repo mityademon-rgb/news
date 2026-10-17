@@ -1,0 +1,122 @@
+name: Repair Kimi evening editions and deliver missed October 16 story
+on:
+  push:
+    branches: [boom-kadr-deploy]
+    paths: ['.github/workflows/timecode-kimi-repair-20261017.yml']
+permissions:
+  contents: read
+concurrency:
+  group: timecode-kimi-repair-20261017
+  cancel-in-progress: false
+jobs:
+  repair:
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    steps:
+      - name: Checkout tested, addressed TIMECODE source
+        uses: actions/checkout@v4
+        with:
+          repository: mityademon-rgb/media-center-bot
+          ref: a943bfe96c64e2aaa8f86bf74b2aaa7a54da52c4
+          path: source
+      - name: Test Kimi edition code and shipping module
+        run: |
+          cd source/timecode-bot
+          python3 -m py_compile creative_digest.py notification_delivery.py
+          python3 -m unittest discover -s tests -p test_creative_digest.py
+      - name: Authenticate to existing TIMECODE deployment server
+        env:
+          BOOM_SSH_KEY: ${{ secrets.BOOM_SSH_KEY }}
+        run: |
+          set -Eeuo pipefail
+          install -d -m 700 ~/.ssh
+          printf '%s\n' "$BOOM_SSH_KEY" > ~/.ssh/timecode
+          chmod 600 ~/.ssh/timecode
+          ssh-keyscan -T 8 -H 217.149.24.242 > ~/.ssh/known_hosts
+      - name: Make verified, reversible module update
+        run: |
+          set -Eeuo pipefail
+          scp -i ~/.ssh/timecode -o BatchMode=yes source/timecode-bot/creative_digest.py root@217.149.24.242:/tmp/creative-digest-20261017.py
+          ssh -i ~/.ssh/timecode -o BatchMode=yes root@217.149.24.242 'bash -s' <<'REMOTE'
+          set -Eeuo pipefail
+          cd /opt/timecode-bot/timecode-bot
+          python3 - <<'PY'
+          from pathlib import Path
+          import hashlib,sqlite3
+          p=Path('creative_digest.py')
+          assert hashlib.sha256(p.read_bytes()).hexdigest()=='86a5688d2ac1783f5dc51d1b9eb56a4303eddddb38de4e96e8b94b4af55b7f52', 'Live module drift: refusing unsafe overwrite'
+          assert Path('/var/lib/timecode-bot/timecode.db').is_file()
+          with sqlite3.connect('file:/var/lib/timecode-bot/timecode.db?mode=ro',uri=True) as c:
+              assert c.execute("select status from kimi_edition_jobs where day='2026-10-16' and period='pm'").fetchone()[0]=='pending'
+              assert c.execute("select count(*) from kimi_editions where day='2026-10-16' and period='pm'").fetchone()[0]==0
+          print('PRE_FLIGHT_VERIFIED')
+          PY
+          backup=$(mktemp -d /opt/timecode-bot/kimi-repair-backup-20261017-XXXXXXXX)
+          cp -p creative_digest.py "$backup/"
+          rollback() { cp -p "$backup/creative_digest.py" creative_digest.py; systemctl restart timecode-bot.service || true; }
+          trap rollback ERR
+          install -m 0644 /tmp/creative-digest-20261017.py creative_digest.py
+          python3 -m py_compile creative_digest.py notification_delivery.py server.py
+          systemctl restart timecode-bot.service
+          curl -fsS --retry 8 --retry-delay 2 --retry-connrefused --max-time 10 http://127.0.0.1:8097/health -o /dev/null
+          curl -fsS --max-time 12 https://timecode-lab.ru/tc/health -o /dev/null
+          systemctl is-active --quiet timecode-bot.service
+          trap - ERR
+          printf '%s\n' "$backup" > /opt/timecode-bot/kimi-repair-latest-backup-path
+          echo 'CODE_UPDATED_BOTH_HEALTH_OK'
+          REMOTE
+      - name: Recover October 16 edition with yesterday-scoped content and idempotent outbox
+        run: |
+          set -Eeuo pipefail
+          ssh -i ~/.ssh/timecode -o BatchMode=yes root@217.149.24.242 'bash -s' <<'REMOTE'
+          set -Eeuo pipefail
+          cd /opt/timecode-bot/timecode-bot
+          set -a
+          . /etc/timecode-bot.env
+          set +a
+          python3 - <<'PY'
+          import datetime as dt,sqlite3,json
+          from pathlib import Path
+          import server,creative_digest,notification_delivery
+          day='2026-10-16'
+          with server.conn() as c:
+              status=c.execute('select status from kimi_edition_jobs where day=? and period=?',(day,'pm')).fetchone()
+              assert status and status['status'] in ('pending','done')
+              initial=c.execute("select count(*) from notification_outbox where day=? and body like '%20:30 / КАК ПРОШЁЛ ДЕНЬ%'",(day,)).fetchone()[0]
+              assert initial==0 or status['status']=='done', 'Refusing to repeat partly queued edition'
+          scope=dict(vars(server))
+          scope['today']=lambda:day
+          scope['now']=lambda:dt.datetime(2026,10,16,20,30,tzinfo=server.TZ)
+          scope['status_settle']=lambda:''
+          notification_delivery.install(scope)
+          creative_digest.install(scope)
+          scope['digest']('pm')
+          with server.conn() as c:
+              state=dict(c.execute('select attempts,status,reason from kimi_edition_jobs where day=? and period=?',(day,'pm')).fetchone())
+              published=c.execute('select count(*) from kimi_editions where day=? and period=?',(day,'pm')).fetchone()[0]
+              text_rows=c.execute("select chat,delivered from notification_outbox where day=? and body like '%20:30 / КАК ПРОШЁЛ ДЕНЬ%'",(day,)).fetchall()
+              photo_rows=c.execute("select chat,delivered from notification_photo_outbox where day=? and period in ('pm','pm-daily')",(day,)).fetchall()
+              def counts(rows):
+                  value={}
+                  for row in rows:
+                      uid=json.loads(row['chat'])
+                      platform='MAX' if isinstance(uid,int) and uid<0 else 'Telegram'
+                      key=(platform,row['delivered'])
+                      value[key]=value.get(key,0)+1
+                  return value
+              print('CATCHUP_JOB',state)
+              print('CATCHUP_EDITION_CREATED',published)
+              print('CATCHUP_TEXT',counts(text_rows))
+              print('CATCHUP_PHOTO',counts(photo_rows))
+              assert state['status']=='done' and published==1, 'Real October 16 edition is not finished'
+              assert len(text_rows)>0, 'No text deliveries were enqueued'
+              assert not any(row['delivered']==0 for row in text_rows), 'Unsent story in outbox'
+              assert not any(row['delivered']==0 for row in photo_rows), 'Unsent photos in outbox'
+              assert any(json.loads(row['chat'])>0 and row['delivered']==1 for row in text_rows), 'Telegram not confirmed'
+              assert any(json.loads(row['chat'])<0 and row['delivered']==1 for row in text_rows), 'MAX not confirmed'
+          print('OCTOBER16_DELIVERED_TELEGRAM_AND_MAX')
+          PY
+          REMOTE
+      - name: Final server health
+        run: |
+          ssh -i ~/.ssh/timecode root@217.149.24.242 'systemctl is-active --quiet timecode-bot.service && curl -fsS --max-time 10 http://127.0.0.1:8097/health'
