@@ -1,0 +1,94 @@
+name: Deliver already factchecked October 16 Kimi edition from cache
+on:
+  push:
+    branches: [boom-kadr-deploy]
+    paths: ['.github/workflows/timecode-kimi-cache-deliver-20261017.yml']
+permissions:
+  contents: read
+jobs:
+  deliver:
+    runs-on: ubuntu-latest
+    timeout-minutes: 12
+    steps:
+      - name: Configure existing authorized SSH key
+        env:
+          BOOM_SSH_KEY: ${{ secrets.BOOM_SSH_KEY }}
+        run: |
+          install -d -m 700 ~/.ssh
+          printf '%s\n' "$BOOM_SSH_KEY" > ~/.ssh/timecode
+          chmod 600 ~/.ssh/timecode
+          ssh-keyscan -T 8 -H 217.149.24.242 > ~/.ssh/known_hosts
+      - name: Safely queue cached edition and its checked captions
+        run: |
+          ssh -i ~/.ssh/timecode -o BatchMode=yes root@217.149.24.242 'bash -s' <<'REMOTE'
+          set -Eeuo pipefail
+          cd /opt/timecode-bot/timecode-bot
+          set -a
+          . /etc/timecode-bot.env
+          set +a
+          python3 - <<'PY'
+          import datetime as dt,json
+          import server,creative_digest as k,notification_delivery,shared_media
+          day='2026-10-16'
+          with server.conn() as c:
+              edition=c.execute('select body,captions from kimi_editions where day=? and period=?',(day,'pm')).fetchone()
+              assert edition and 100<=len(edition['body'])<=1050
+              captions=json.loads(edition['captions'])
+              assert isinstance(captions,dict)
+              rows=c.execute("select u.id user_id,u.name,e.mood,e.highlight,e.satisfied,e.photo from evening_checkins e join users u on u.id=e.user_id where e.day=? and e.step='done' and e.mood!=''",(day,)).fetchall()
+              daily=c.execute("select p.user_id,p.photo,p.photo_url,u.name from daily_photos p join users u on u.id=p.user_id where p.day=?",(day,)).fetchall()
+          scope=dict(vars(server))
+          scope['today']=lambda:day
+          scope['now']=lambda:dt.datetime(2026,10,16,20,30,tzinfo=server.TZ)
+          scope['status_settle']=lambda:''
+          pictures=[];seen=set()
+          for r in rows:
+              if not r['photo']:continue
+              key=k.photo_key(r['user_id'],r['photo'])
+              if key in seen:continue
+              pictures.append({'user_id':r['user_id'],'name':r['name'],'photo':r['photo'],'asset_period':'pm'})
+              seen.add(key)
+          for r in daily:
+              key=k.photo_key(r['user_id'],r['photo'])
+              if key in seen:continue
+              shared_media.remember(scope,r['photo'],r['photo_url'])
+              pictures.append({'user_id':r['user_id'],'name':r['name'],'photo':r['photo'],'asset_period':'pm-daily'})
+              seen.add(key)
+          assert seen==set(captions), 'Cached signed captions and actual participant photo IDs differ'
+          notification_delivery.install(scope)
+          k.install(scope)
+          story='🌙 <b>ВЕЧЕРНИЙ ТАБЛОИД ЗА 16 ОКТЯБРЯ</b>\n\n'+scope['esc'](edition['body'])
+          scope['broadcast_checkin_photos'](pictures,'pm',story)
+          with server.conn() as c:
+              c.execute("update kimi_edition_jobs set status='done',reason='' where day=? and period='pm' and status='pending'",(day,))
+              c.execute('insert or ignore into sent(slot,day) values(?,?)',('digest-pm',day))
+          print('CACHED_EDITION_QUEUED',len(pictures),flush=True)
+          PY
+          REMOTE
+      - name: Check transport acknowledgements for Telegram and MAX
+        run: |
+          ssh -i ~/.ssh/timecode -o BatchMode=yes root@217.149.24.242 'python3 -' <<'PY'
+          import sqlite3,json,subprocess
+          with sqlite3.connect('file:/var/lib/timecode-bot/timecode.db?mode=ro',uri=True) as c:
+              job=c.execute("select status from kimi_edition_jobs where day='2026-10-16' and period='pm'").fetchone()
+              rows=c.execute("select chat,delivered from notification_outbox where day='2026-10-16' and body like '%ВЕЧЕРНИЙ ТАБЛОИД ЗА 16 ОКТЯБРЯ%'").fetchall()
+              photos=c.execute("select chat,delivered from notification_photo_outbox where day='2026-10-16' and period in ('pm','pm-daily')").fetchall()
+              def tally(v):
+                  result={}
+                  for chat,status in v:
+                      uid=json.loads(chat)
+                      key=('MAX' if uid<0 else 'Telegram',status)
+                      result[key]=result.get(key,0)+1
+                  return sorted((p,st,n) for (p,st),n in result.items())
+              print('CACHED_JOB',job)
+              print('TEXT',tally(rows))
+              print('PHOTOS',tally(photos))
+              assert job and job[0]=='done'
+              assert rows and photos
+              assert not any(status==0 for _,status in rows+photos)
+              assert any(json.loads(chat)>0 and d==1 for chat,d in rows)
+              assert any(json.loads(chat)<0 and d==1 for chat,d in rows)
+          assert subprocess.run(['systemctl','is-active','--quiet','timecode-bot.service']).returncode==0
+          assert subprocess.run(['curl','-fsS','--max-time','8','http://127.0.0.1:8097/health'],capture_output=True).returncode==0
+          print('TIMECODE_KIMI_BOTH_MESSENGERS_VERIFIED')
+          PY
