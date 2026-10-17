@@ -7375,3 +7375,5 @@ body.camera-card-open { overflow: hidden; }
 .scene:has(.sound-workbench) .scene-visual { min-width:0; }
 @media(min-width:1000px) { .sound-tracks:has(video):has(.sound-track:nth-child(2)) { grid-template-columns:1fr 1fr; } }
 @media(max-width:760px) { .sound-picture img { max-height:300px; } .sound-track { padding:12px; } }
+
+@media(min-width:1000px) { .sound-tracks:has(.sound-track:nth-child(4)) { grid-template-columns:repeat(2,minmax(0,1fr)); } }

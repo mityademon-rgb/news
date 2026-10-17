@@ -1,0 +1,90 @@
+TIMECODE / MEDIA LAB A07–A08 / 17.10.2026
+
+НАСТОЯЩИЕ ВИДЕО И ИХ КАДРЫ
+The CADARN Learning Portal, Recording Sound on Location (2016), presenter Lizi Hesling.
+https://www.youtube.com/watch?v=TKBzjSSaKXU
+https://commons.wikimedia.org/wiki/File:Recording_Sound_on_Location.webm
+CC BY 3.0: https://creativecommons.org/licenses/by/3.0/
+location-distance.mp4 — исходник 10:00–10:30;
+location-handheld.mp4 — 24:00–24:30;
+location-boom.mp4 — 26:00–26:30;
+location-recorder.mp4 — 30:00–30:30.
+Изменения: выбраны фрагменты, уменьшено до 640 px, перекодировано в MP4/H.264/AAC.
+Последовательность внутри каждого фрагмента и оригинальная английская речь сохранены.
+Одноимённые WebP — кадр на пятой секунде соответствующего фрагмента, уменьшение.
+Фрагменты используются для наблюдения за положением источников, техникой и контролем.
+Их авторы не участвовали в создании и не одобряли уроки TIMECODE.
+
+mars.mp4 — SuperCam's Microphone Records a Martian Dust Devil, запись 27.09.2021.
+NASA/JPL-Caltech/LANL/CNES/CNRS/INTA-CSIC/Space Science Institute/ISAE-Supaero.
+https://commons.wikimedia.org/wiki/File:SuperCams_Microphone_Records_a_Martian_Dust_Devil.webm
+https://mars.nasa.gov/system/downloadable_items/47818_PIA25657-SuperCams_Microphone_Records_a_Martian_Dust_Devil.mp4
+Commons: PD-NASA. Изменения: уменьшение до 960 px, WebM → MP4, без добавления музыки.
+Сохранены исходные визуальные ряды и звуковая дорожка. Не заявляется участие или одобрение NASA.
+
+ФОТОГРАФИИ
+radio1923.webp — Radio play at WGY 1923, неизвестный автор, 1923.
+https://commons.wikimedia.org/wiki/File:Radio_play_at_WGY_1923.jpg
+Public domain (PD-US-expired), уменьшено и преобразовано в WebP.
+door-recording.webp — Subhashish Panigrahi, Recording a door jam Foley sound, 2017.
+https://commons.wikimedia.org/wiki/File:Recording_a_door_jam_Foley_sound.jpg
+CC BY-SA 4.0: https://creativecommons.org/licenses/by-sa/4.0/
+Уменьшение и WebP; преобразованная фотография распространяется на той же лицензии.
+Не является фотографией Бена Бёртта или его оборудования.
+Повторно использованные фото, полевая запись и нейтральная анимация KIDS:
+см. https://timecode-lab.ru/assets/sound-kids/CREDITS.txt
+
+РЕЧЬ И УЧЕБНЫЕ ОБРАБОТКИ
+Русский учебный синтез речи Google TTS, не запись интервью или настоящего эфира:
+line.mp3: «Я оставил ключ на столе. Дверь не заперта».
+report.mp3: «Мы в медиацентре. До концерта пять минут. За дверью уже слышна репетиция».
+interview-full.mp3: «На репетиции я ошибся. Но на выступлении собрался и сыграл без ошибки».
+interview-cut.mp3 — первая фраза того же файла, обрезка на 2.1 с.
+bulletin.mp3: «Учебная постановка. Мы прерываем программу. Из коридора поступил необычный сигнал».
+report-place/report-masked — речь + дождь ezwa в разных пропорциях;
+report-clipped — намеренное обрезание пиков; report-double — сумма с копией,
+задержанной примерно на 1.3 мс; report-dropout — удалён короткий участок;
+report-rustle — добавлена страница planish.
+edit-hole/edit-bridge — намеренно удалён участок речи; цифровой провал против
+непрерывного синтетического учебного фона. Не реальный room tone помещения.
+Это иллюстрации механизмов, не калиброванные измерения микрофонов.
+
+ПРЕДМЕТНЫЕ ЗАПИСИ И ИХ ПРЕОБРАЗОВАНИЯ
+hugh — Paperclips dropped jangled, public domain (PDSounds).
+https://commons.wikimedia.org/wiki/File:Paperclips_dropped_jangled.ogg
+metal-original — фрагмент с нормализацией; metal-slow — скорость и высота уменьшены.
+planish / John Rose — Turning a page, public domain (PDSounds).
+https://commons.wikimedia.org/wiki/File:Turning_a_page.ogg
+paper-reverse — обратное воспроизведение.
+hc — Open metallic door; ezwa — Rain thunder steps; оба public domain (PDSounds).
+https://commons.wikimedia.org/wiki/File:Open_metallic_door.ogg
+https://commons.wikimedia.org/wiki/File:Rain_thunder_steps.ogg
+
+ОРИГИНАЛЬНЫЕ УЧЕБНЫЕ СБОРКИ
+stem-voice — синтезированная реплика; stem-foley — синтетические шаги + металл hugh
+и дверь hc; stem-atmosphere — дождь ezwa; stem-music — синтезированная тема TIMECODE.
+voice/actions/place/mix.mp4 — одна 15-секундная анимация из KIDS, последовательное
+добавление голоса, действий, среды и музыки. comic.mp4 — альтернативная музыкальная версия.
+Это не отрывки фильмов; речь закадровая, артикуляция персонажа не демонстрируется.
+cut/j-cut/l-cut.mp4 — оригинальная двухкадровая схема TIMECODE: картинка меняется
+на 5.0 с; в J-cut дождь начинается на 3.0 с; в L-cut голос кадра А продолжается в кадре Б.
+design-hum/design-layered — синтетические тоны TIMECODE для объяснения слоя;
+это не звук Star Wars и не подлинная запись аппаратуры Бёртта.
+Оригинальные схемы, анимация и музыка TIMECODE — CC BY 4.0:
+https://creativecommons.org/licenses/by/4.0/ (кредит TIMECODE).
+
+ИСТОЧНИКИ ИСТОРИЙ И МЕТОДИЧЕСКИЕ ОРИЕНТИРЫ
+Радиотеатр — архивная подпись WGY, ссылка выше.
+Уэллс и преувеличение масштабов паники:
+https://blogs.loc.gov/loc/2016/10/lcm-page-from-the-past-war-of-the-worlds/
+Кокосы и шумовики — ABC:
+https://www.abc.net.au/listen/programs/sundayextra/the-art-of-foley-and-sound-effects-secrets/6553378
+Бёртт — сохранённые ответы самого автора, оригинальный Q&A StarWars.com:
+https://www.filmsound.org/starwars/starwars-AQ.htm
+Дополнительное официальное интервью:
+https://www.starwars.com/video/ben-burtt-interview-the-sound-of-lightsabers
+Моррисон: время события, записи и первого радиоэфира — National Archives:
+https://www.archives.gov/exhibits/eyewitness/html.php?section=5
+Микрофоны и дистанция:
+https://service.shure.com/articles/en_US/Knowledge/critical-distance-and-microphone-placement
+https://www.shure.com/en-US/docs/guide/CVL

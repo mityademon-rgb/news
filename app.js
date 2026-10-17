@@ -1850,7 +1850,7 @@
     }).join("");
     const reveal = scene.reveal ? `<details class="sound-reveal"><summary>Раскрыть звуковые улики</summary><p>${escapeHtml(scene.reveal)}</p></details>` : "";
     const source = scene.source ? `<a class="sound-source" href="${escapeHtml(scene.source)}" target="_blank" rel="noopener noreferrer">Источник и сведения о материале ↗</a>` : "";
-    const registry = `<details class="sound-sources"><summary>Авторы и происхождение примеров</summary><p>Настоящие записи, обработанные учебные версии и оригинальная анимация перечислены раздельно.</p><a href="./assets/sound-kids/CREDITS.txt" target="_blank" rel="noopener noreferrer">Открыть реестр медиа и лицензий</a></details>`;
+    const registry = `<details class="sound-sources"><summary>Авторы и происхождение примеров</summary><p>Настоящие записи, обработанные учебные версии и оригинальная анимация перечислены раздельно.</p><a href="${escapeHtml(scene.mediaCredits || "./assets/sound-kids/CREDITS.txt")}" target="_blank" rel="noopener noreferrer">Открыть реестр медиа и лицензий</a></details>`;
     return `<div class="sound-workbench">${picture}<div class="sound-tracks">${tracks}</div>${reveal}${source}${registry}</div>`;
   }
 
