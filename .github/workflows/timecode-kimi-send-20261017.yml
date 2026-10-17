@@ -1,0 +1,76 @@
+name: Publish recovered Kimi October 16 tabloid safely
+on:
+  push:
+    branches: [boom-kadr-deploy]
+    paths: ['.github/workflows/timecode-kimi-send-20261017.yml']
+permissions:
+  contents: read
+jobs:
+  publish:
+    runs-on: ubuntu-latest
+    timeout-minutes: 12
+    steps:
+      - name: Connect to TIMECODE production using established credential
+        env:
+          BOOM_SSH_KEY: ${{ secrets.BOOM_SSH_KEY }}
+        run: |
+          install -d -m 700 ~/.ssh
+          printf '%s\n' "$BOOM_SSH_KEY" > ~/.ssh/timecode
+          chmod 600 ~/.ssh/timecode
+          ssh-keyscan -T 8 -H 217.149.24.242 > ~/.ssh/known_hosts
+      - name: Deliver prepared historical edition exactly once per destination
+        run: |
+          ssh -i ~/.ssh/timecode -o BatchMode=yes root@217.149.24.242 'bash -s' <<'REMOTE'
+          set -Eeuo pipefail
+          cd /opt/timecode-bot/timecode-bot
+          set -a
+          . /etc/timecode-bot.env
+          set +a
+          python3 - <<'PY'
+          import datetime as dt,sqlite3,json
+          import server,creative_digest,notification_delivery
+          day='2026-10-16'
+          with server.conn() as c:
+              edition=c.execute('select length(body) from kimi_editions where day=? and period=?',(day,'pm')).fetchone()
+              assert edition and edition[0]>=100, 'Missing validated Kimi edition, no send'
+              job=c.execute('select status from kimi_edition_jobs where day=? and period=?',(day,'pm')).fetchone()
+              assert job and job['status'] in ('pending','done')
+              print('VALIDATED_CACHED_EDITION',edition[0],flush=True)
+          scope=dict(vars(server))
+          scope['today']=lambda:day
+          scope['now']=lambda:dt.datetime(2026,10,16,20,30,tzinfo=server.TZ)
+          scope['status_settle']=lambda:''
+          notification_delivery.install(scope)
+          creative_digest.install(scope)
+          scope['digest']('pm')
+          scope['retry_notifications']()
+          PY
+          REMOTE
+      - name: Confirm both messengers and deduplicated queues
+        run: |
+          ssh -i ~/.ssh/timecode -o BatchMode=yes root@217.149.24.242 'python3 -' <<'PY'
+          import sqlite3,json,subprocess
+          uri='file:/var/lib/timecode-bot/timecode.db?mode=ro'
+          with sqlite3.connect(uri,uri=True) as c:
+              job=c.execute("select status,attempts,reason from kimi_edition_jobs where day='2026-10-16' and period='pm'").fetchone()
+              text_rows=c.execute("select chat,delivered from notification_outbox where day='2026-10-16' and body like '%20:30 / КАК ПРОШЁЛ ДЕНЬ%'").fetchall()
+              photo_rows=c.execute("select chat,delivered from notification_photo_outbox where day='2026-10-16' and period in ('pm','pm-daily')").fetchall()
+              def summary(rows):
+                  counts={}
+                  for chat,status in rows:
+                      uid=json.loads(chat)
+                      p='MAX' if uid<0 else 'Telegram'
+                      counts[(p,status)]=counts.get((p,status),0)+1
+                  return sorted((p,st,n) for (p,st),n in counts.items())
+              print('EVENING_JOB',job)
+              print('TEXT_DELIVERY',summary(text_rows))
+              print('PHOTO_DELIVERY',summary(photo_rows))
+              assert job and job[0]=='done', 'Job did not complete'
+              assert text_rows and all(d!=0 for _,d in text_rows), 'Text pending'
+              assert photo_rows and all(d!=0 for _,d in photo_rows), 'Photos pending'
+              assert any(json.loads(chat)>0 and d==1 for chat,d in text_rows), 'No Telegram ack'
+              assert any(json.loads(chat)<0 and d==1 for chat,d in text_rows), 'No MAX ack'
+          assert subprocess.run(['systemctl','is-active','--quiet','timecode-bot.service']).returncode==0
+          assert subprocess.run(['curl','-fsS','--max-time','8','http://127.0.0.1:8097/health'],capture_output=True).returncode==0
+          print('BOTH_PLATFORMS_CONFIRMED_AND_SERVICE_HEALTHY')
+          PY
