@@ -1,0 +1,81 @@
+name: Diagnose Kimi October 16 editorial acceptance safely
+on:
+  push:
+    branches: [boom-kadr-deploy]
+    paths: ['.github/workflows/timecode-kimi-diagnostic-20261017.yml']
+permissions:
+  contents: read
+jobs:
+  diagnose:
+    runs-on: ubuntu-latest
+    timeout-minutes: 14
+    steps:
+      - name: Establish authorised connection
+        env:
+          BOOM_SSH_KEY: ${{ secrets.BOOM_SSH_KEY }}
+        run: |
+          install -d -m 700 ~/.ssh
+          printf '%s\n' "$BOOM_SSH_KEY" > ~/.ssh/timecode
+          chmod 600 ~/.ssh/timecode
+          ssh-keyscan -T 8 -H 217.149.24.242 > ~/.ssh/known_hosts
+      - name: Probe real editorial data, printing structural metrics only
+        run: |
+          ssh -i ~/.ssh/timecode -o BatchMode=yes root@217.149.24.242 'bash -s' <<'REMOTE'
+          set -Eeuo pipefail
+          cd /opt/timecode-bot/timecode-bot
+          set -a
+          . /etc/timecode-bot.env
+          set +a
+          python3 - <<'PY'
+          import datetime as dt,json,re
+          import server,creative_digest as k
+          scope=dict(vars(server))
+          scope['today']=lambda:'2026-10-16'
+          scope['now']=lambda:dt.datetime(2026,10,16,20,30,tzinfo=server.TZ)
+          count={'draft':0,'review':0}
+          def diagnostic(system,value,budget):
+              try:
+                  result=k.provider_json(scope,system,value,budget)
+              except k.EditorialPending as error:
+                  print('PROVIDER_STAGE_ERROR',str(error),flush=True)
+                  raise
+              if 'text' in result:
+                  count['draft']+=1
+                  draft=result
+                  try:
+                      obj=json.loads(value)
+                      frames=obj.get('frames') or obj.get('facts',{}).get('frames',[])
+                  except (ValueError,AttributeError):frames=[]
+                  captions=draft.get('captions')
+                  body=draft.get('text')
+                  print('DRAFT_SHAPE',{
+                    'seq':count['draft'],'body_type':type(body).__name__,
+                    'body_length':len(body) if isinstance(body,str) else -1,
+                    'captions_type':type(captions).__name__,
+                    'captions_count':len(captions) if isinstance(captions,list) else -1,
+                    'frames_in_request':len(frames),
+                    'banned':bool(k.BANNED.search(body)) if isinstance(body,str) else None,
+                    'structurally_valid':k.valid(draft,frames),
+                    'caption_lengths':[len(c.get('text','')) for c in captions if isinstance(c,dict)] if isinstance(captions,list) else []
+                  },flush=True)
+              elif 'ok' in result:
+                  count['review']+=1
+                  message=str(result.get('reason','')).lower()
+                  print('EDITOR_DECISION',{
+                     'seq':count['review'],'ok':result.get('ok'),
+                     'reason_categories':[w for w in ('факт','выдум','кален','имен','юмор','геро','образ','реаль','повтор','подпис','истор','провер') if w in message],
+                     'reason_length':len(message)
+                  },flush=True)
+              else:print('UNKNOWN_RESPONSE_KEYS',sorted(result.keys()),flush=True)
+              return result
+          scope['edition_ai_json']=diagnostic
+          with server.conn() as c:
+              rows=c.execute("select u.id user_id,u.name,e.mood,e.highlight,e.satisfied,e.photo from evening_checkins e join users u on u.id=e.user_id where e.day=? and e.step='done' and e.mood!=''",('2026-10-16',)).fetchall()
+          print('REQUIRED_EVENING_PARTICIPANTS',len(rows),flush=True)
+          try:
+              body=k.render(scope,rows,False)
+              print('EDITORIAL_PREPARED',len(body),flush=True)
+          except k.EditorialPending as error:
+              print('EDITORIAL_STILL_PENDING',str(error),flush=True)
+          PY
+          REMOTE
