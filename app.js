@@ -1545,7 +1545,7 @@
       return;
     }
 
-    const available = lessons
+    const available = [...lessons, ...aiCourse.map(l => ({...l, status:"ready", track:"ai"}))]
       .filter((lesson) => lesson.status === "ready" && teacherGuides[lesson.id])
       .map((lesson) => ({ lesson, guide: teacherGuides[lesson.id] }));
     const selected = guideId ? available.find((item) => item.lesson.id === guideId) : null;
@@ -1599,7 +1599,7 @@
           </section>
 
           <section class="teacher-control-grid">
-            <article><p>Проверка результата</p><h2>Ребята поняли, если…</h2><ul>${checkpoints}</ul></article>
+            <article><p>Проверка результата</p><h2>Участники поняли, если…</h2><ul>${checkpoints}</ul></article>
             <article class="teacher-avoid"><p>Не делать</p><h2>Что разрушит занятие</h2><ul>${avoid}</ul></article>
           </section>
         </section>`;
@@ -1637,7 +1637,7 @@
     document.querySelector("[data-start-lesson]")?.addEventListener("click", (event) => {
       const lessonId = event.currentTarget.dataset.startLesson;
       localStorage.setItem(`timecode:${lessonId}:scene`, "0");
-      location.hash = `#/lesson/${encodeURIComponent(lessonId)}`;
+      location.hash = lessonId.startsWith("ai-") ? aiLink(Number(lessonId.slice(3))) : `#/lesson/${encodeURIComponent(lessonId)}`;
     });
     document.querySelector("[data-print-guide]")?.addEventListener("click", () => window.print());
     window.scrollTo({ top: 0, behavior: "instant" });
@@ -2767,8 +2767,92 @@
     );
   }
 
+  // Dedicated mobile-first AI course. The existing KIDS/MEDIA renderer stays unchanged.
+  const aiCourse = window.TIMECODE_AI_COURSE || [];
+  const aiTools = window.TIMECODE_AI_TOOLS || [];
+  const aiDefaults = {direction:"Декоративно-прикладное творчество",age:"10–12 лет",level:"начинающие",size:"10",duration:"60",materials:"бумага, карандаши, столы",goal:"создать и представить собственную работу"};
+  function aiProfile() {
+    try { return {...aiDefaults, ...JSON.parse(localStorage.getItem("timecode:ai-profile") || "{}")}; }
+    catch { return {...aiDefaults}; }
+  }
+  function aiProfileText(p) {
+    return `направление — ${p.direction}; возраст — ${p.age}; уровень — ${p.level}; группа — ${p.size} человек; встреча — ${p.duration} минут; ресурсы — ${p.materials}; цель — ${p.goal}`;
+  }
+  function aiPrompt(text) {
+    const p=aiProfile();
+    return text.replaceAll("{profile}",aiProfileText(p)).replaceAll("{duration}",p.duration).replaceAll("{age}",p.age);
+  }
+  function aiLink(n, s=0) { return `#/ai/${n}/${s}`; }
+  function aiToolsHTML(short=false) {
+    return `<div class="ai-tools">${aiTools.slice(0,short?4:aiTools.length).map((t,i)=>`<article class="ai-tool"><span class="ai-tool-icon" aria-hidden="true">${["Г","D","Q","K","γ","N","↗","ДК"][i]}</span><div><small>${escapeHtml(t.tag)}</small><h3>${escapeHtml(t.name)}</h3><p>${escapeHtml(t.text)}</p><a href="${escapeHtml(t.url)}" target="_blank" rel="noopener noreferrer">Открыть официальный сервис ↗</a><a class="ai-source" href="${escapeHtml(t.source)}" target="_blank" rel="noopener noreferrer">Источник условий ↗</a></div></article>`).join("")}</div>`;
+  }
+  function aiProfileForm() {
+    const p=aiProfile();
+    const f=(key,label,type="text")=>`<label>${label}<input name="${key}" type="${type}" ${type==="number"?'min="1" max="600"':''} maxlength="240" value="${escapeHtml(p[key])}" required></label>`;
+    return `<form id="ai-profile" class="ai-form"><label>Направление<select name="direction">${["Декоративно-прикладное творчество","Хореография","Вокал","Театр","ИЗО","Робототехника","Медиа и журналистика","Другое направление"].map(x=>`<option${p.direction===x?' selected':''}>${x}</option>`).join("")}</select></label>${f("age","Возраст участников")}${f("level","Уровень группы")}${f("size","Количество человек","number")}${f("duration","Минут в одной встрече","number")}${f("materials","Доступные материалы и помещение")}${f("goal","Какой результат хотим получить")}<button class="ai-btn" type="submit">Сохранить паспорт на этом устройстве →</button><p class="ai-small">Без фамилий и контактов. Настройки сохраняются только в этом браузере. На другом устройстве заполните заново или возьмите паспорт из скачанного комплекта.</p><button type="button" class="ai-quiet" data-ai-reset>Сбросить паспорт</button></form><p id="ai-form-status" role="status"></p>`;
+  }
+  function aiJournalForm() {
+    return `<form id="ai-journal" class="ai-form"><label>Дата учебного занятия<input name="date" type="date" required></label><label>Фактическая длительность, минут<input name="minutes" type="number" min="1" max="600" value="60" required></label><label>Тема<input name="topic" maxlength="180" placeholder="Закрепление ритмического рисунка" required></label><label class="ai-wide">Факты: что делали, что наблюдали, что перенесли<textarea name="facts" rows="4" maxlength="1600" placeholder="Работали в парах; повторили два рисунка; третий оставили на следующую встречу." required></textarea></label><button class="ai-btn" type="submit">Собрать учебную заготовку →</button></form><p class="ai-small">Обычный конструктор текста, не нейросеть. Данные никуда не отправляются и не сохраняются. Отменённое занятие не оформляйте этой формой как проведённое.</p><textarea id="ai-journal-result" rows="7" readonly aria-label="Учебная заготовка записи" placeholder="Здесь появится текст для вашей проверки"></textarea><button class="ai-btn secondary" data-ai-copy-journal>Скопировать заготовку</button><p id="ai-form-status" role="status"></p>`;
+  }
+  function aiDownload(n) {
+    const selected = n ? aiCourse.filter(l=>l.id===`ai-${String(n).padStart(2,"0")}`) : aiCourse;
+    const content=["TIMECODE · От плана до журнала", "Учебный комплект. Проверяйте факты, часы и требования учреждения.\n", "Паспорт: "+aiProfileText(aiProfile()),...selected.flatMap(l=>["\nУРОК "+l.number+" · "+l.title,l.result,...l.cards.map((c,i)=>`\n${i+1}. ${c.title}\n${c.text}\n${c.steps.join("\n")}\n${aiPrompt(c.prompt)}`)]),"\nОфициальные сервисы и условия (проверка 19.10.2026):",...aiTools.map(t=>`${t.name}: ${t.url}\n${t.text}\n${t.source}`)].join("\n");
+    const url=URL.createObjectURL(new Blob([content],{type:"text/plain;charset=utf-8"}));
+    const a=document.createElement("a");a.href=url;a.download=`TIMECODE-AI-${n||"all"}.txt`;document.body.append(a);a.click();a.remove();setTimeout(()=>URL.revokeObjectURL(url),10000);
+  }
+  async function aiCopy(value,button) {
+    try { await navigator.clipboard.writeText(value);button.textContent="Скопировано ✓"; }
+    catch { button.textContent="Выделите текст и скопируйте вручную"; }
+  }
+  function aiBind(n) {
+    document.querySelectorAll("[data-ai-download]").forEach(b=>b.addEventListener("click",()=>aiDownload(Number(b.dataset.aiDownload)||null)));
+    document.querySelector("[data-ai-copy]")?.addEventListener("click",e=>aiCopy(document.querySelector("#ai-prompt").value,e.currentTarget));
+    document.querySelector("#ai-profile")?.addEventListener("submit",e=>{
+      e.preventDefault();const p=Object.fromEntries(new FormData(e.currentTarget));
+      try {localStorage.setItem("timecode:ai-profile",JSON.stringify(p));document.querySelector("#ai-form-status").textContent="Паспорт сохранён. Следующие запросы используют ваши условия.";}
+      catch {document.querySelector("#ai-form-status").textContent="Браузер не разрешил сохранить настройки. Используйте паспорт в тексте запроса вручную.";}
+    });
+    document.querySelector("[data-ai-reset]")?.addEventListener("click",()=>{localStorage.removeItem("timecode:ai-profile");renderAICourse(n,5);});
+    document.querySelectorAll("[data-ai-answer]").forEach(b=>b.addEventListener("click",()=>{
+      const c=aiCourse[n-1].cards[Number(b.dataset.aiCard)],correct=Number(b.dataset.aiAnswer)===c.quiz.correct;
+      const result=document.querySelector("#ai-feedback");result.hidden=false;result.className="ai-feedback "+(correct?"correct":"retry");result.textContent=(correct?"Точно. ":"Попробуйте иначе. ")+c.quiz.explain;
+      document.querySelectorAll("[data-ai-answer]").forEach(x=>x.setAttribute("aria-pressed",String(x===b)));
+    }));
+    document.querySelector("#ai-journal")?.addEventListener("submit",e=>{
+      e.preventDefault();const d=Object.fromEntries(new FormData(e.currentTarget));
+      document.querySelector("#ai-journal-result").value=`УЧЕБНЫЙ ЧЕРНОВИК — проверьте перед переносом\nДата: ${d.date}\nДлительность: ${d.minutes} минут\nТема: ${d.topic}\nФактическая работа и наблюдения: ${d.facts}\nПосещаемость: отмечается отдельно по фактическому учёту.\nНазвания полей и единицу часов сверить в журнале учреждения.`;
+      document.querySelector("#ai-form-status").textContent="Заготовка собрана из введённых вами фактов. Проверьте каждое утверждение.";
+    });
+    document.querySelector("[data-ai-copy-journal]")?.addEventListener("click",e=>aiCopy(document.querySelector("#ai-journal-result").value,e.currentTarget));
+    document.querySelector("#ai-cost")?.addEventListener("input",()=>{
+      const f=document.querySelector("#ai-cost"),h=Number(f.elements.hours.value),v=Number(f.elements.value.value),p=Number(f.elements.price.value);
+      document.querySelector("#ai-cost-result").textContent=`Условная стоимость сэкономленного времени: ${Math.round(h*v).toLocaleString("ru-RU")} ₽/мес. Разница с ценой подписки: ${Math.round(h*v-p).toLocaleString("ru-RU")} ₽. Это ваша оценка времени, не обещание дохода или экономии.`;
+    });
+  }
+  function renderAICourse(n=0,s=0) {
+    clearSceneTimer();clearInterval(state.homeTimer);state.homeTimer=null;
+    document.body.classList.remove("home-active","lesson-active","teacher-mode","presentation-mode","teacher-portal-active","play-active","cinema-active","topic-active");document.body.classList.add("ai-active");
+    const l=aiCourse[n-1];
+    if(!l){
+      main.innerHTML=`<div class="ai-shell"><section class="ai-hero"><div><p class="ai-eyebrow">TIMECODE · ПРАКТИКУМ ДЛЯ ПРЕПОДАВАТЕЛЕЙ ДК</p><h1>От плана<br>до журнала<span>С нейросетью.</span></h1><p>Четыре занятия с нуля. Мало теории, много вашей работы. На встрече — телефон. После — готовые материалы на компьютере.</p><a class="ai-btn" href="${aiLink(1)}">Начать с первого запроса ↗</a><div class="ai-stamps"><span>4 × 90 минут</span><span>Без обязательной подписки</span><span>Под любой кружок</span></div></div><figure><img src="./assets/ai-course/desk.webp" alt="Иллюстрация: телефон с диалогом, планер и предметы творческих кружков" width="1200" height="800"><figcaption>Ваш рабочий стол. Теперь с помощником.</figcaption></figure></section><div class="ai-phone-entry"><img src="./assets/ai-course/course-qr.svg" alt="QR-код открытия курса на телефоне" width="100" height="100"><div><strong>Откройте курс на своём телефоне</strong><p>Наведите камеру на QR-код или откройте timecode-lab.ru → Нейросети.</p></div></div><section class="ai-section"><p class="ai-eyebrow">ЧТО УНОСИМ С СОБОЙ</p><h2>Каждая встреча —<br>готовая работа.</h2><div class="ai-course-grid">${aiCourse.map((x,i)=>`<a class="ai-course-tile ai-color-${i}" href="${aiLink(i+1)}"><span>0${i+1} / 04 · 90 минут</span><img src="./assets/ai-course/${["plan","lesson","visual","journal"][i]}.svg" alt="" width="400" height="220"><h3>${escapeHtml(x.title)}</h3><p>${escapeHtml(x.result)}</p><strong>Открыть занятие →</strong></a>`).join("")}</div></section><section class="ai-section ai-takeaway"><div><p class="ai-eyebrow">БЕРИТЕ И ПОЛЬЗУЙТЕСЬ</p><h2>Запросы, формы,<br>учебные примеры.</h2><p>Настройте паспорт группы в первом уроке. Комплект запросов подставит ваши условия. Это обычный конструктор, он не отправляет запросы в нейросеть.</p></div><div class="ai-downloads"><button class="ai-btn" data-ai-download="0">Скачать все запросы · TXT ↓</button><a class="ai-btn secondary" href="./assets/ai-course/workbook.html" target="_blank" rel="noopener">Открыть рабочую тетрадь · печать / PDF ↗</a><a class="ai-btn secondary" href="./assets/ai-course/plan-template.csv" download>Таблица плана · CSV ↓</a><a class="ai-quiet" href="#/teacher/ai-01">Планы и тексты ведущего →</a></div></section><section class="ai-section" id="ai-toolbox"><p class="ai-eyebrow">ИНСТРУМЕНТЫ · СВЕРЕНО 19.10.2026</p><h2>Один основной.<br>Один запасной.</h2><p>Не регистрируйтесь везде сразу. Начните с доступного бесплатного чата. Квоты, функции, доступ и способы оплаты меняются; условия смотрите по официальным ссылкам.</p>${aiToolsHTML()}</section><section class="ai-section ai-note"><h2>Как пользоваться курсом</h2><p>Откройте карточку, выполните одно действие, проверьте результат. Запрос можно отредактировать перед копированием. Сайт не подключён к вашим аккаунтам нейросетей или электронному журналу.</p><p>Веб-страница доступна и с телефона. При переключении в чат вернитесь в эту вкладку. Рабочая тетрадь сохраняется на компьютере через «Печать → PDF»; оформление и проверку таблиц завершите после встречи.</p></section></div>`;
+      aiBind(0);window.scrollTo({top:0,behavior:"instant"});return;
+    }
+    s=Number.isInteger(s)&&s>=0&&s<l.cards.length?s:0;
+    const c=l.cards[s];
+    const visual=c.visual.length?`<div class="ai-visual ${c.kind==="compare"?'ai-comparison':''}">${c.visual.map((v,i)=>`<div><span>${c.kind==="compare"?(i?"ТОЧНЕЕ":"СЛИШКОМ ОБЩО"):`0${i+1}`}</span><strong>${escapeHtml(v)}</strong></div>`).join("")}</div>`:'';
+    const quiz=c.quiz?`<div class="ai-quiz" aria-label="Выберите решение">${c.quiz.options.map((x,i)=>`<button data-ai-answer="${i}" data-ai-card="${s}" aria-pressed="false"><span>${String.fromCharCode(AI_LETTER_CODE+i)}</span>${escapeHtml(x)}</button>`).join("")}<p id="ai-feedback" class="ai-feedback" role="status" hidden></p></div>`:'';
+    const prompt=c.prompt?`<section class="ai-prompt-box"><div><b>ВАШ ЗАПРОС</b><span>Подставлены условия паспорта</span></div><label class="ai-small" for="ai-prompt">Замените поля [в скобках]. Текст можно редактировать.</label><textarea id="ai-prompt" rows="8" spellcheck="false">${escapeHtml(aiPrompt(c.prompt))}</textarea><button class="ai-btn" data-ai-copy>Скопировать запрос</button><p class="ai-small">Вставьте в выбранный чат и отправьте самостоятельно. Здесь нейросеть не запускается.</p></section>`:'';
+    const extra=c.kind==="profile"?aiProfileForm():c.kind==="journal"?aiJournalForm():c.kind==="tools"?aiToolsHTML(true):c.kind==="budget"?`<form id="ai-cost" class="ai-form"><label>Часов экономии в месяц<input name="hours" type="number" min="0" max="500" value="0"></label><label>Как вы оцениваете час, ₽<input name="value" type="number" min="0" max="100000" value="0"></label><label>Цена подписки, ₽/мес<input name="price" type="number" min="0" max="100000" value="0"></label></form><p id="ai-cost-result" role="status">Введите собственные оценки. Тарифы смотрите в сервисе.</p>`:'';
+    const image=c.kind==="cover"?`<img class="ai-cover-img" src="./assets/ai-course/desk.webp" alt="Иллюстрация рабочего стола преподавателя с телефоном" width="1200" height="800">`:'';
+    main.innerHTML=`<div class="ai-shell ai-lesson"><header class="ai-lesson-bar"><a href="#/ai">← Все занятия</a><span>УРОК 0${n} · ${s+1} / ${l.cards.length}</span><a href="#/ai" data-ai-tool-link>Инструменты ↗</a></header><div class="ai-progress" role="progressbar" aria-label="Пройденная часть урока" aria-valuemin="1" aria-valuemax="${l.cards.length}" aria-valuenow="${s+1}"><i style="width:${(s+1)/l.cards.length*100}%"></i></div><article class="ai-learning-card ai-color-${n-1}"><div class="ai-card-heading"><p class="ai-eyebrow">${c.kind==="quiz"?'ВАШ ХОД':c.kind==="finish"?'ЗАБИРАЕМ В РАБОТУ':'ПОСМОТРЕЛИ → ПОПРОБОВАЛИ'}</p><h1>${escapeHtml(c.title)}</h1><p class="ai-lead">${escapeHtml(c.text)}</p></div>${image}${visual}${c.steps.length?`<ol class="ai-steps">${c.steps.map(x=>`<li>${escapeHtml(x)}</li>`).join("")}</ol>`:''}${extra}${n===3&&s===9?`<a class="ai-btn secondary" href="./assets/ai-course/source-example.txt" download>Скачать учебный источник · TXT ↓</a>`:""}${prompt}${quiz}${c.kind==="finish"?`<div class="ai-downloads"><button class="ai-btn" data-ai-download="${n}">Скачать запросы урока ↓</button><a class="ai-btn secondary" href="./assets/ai-course/workbook.html" target="_blank" rel="noopener">Рабочая тетрадь ↗</a></div>`:''}</article><nav class="ai-card-nav" aria-label="Карточки урока">${s?`<a class="ai-btn secondary" href="${aiLink(n,s-1)}">← Назад</a>`:`<a class="ai-quiet" href="#/ai">К курсу</a>`}${s<l.cards.length-1?`<a class="ai-btn" href="${aiLink(n,s+1)}">Дальше →</a>`:n<4?`<a class="ai-btn" href="${aiLink(n+1)}">К следующему занятию →</a>`:`<a class="ai-btn" href="#/ai">Комплект курса →</a>`}</nav><details class="ai-outline"><summary>Все карточки этого занятия</summary><ol>${l.cards.map((x,i)=>`<li><a ${i===s?'aria-current="step"':''} href="${aiLink(n,i)}">${escapeHtml(x.title)}</a></li>`).join("")}</ol></details><p class="ai-small ai-after">На телефоне — запрос и проба. На компьютере после занятия — оформление и сохранение результата.</p></div>`;
+    document.querySelector('[data-ai-tool-link]')?.addEventListener('click',e=>{e.preventDefault();location.hash='#/ai';requestAnimationFrame(()=>document.querySelector('#ai-toolbox')?.scrollIntoView());});
+    aiBind(n);window.scrollTo({top:0,behavior:"instant"});
+  }
+  const AI_LETTER_CODE=1040;
+
   function route() {
     stopLessonMedia();
+    document.body.classList.remove("ai-active");
     document.removeEventListener("keydown", lessonKeydown);
     document.body.classList.remove("presentation-mode");
     state.lesson = null;
@@ -2777,6 +2861,8 @@
     const teacherMatch = hash.match(/^#\/teacher(?:\/([^/]+))?$/);
     const playMatch = hash.match(/^#\/play(?:\/([^/]+))?$/);
     const cinemaMatch = hash.match(/^#\/cinema(?:\/([^/]+))?$/);
+    const aiMatch = hash.match(/^#\/ai(?:\/([1-4])(?:\/(\d+))?)?$/);
+    if (aiMatch) { renderAICourse(Number(aiMatch[1]) || 0, Number(aiMatch[2]) || 0); return; }
     if (lessonMatch) {
       renderLesson(decodeURIComponent(lessonMatch[1]));
       return;

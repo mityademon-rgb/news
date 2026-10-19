@@ -1,0 +1,5 @@
+TIMECODE · AI course · 19.10.2026
+Original course text, schematic illustrations plan.svg, lesson.svg, visual.svg, journal.svg: authored for TIMECODE. These are illustrations, not screenshots of services.
+desk.webp: AI-generated editorial illustration with image_gen, resized to 1200x800. Not a photograph or service interface. Prompt: premium matte 3D editorial still life of coral smartphone, planner, craft and arts objects on warm cream desk; no text or logos.
+Official tool source URLs and dated conditions: window.TIMECODE_AI_TOOLS in lessons.js. Service availability, plans and limits may change.
+No dk.mosreg.ru interface screenshots or private journal data used.
