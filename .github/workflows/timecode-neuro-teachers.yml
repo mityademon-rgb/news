@@ -1,0 +1,83 @@
+name: Restrict TIMECODE Kimi advisor to teachers
+on:
+  push:
+    branches: [boom-kadr-deploy]
+    paths: ['.github/workflows/timecode-neuro-teachers.yml']
+permissions:
+  contents: read
+concurrency:
+  group: timecode-neuro-teachers
+  cancel-in-progress: false
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    timeout-minutes: 6
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 2
+      - name: Verify documentation
+        run: bash scripts/check-project-documentation.sh HEAD^ HEAD
+      - uses: actions/checkout@v4
+        with:
+          repository: mityademon-rgb/media-center-bot
+          ref: 4587637d07c148cb441d91284672f8b12bcddcde
+          path: source
+      - uses: actions/checkout@v4
+        with:
+          repository: mityademon-rgb/media-center-bot
+          ref: f73d3e94ad0ae7e5568dca1e6af760c64d6e887e
+          path: previous
+      - name: Test teacher and member paths
+        working-directory: source/timecode-bot
+        run: |
+          python3 -m unittest discover -s tests -p test_neuro_advisor.py
+          python3 -m py_compile neuro_advisor.py
+          node --check static/neuro.js
+      - name: Connect to TIMECODE
+        env:
+          BOOM_SSH_KEY: ${{ secrets.BOOM_SSH_KEY }}
+        run: |
+          install -d -m 700 ~/.ssh
+          printf '%s\n' "$BOOM_SSH_KEY" > ~/.ssh/timecode
+          chmod 600 ~/.ssh/timecode
+          ssh-keyscan -T 8 -H 217.149.24.242 > ~/.ssh/known_hosts
+      - name: Addressed access update and production verification
+        run: |
+          set -Eeuo pipefail
+          ssh -i ~/.ssh/timecode -o BatchMode=yes root@217.149.24.242 'install -d -m 700 /tmp/timecode-neuro-teachers'
+          scp -i ~/.ssh/timecode source/timecode-bot/neuro_advisor.py source/timecode-bot/NEURO_ADVISOR.md source/timecode-bot/static/neuro.js root@217.149.24.242:/tmp/timecode-neuro-teachers/
+          scp -i ~/.ssh/timecode previous/timecode-bot/neuro_advisor.py root@217.149.24.242:/tmp/timecode-neuro-teachers/previous-advisor.py
+          scp -i ~/.ssh/timecode previous/timecode-bot/static/neuro.js root@217.149.24.242:/tmp/timecode-neuro-teachers/previous-neuro.js
+          ssh -i ~/.ssh/timecode -o BatchMode=yes -o ServerAliveInterval=10 root@217.149.24.242 'bash -s' <<'REMOTE'
+          set -Eeuo pipefail
+          cd /opt/timecode-bot/timecode-bot
+          cmp neuro_advisor.py /tmp/timecode-neuro-teachers/previous-advisor.py
+          cmp static/neuro.js /tmp/timecode-neuro-teachers/previous-neuro.js
+          test -f NEURO_ADVISOR.md
+          grep -Fq 'neuro_advisor.install(globals())' server.py
+          backup=$(mktemp -d /opt/timecode-bot/neuro-teachers-backup-XXXXXXXX)
+          chmod 700 "$backup"
+          cp -p neuro_advisor.py NEURO_ADVISOR.md "$backup/"
+          cp -p static/neuro.js "$backup/neuro.js"
+          rollback() {
+            cp -p "$backup/neuro_advisor.py" "$backup/NEURO_ADVISOR.md" .
+            cp -p "$backup/neuro.js" static/neuro.js
+            systemctl restart timecode-bot.service || true
+          }
+          trap rollback ERR
+          install -m 0644 /tmp/timecode-neuro-teachers/neuro_advisor.py neuro_advisor.py
+          install -m 0644 /tmp/timecode-neuro-teachers/NEURO_ADVISOR.md NEURO_ADVISOR.md
+          install -m 0644 /tmp/timecode-neuro-teachers/neuro.js static/neuro.js
+          python3 -m py_compile neuro_advisor.py server.py
+          systemctl restart timecode-bot.service
+          curl -fsS --retry 8 --retry-delay 2 --retry-connrefused --max-time 12 http://127.0.0.1:8097/health -o /dev/null
+          curl -fsS --max-time 12 https://timecode-lab.ru/tc/health -o /dev/null
+          cmp neuro_advisor.py /tmp/timecode-neuro-teachers/neuro_advisor.py
+          cmp static/neuro.js /tmp/timecode-neuro-teachers/neuro.js
+          test "$(curl -sS --max-time 12 -o /dev/null -w '%{http_code}' -H 'Content-Type: application/json' -d '{"message":"test"}' http://127.0.0.1:8097/api/neuro)" = 401
+          systemctl is-active --quiet timecode-bot.service
+          trap - ERR
+          printf '%s\n' "$backup" > /opt/timecode-bot/neuro-teachers-latest-backup-path
+          echo 'TEACHER_ACCESS_LIVE_BACKEND_FRONTEND_HEALTH_OK'
+          REMOTE
