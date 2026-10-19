@@ -1022,3 +1022,5 @@ Source: media-center-bot/feature/timecode-media-bot, timecode-bot/NEURO_ADVISOR.
 Адресный workflow timecode-neuro-advisor.yml проверяет documentation guard до SSH, tests/syntax; pinned source commit 1c44a5efba220ed0c78143fe0a3a0ef6a1f622c5. deploy-neuro-advisor.py сравнивает live fingerprints, делает backup и добавляет только два hooks, не заменяя drifted server/index копиями из Git. Один restart только timecode-bot.service. Ошибка installation откатывает эти файлы автоматически. probe-neuro-advisor.py вызывает реальный Kimi на синтетическом уроке и followup без import server и рассылки. Полный живой UI отдельно проверяется после установки.
 
 Первый installation run 39330325521: код/health успешно, probe через Python urllib прерван SSH через 260 секунд. Исправленный probe использует curl -4 с 45-секундным пределом на вызов; отдельный verifier не переписывает код и не рестартует службу.
+
+Verifier 20.10: скрипт проверки копируется во временную папку прежде вызова; documentation guard требует этот handbook в каждом commit с изменением workflow.

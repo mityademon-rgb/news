@@ -1,4 +1,5 @@
 name: Verify TIMECODE neuro advisor after installation
+# This read-only run uses the corrected bounded provider probe.
 on:
   push:
     branches: [boom-kadr-deploy]
