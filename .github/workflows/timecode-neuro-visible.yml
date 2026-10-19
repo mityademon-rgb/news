@@ -41,7 +41,7 @@ jobs:
         run: |
           set -Eeuo pipefail
           ssh -i ~/.ssh/timecode -o BatchMode=yes root@217.149.24.242 'install -d -m 700 /tmp/timecode-neuro-visible'
-          scp -i ~/.ssh/timecode source/timecode-bot/static/neuro.js source/timecode-bot/static/index.html root@217.149.24.242:/tmp/timecode-neuro-visible/
+          scp -i ~/.ssh/timecode source/timecode-bot/static/neuro.js root@217.149.24.242:/tmp/timecode-neuro-visible/
           scp -i ~/.ssh/timecode previous/timecode-bot/static/neuro.js root@217.149.24.242:/tmp/timecode-neuro-visible/previous-neuro.js
           ssh -i ~/.ssh/timecode -o BatchMode=yes root@217.149.24.242 'bash -s' <<'REMOTE'
           set -Eeuo pipefail
@@ -51,7 +51,7 @@ jobs:
           from pathlib import Path
           s=Path('static/index.html').read_text()
           assert s.count('neuro.js?v=20261020"')==1
-          assert s.replace('neuro.js?v=20261020"','neuro.js?v=20261020-menu2"')==Path('/tmp/timecode-neuro-visible/index.html').read_text()
+          assert 'neuro.js?v=20261020-menu2"' not in s
           PY
           backup=$(mktemp -d /opt/timecode-bot/neuro-visible-backup-XXXXXXXX)
           chmod 700 "$backup"
@@ -59,9 +59,20 @@ jobs:
           rollback() { cp -p "$backup/neuro.js" "$backup/index.html" static/; }
           trap rollback ERR
           install -m 0644 /tmp/timecode-neuro-visible/neuro.js static/neuro.js
-          install -m 0644 /tmp/timecode-neuro-visible/index.html static/index.html
+          python3 - <<'PY'
+          from pathlib import Path
+          p=Path('static/index.html');s=p.read_text()
+          assert s.count('neuro.js?v=20261020"')==1
+          p.write_text(s.replace('neuro.js?v=20261020"','neuro.js?v=20261020-menu2"',1))
+          PY
           cmp static/neuro.js /tmp/timecode-neuro-visible/neuro.js
-          cmp static/index.html /tmp/timecode-neuro-visible/index.html
+          BACKUP_DIR="$backup" python3 - <<'PY'
+          import os
+          from pathlib import Path
+          old=(Path(os.environ['BACKUP_DIR'])/'index.html').read_text()
+          new=Path('static/index.html').read_text()
+          assert new==old.replace('neuro.js?v=20261020"','neuro.js?v=20261020-menu2"',1)
+          PY
           curl -fsS --max-time 12 http://127.0.0.1:8097/health -o /dev/null
           curl -fsS --max-time 12 https://timecode-lab.ru/tc/health -o /dev/null
           curl -fsS --max-time 12 https://timecode-lab.ru/tc/ | grep -Fq 'neuro.js?v=20261020-menu2'
