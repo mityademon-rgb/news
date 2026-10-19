@@ -1,3 +1,6 @@
+Warning: truncated output (original token count: 28201)
+Total output lines: 1181
+
 # TIMECODE — PROJECT AI HANDBOOK
 
 > Эксплуатационный паспорт сайта, контура публикации и связанного TIMECODE-бота.  
@@ -694,183 +697,7 @@ python3 -m http.server 4173 --bind 127.0.0.1
 
 1. Проверить DNS и `curl -I https://timecode-lab.ru/`.
 2. Проверить отдельно asset и `/tc/health`, чтобы разделить static/nginx/bot incident.
-3. Проверить последний deploy run и commit.
-4. На сервере только с разрешением: `nginx -t`, status nginx, vhost, logs, disk.
-5. Не менять DNS/TLS/nginx до определения слоя отказа.
-6. Для static mismatch сравнить live SHA с известным commit.
-7. Откатить revert commit/verified static backup, а не выполнять broad reset.
-
-### Сценарий: бот недоступен
-
-1. Проверить public и local health, unit state, start timestamp, timers, disk.
-2. Green health не доказывает живой polling/scheduler/delivery.
-3. Изучить обезличенные journal errors и read-only outbox aggregates.
-4. Не импортировать modules и не запускать retry/watchdog ради диагностики.
-5. Перед restart сохранить evidence, diff и backup; restart требует согласования.
-6. После восстановления проверить Telegram и MAX без массовой отправки/дублей.
-
-### Сценарий: изменить расписание или рассылку бота
-
-Это state-changing работа. Сначала прочитать production bot handbook и затронутые modules, затем проверить lessons/overrides, scheduler, deadlines, watchdog/catch-up и оба транспорта на временной БД. Admin schedule API меняет БД и может разослать уведомления всем; не использовать для проверки.
-
----
-
-## 13. Риски и технический долг
-
-### Критические
-
-| Риск | Доказательство | Что требуется |
-|---|---|---|
-| Production bot не воспроизводим из Git | Modified/untracked production files, HEAD не описывает полный runtime | Inventory, backup, безопасная нормализация в Git |
-| Нет доказанного backup/restore SQLite | Есть ad hoc backup dirs, но нет подтверждённого цикла/off-server restore | Согласовать backup policy и тест восстановления |
-| Большой blast radius workflows | 91 push workflow, root SSH, restart/message/DB операции | Архивировать/отключить one-off flows, добавить environments/approvals |
-
-### Высокие
-
-| Риск | Последствие | Рекомендация |
-|---|---|---|
-| Teacher gate публичный client-side | Любой может получить доступ | Считать материалы публичными или вынести auth на server |
-| Нет static content rollback | Failed deploy оставляет mixed/new bytes | Версионированный release dir/symlink или архив всего root |
-| Cache query меняется вручную | Браузер может сохранить старый bundle до 7 дней | Добавить CI-проверку изменения `site.js?v=` вместе с bundle |
-| Deploy не удаляет stale files | Удалённые assets остаются доступны | Release-dir strategy или manifest-based cleanup |
-| Root SSH в Actions | Высокий impact компрометации | Ограниченный deploy user/key/command, GitHub Environment |
-| Bot disabled bearer risk | Disabled user может сохранить доступ по ранее выданному bearer | Исправить server-side identity check с тестом |
-
-### Средние
-
-- Body classes накапливаются между SPA routes.
-- `styles.css` очень велик и содержит перекрывающиеся исторические слои.
-- Нет автоматизированных tests/build/lint/dependency manifest.
-- Main content создаётся JS: без JS `<main>` пуст, SEO и resilience ограничены.
-- Нет canonical/OG metadata, `robots.txt`, `sitemap.xml`, manifest/service worker.
-- Нет CSP, HSTS и frame policy в repository nginx config.
-- `README.txt` и старые `.deploy/*.sh` противоречат текущей архитектуре.
-- Onest/Pangolin лежат в assets, но не подключены; `Onest BK` падает в fallback.
-- 7-day caching зависит от ручного query bump.
-- Bot health может быть green при остановленном polling; scheduler использует точную минуту; retries потенциально могут дать дубли.
-- Старые bot pending старше yesterday могут не выбираться; import отдельных modules изменяет DB.
-
-### Низкие/редакционные
-
-- Неиспользуемые assets увеличивают репозиторий/архив.
-- Осталась Apple TV ссылка среди источников Matrix при заменённом watch link.
-- Мёртвые `renderHomeLegacy()` и `bindHomeInteractionsLegacy()` сохраняют старую реализацию.
-- Нет `.gitignore`; случайные локальные артефакты легче добавить в commit.
-
----
-
-## 14. ИНСТРУКЦИЯ ДЛЯ РЕЗЕРВНОГО AI-АГЕНТА
-
-### Перед любой работой
-
-1. Прочитай этот файл полностью.
-2. Выполни `git fetch`, проверь ветку, HEAD и clean status.
-3. Сверь дату/commit handbook с текущим HEAD и прочитай commits после него только в затронутых путях.
-4. Если задача касается `/tc/`, сначала прочитай `/opt/timecode-bot/timecode-bot/PROJECT_AI_HANDBOOK.md` и не считай site repo источником bot runtime.
-5. Проверь живые health/hash только read-only средствами.
-
-### Источники истины
-
-- Live static runtime: `index.html`, `styles.css`, `lesson03-kids.css`, `site.js`, `assets/`.
-- Lesson content: `lessons.js`.
-- Teacher plans: `lesson-plans.js`.
-- App source: `app.js`, но обязательно сравнить с `site.js`.
-- Nginx intended config: `.deploy/boom-kadr-https.conf`.
-- Current static deploy: `.github/workflows/deploy-boom-kadr.yml`.
-- Bot runtime: production directory и его handbook, не старые one-off workflows.
-
-### Безопасный старт разработки
-
-```bash
-git fetch origin boom-kadr-deploy
-git switch boom-kadr-deploy
-git status --short --branch
-git log -n 10 --oneline
-node --check lessons.js
-node --check lesson-plans.js
-node --check app.js
-node --check site.js
-```
-
-Не продолжай из dirty/stale checkout, если изменения не твои. Не удаляй их; создай свежий clone/worktree или согласуй владельца.
-
-### Правила изменений
-
-1. Делай минимальный адресный diff.
-2. Не переписывай архитектуру в рамках content/design задачи.
-3. Не редактируй `site.js` вручную: после изменения трёх исходников выполняй `scripts/build-site.sh`, затем `scripts/build-site.sh --check`.
-4. Не запускай исторические workflows для диагностики.
-5. Не запускай server scripts/imports с production DB без понимания side effects.
-6. Не публикуй реальные credentials, user rows, tokens, keys, chat content или private logs.
-7. Не меняй nginx/DNS/TLS, service, DB или рассылки без отдельного разрешения.
-8. Обновляй cache key для изменённого cached asset.
-9. Проверяй соседние разделы: SPA/CSS общий.
-10. После архитектурного изменения обнови handbook в том же commit.
-
-### Проверка каждого изменения
-
-- Syntax/static checks.
-- Diff и asset paths.
-- Desktop + mobile + reduced-motion.
-- Прямой route и переходы из других разделов.
-- Console/network 404.
-- Live workflow conclusion и SHA/content после deploy.
-- Для bot changes: isolated temp DB, network mocks, unit/regression, local/public health, оба транспорта и no-duplicate evidence.
-
-### Откат
-
-- Site: новый revert commit или verified release backup; не force/reset production.
-- Bot code: вернуть только сохранённые изменённые файлы, затем согласованный restart и health/delivery check.
-- DB: не заменять старой копией без schema/data compatibility plan.
-- Уже отправленные сообщения и внешние side effects откатом кода не отменяются.
-
-### Что обязательно согласовать с владельцем
-
-- Любой production restart/deploy за пределами штатного site workflow.
-- DB migration/restore/write query.
-- Запуск workflow, который шлёт сообщения или меняет bot state.
-- DNS, TLS, nginx, firewall, systemd.
-- Массовое удаление assets/workflows/legacy files.
-- Изменение расписания, ролей, доступа, конкурса, рассылок и AI personality.
-- Действия с пользовательскими данными или внешними аккаунтами.
-
-### Завершение работы
-
-Запиши в commit/handbook:
-
-- дату и SHA;
-- что изменено и почему;
-- затронутые файлы/зависимости;
-- какие проверки выполнены;
-- deployed live SHA/status или почему не публиковалось;
-- известные ограничения и путь отката.
-
-Не писать «готово» только по факту commit. Для production-готовности нужно живое доказательство.
-
----
-
-## 15. Регламент обновления handbook
-
-После существенного изменения архитектуры, инфраструктуры, business logic, routes, data model, API, build или deploy работающий агент обязан:
-
-1. Обновить соответствующий раздел этого файла.
-2. Обновить дату актуальности и проверенный commit.
-3. Перечислить затронутые пути.
-4. Зафиксировать новые зависимости и source-of-truth.
-5. Обновить команды проверки, deploy и rollback.
-6. Добавить/закрыть риски только при наличии доказательств.
-7. Сверить документ с живым состоянием затронутого компонента.
-8. Не удалять историческое предупреждение, если причина не устранена.
-
-Каждое изменение проекта, включая контент, дизайн, assets, конфигурацию и документацию, дополнительно получает запись в `PROJECT_CHANGELOG.md` в том же commit. Запись содержит цель, файлы, связи, проверки, статус публикации, способ отката и оставшиеся риски. Helper `scripts/new-change-entry.sh` создаёт заготовку, а `scripts/check-project-documentation.sh` и workflow `Require TIMECODE project memory` проверяют соблюдение правила.
-
-CI-проверка не заменяет branch protection: на push она только помечает уже созданный commit как failed. Чтобы нарушение физически не попадало в основную ветку через pull request, GitHub check `documentation-guard` нужно назначить обязательным в правилах ветки.
-
-Мелкие текстовые правки без operational impact не требуют полного переписывания.
-
-### Журнал
-
-- **2026-10-11** — введены `PROJECT_CHANGELOG.md`, обязательный `AGENTS.md`, helper и CI guard: любое изменение фиксируется в журнале; структурное изменение требует также обновить handbook.
+3. Пров…3201 tokens truncated…же обновить handbook.
 - **2026-10-11** — создан полный site/project handbook на commit `1760d973`; проверены repo, bundle drift, content/assets, deploy/nginx configs, workflows, live hashes/routes/health и обезличенные результаты отдельного production bot-аудита. Рабочий код, сервер, БД и сервисы не изменялись.
 
 ---
@@ -1172,3 +999,10 @@ AI-01: после выбора чата карточка кружка → сох
 
 ### 2026-10-19 — AI: культурная афиша
 Обложка AI-хаба ai-poster: крупная типографика Onest, акцент автопилота, широкая сцена четырёх помощников. Стили ограничены ai-* / body.ai-active, существующий asset robot-creative-team.webp. У учебной article data-ai-kind для визуального различия teaser, остальной контент не меняется. QR идёт перед обложкой, fullscreen и мобильные маршруты сохраняются.
+
+
+### 2026-10-20 — Автономный практикум «Нейросети для…»
+
+Новая публичная страница `/assets/neuro/index.html` с изолированными style.css/app.js. Главная desktop/mobile навигация содержит ссылку; прежний курс #/ai остаётся отдельно. Страница использует `assets/ai-course/adult/desk.webp`, learning.webp, Onest из assets/fonts и памятку handouts/module-01.pdf. Никаких изменений bundle, уроков, teacher gate или инфраструктуры.
+
+Четыре задания: карточка кружка, программа, сценарий, отчёт. Конструктор собирает текст локально, не вызывает API. Примеры помечены учебными. Пользовательские ответы и флаги проверки хранятся в localStorage `timecode-neuro-workbook-v1`; TXT-экспорт через Blob. Данные не отправляются. DOM textContent используется для пользовательских ответов; вставки HTML из ввода нет. Sites-копия отдельно: https://timecode-ai-lab.mitya.chatgpt.site (owner-private). Канонический публичный вход — timecode-lab.ru/assets/neuro/index.html.
