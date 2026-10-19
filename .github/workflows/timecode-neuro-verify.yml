@@ -26,6 +26,7 @@ jobs:
       - name: Verify code, service, platforms and real Kimi result
         run: |
           set -Eeuo pipefail
+          scp -i ~/.ssh/timecode -o BatchMode=yes scripts/probe-neuro-advisor.py root@217.149.24.242:/tmp/timecode-neuro-source/probe-neuro-advisor.py
           ssh -i ~/.ssh/timecode -o BatchMode=yes -o ServerAliveInterval=10 -o ServerAliveCountMax=3 root@217.149.24.242 'bash -s' <<'REMOTE'
           set -Eeuo pipefail
           cd /opt/timecode-bot/timecode-bot
