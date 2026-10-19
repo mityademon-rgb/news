@@ -4,17 +4,20 @@ import os
 import subprocess
 import sys
 import urllib.request
+import urllib.error
 
 sys.path.insert(0, '/opt/timecode-bot/timecode-bot')
 import neuro_advisor
 
 
 def request(path, payload, timeout=55):
-    data = json.dumps(payload, ensure_ascii=False).encode()
-    req = urllib.request.Request('https://api.moonshot.ai/v1' + path, data=data,
-        headers={'Content-Type': 'application/json', 'Authorization': 'Bearer ' + os.environ['MOONSHOT_API_KEY']})
-    with urllib.request.urlopen(req, timeout=timeout) as response:
-        return json.load(response)
+    proc = subprocess.run(['curl', '-4', '-fsS', '--connect-timeout', '8', '--max-time', str(min(timeout, 45)),
+            '-H', 'Content-Type: application/json', '-H', 'Authorization: Bearer ' + os.environ['MOONSHOT_API_KEY'],
+            '--data-binary', '@-', 'https://api.moonshot.ai/v1' + path],
+            input=json.dumps(payload, ensure_ascii=False), text=True, capture_output=True, timeout=48)
+    if proc.returncode:
+        raise RuntimeError('provider transport code ' + str(proc.returncode))
+    return json.loads(proc.stdout)
 
 
 model = os.getenv('KIMI_MODEL', 'kimi-k2.6')

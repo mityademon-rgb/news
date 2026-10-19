@@ -1,0 +1,44 @@
+name: Verify TIMECODE neuro advisor after installation
+on:
+  push:
+    branches: [boom-kadr-deploy]
+    paths: ['.github/workflows/timecode-neuro-verify.yml']
+permissions:
+  contents: read
+jobs:
+  verify:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 2
+      - name: Check documentation before server access
+        run: bash scripts/check-project-documentation.sh HEAD^ HEAD
+      - name: Connect to TIMECODE
+        env:
+          BOOM_SSH_KEY: ${{ secrets.BOOM_SSH_KEY }}
+        run: |
+          install -d -m 700 ~/.ssh
+          printf '%s\n' "$BOOM_SSH_KEY" > ~/.ssh/timecode
+          chmod 600 ~/.ssh/timecode
+          ssh-keyscan -T 8 -H 217.149.24.242 > ~/.ssh/known_hosts
+      - name: Verify code, service, platforms and real Kimi result
+        run: |
+          set -Eeuo pipefail
+          ssh -i ~/.ssh/timecode -o BatchMode=yes -o ServerAliveInterval=10 -o ServerAliveCountMax=3 root@217.149.24.242 'bash -s' <<'REMOTE'
+          set -Eeuo pipefail
+          cd /opt/timecode-bot/timecode-bot
+          systemctl is-active --quiet timecode-bot.service
+          curl -fsS --max-time 12 http://127.0.0.1:8097/health
+          curl -fsS --max-time 12 https://timecode-lab.ru/tc/health
+          python3 -m py_compile neuro_advisor.py server.py
+          test -f static/neuro.js
+          test -f static/neuro.css
+          grep -q 'neuro_advisor.install(globals())' server.py
+          grep -q 'neuro.js' static/index.html
+          set -a
+          . /etc/timecode-bot.env
+          set +a
+          python3 -u /tmp/timecode-neuro-source/probe-neuro-advisor.py
+          REMOTE
