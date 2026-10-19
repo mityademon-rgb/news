@@ -24,11 +24,11 @@ selected=[12,3,9,2]
 # A compact but complete prompt, leaving room for legible steps and QR codes.
 prompts=[
 'Ты методист ДК. Составь карточку кружка [название] для [возраст, уровень]. Условия: [материалы, длительность и частота встреч]. Формат: цель для родителей; конкретные навыки за 3 месяца; материалы; отдельно живой пост до 500 знаков с призывом записаться. Без клише и выдуманных цен, контактов, наград. Недостающие данные спроси.',
-'У меня занятия в кружке по журналистике для детей 12+. Начни с азов. Создай план на 2 года обучения с упором на практику. Учитывай занятия 2 раза в неделю. Затем: подробно распиши первый месяц и создай игровой урок по одной из тем. Оформи понравившийся вариант таблицей для Word или Excel.',
+'По нашей программе на год подробно распиши первый месяц. Занятия два раза в неделю, дети 12+, начинают с нуля. Для каждой встречи дай тему, простое объяснение и практическое задание. Затем создай игровой урок по одной теме: начало, правила игр, реплики педагога, практика и обсуждение.',
 'Создай презентацию на 6 слайдов для [тема, возраст] по проверенному сценарию: [вставить]. Структура: вопрос; объяснение с картинкой; правила игры; практика; сравнение; самопроверка. Один смысл и до 35 слов на экран. Предложи визуалы, не добавляй новые факты. Отдельно составь раздатку: 3 шага и критерий результата.',
 'Ты редактор документов ДК. Преврати проверенную заметку [вставить обезличенные факты] в отчёт до одной страницы A4. Разделы: дата и тема; аудитория; цель по исходным данным; проведённые действия; наблюдаемые результаты; отклонения от плана. Не выдумывай эффект, отзывы, охват и награды. Недостающие данные вынеси в вопросы.'
 ]
-prompts[0] = next(c["prompt"] for c in course[0]["cards"] if c["title"] == "Теперь — карточка, которую можно использовать")
+prompts[0] = next(c["prompt"] for c in course[0]["cards"] if c["title"] == "Теперь — карточка, которую можно использовать") + "\n\nПРОГРАММА НА ГОД\n" + next(c["prompt"] for c in course[0]["cards"] if c["title"] == "Теперь — программа на год")
 
 def qr_image(url):
  img=qrcode.make(url);b=io.BytesIO();img.save(b,format='PNG');b.seek(0);return ImageReader(b)
@@ -49,7 +49,7 @@ for i,l in enumerate(course):
  finish=next(c for c in l['cards'] if c['kind']=='finish')
  for j,t in enumerate(finish['steps'][:4]):y=para(cv,f'{j+1}. {t}',y)
  y-=3;y=para(cv,'ПЕРЕД СОХРАНЕНИЕМ И ОТПРАВКОЙ',y,bold=True)
- checks=['Названия, возраст, контакты, материалы и обещания.','План начинается с азов, подходит возрасту, в каждой теме есть практика. Часы и бланк добавляем после содержания.','Смысл и анатомия изображений, читаемость, поля, права.','Факты, даты, числа, единицы часов; никаких приписок.'][i]
+ checks=['Названия, возраст, контакты, материалы и обещания.','Программа начинается с азов, подходит возрасту, содержит практику и результаты обучения. Часы и бланк - после содержания.','Смысл и анатомия изображений, читаемость, поля, права.','Факты, даты, числа, единицы часов; никаких приписок.'][i]
  y=para(cv,checks+' Уберите заглушки [ ]. Проверьте файл целиком.',y)
  assert y>40,(i,y)
  cv.setFillColor(HexColor('#566171'));cv.setFont('D',8);cv.drawString(42,25,'Сервис не открылся? Откройте урок: там запасной вариант и все запросы. 19.10.2026')
@@ -59,7 +59,7 @@ import qrcode.image.svg
 for name,url in [('lesson-01-qr.svg','https://timecode-lab.ru/#/ai/1/0'),('course-qr.svg','https://timecode-lab.ru/#/ai')]:
  qrcode.make(url,image_factory=qrcode.image.svg.SvgPathImage,box_size=10,border=4).save(ROOT/'assets/ai-course'/name)
 # Empty editable KTP structure; data must come from the teacher's actual programme.
-(ROOT/'assets/ai-course/plan-template.csv').write_text('\ufeffПериод;Тема;Что дети делают на практике;Какая работа получается\nПервый год;;;\nВторой год;;;\n',encoding='utf8')
+(ROOT/'assets/ai-course/plan-template.csv').write_text('\ufeffРаздел;Чему учим;Практические задания;Результат обучения\n;;;\n;;;\n',encoding='utf8')
 # Offline workbook: students only, never instructor narration.
 parts=['<!doctype html><html lang="ru"><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Культурный код - рабочая тетрадь</title><style>body{font:18px/1.6 Arial,sans-serif;max-width:900px;margin:auto;padding:30px;color:#17202a}h1,h2{line-height:1.15}h2{margin-top:55px;border-top:4px solid #2458ea;padding-top:25px}pre{white-space:pre-wrap;background:#f0f3f8;padding:20px;font:16px/1.6 monospace}article{margin:35px 0}img{max-width:100%}a{color:#2458ea}@media print{h2{break-before:page}article{break-inside:avoid}button{display:none}}</style><h1>Культурный код на автопилоте</h1><p>4 встречи по 90 минут. В зале 6 астрономических / 8 академических часов. После каждой встречи - 30-40 минут дома.</p><button onclick="window.print()">Печать / сохранить PDF</button><p><a href="https://timecode-lab.ru/#/ai">К интерактивным урокам</a></p>']
 for i,l in enumerate(course):
