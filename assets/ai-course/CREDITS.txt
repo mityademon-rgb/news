@@ -31,3 +31,5 @@ Four original one-page PDFs and QR graphics generated with scripts/build-ai-hand
 Official conditions checked 19.10.2026: https://help.suno.com/en/articles/9601601 ; https://help.suno.com/en/articles/13876865 ; https://gamma.app/pricing ; https://yandex.ru/support/shedevrum/ru/install ; https://www.recraft.ai/vector-editor ; https://pika.art/pricing ; https://kling.ai/ . Limits and access vary. Kandinsky bot handle is not guessed; official web links provided.
 
 Simple-plan revision: adult/journalism-path.svg and month-practice.svg are original editorial practice examples for journalism 12+, not service responses or mandatory curriculum. Arithmetic-first module withdrawn by editorial request.
+
+Prompt-building revision: adult/prompt-pyramid.webp is an original built-in image_gen photorealistic illustration, not a documentary photograph or technical diagram. An adult hand lowers a wooden ring over a stacking-toy peg; exact prompt semantics are HTML text. Generation record: adult/prompt-pyramid-generation.json.
