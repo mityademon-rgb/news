@@ -18,3 +18,7 @@ https://www.kimi.com/en/products/download
 https://www.kimi.com/en/help/features/memory-space
 https://alice.yandex.ru/aliceapp
 https://alice.yandex.ru/security/
+
+2026-10-19 · Adult editorial revision
+adult/desk.webp, context.webp, learning.webp, home.webp: original photorealistic images made with built-in image_gen; explicitly labeled as generated conceptual scenes, not documentary event photographs or screenshots. No supplied portrait used. No mascot/cartoon assets remain referenced by the first lesson. Exact image prompts recorded in adult/GENERATION.json.
+adult/media-types.svg, adult/memory.svg: original deterministic teaching diagrams, with visible HTML explanation alongside. The settings schematic is not a screenshot of a specific service.
