@@ -1024,3 +1024,8 @@ Source: media-center-bot/feature/timecode-media-bot, timecode-bot/NEURO_ADVISOR.
 Первый installation run 39330325521: код/health успешно, probe через Python urllib прерван SSH через 260 секунд. Исправленный probe использует curl -4 с 45-секундным пределом на вызов; отдельный verifier не переписывает код и не рестартует службу.
 
 Verifier 20.10: скрипт проверки копируется во временную папку прежде вызова; documentation guard требует этот handbook в каждом commit с изменением workflow.
+
+
+### 2026-10-20 — Редакционная проверка AI-маршрута
+
+После первой реальной пробы Кими усилен system prompt в neuro_advisor.py: 12 учеников = 6 одновременных пар, весь класс активно участвует, часы суммируются, «без техники» относится к занятию, уточнение исправляет прежние противоречия. Canonical source f73d3e94ad0ae7e5568dca1e6af760c64d6e887e. timecode-neuro-quality.yml сверяет старый и новый hash, делает адресный backup, заменяет только модуль/README, restart только timecode-bot.service и live-check. DB и исходники остальных модулей не меняются.
