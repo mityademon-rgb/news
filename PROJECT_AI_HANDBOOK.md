@@ -1011,3 +1011,12 @@ AI-01: после выбора чата карточка кружка → сох
 Четыре AI-встречи по 90 минут: 15/7/8/7 экранов. Убраны повторные разборы и отдельные конструкторы перед практикой. Введение сохраняет нейросеть, виды, промпт, пирамидку, РКФО и выбор чата. practice:true выделяет готовые запросы; expected обозначает результат; followups[{label,prompt}] — готовые уточнения с копированием и видимым ручным fallback. В TXT и workbook экспортируются результат и уточнения, teacher остаётся только в portal. Все четыре PDF пересобираются из канонических данных. Изображения ready-workshop/playful-interview — оригинальные AI-иллюстрации, промпты и происхождение в assets/ai-course/adult/ready-work-generation.json и CREDITS. Сайт остаётся существующим GitHub-проектом, отдельная копия Sites не создаётся.
 
 Поле основного запроса автоматически растёт по тексту при рендере, загрузке шрифта и вводе: полный шаблон читается без внутренней прокрутки. Иллюстрации практики показываются целиком, включая SVG.
+
+
+### 2026-10-20 — Mini App: Нейросети / Кими
+
+Source: media-center-bot/feature/timecode-media-bot, timecode-bot/NEURO_ADVISOR.md. Новые neuro_advisor.py и static/neuro.js/css. Handler wrapper установлен перед main после старых расширений. GET /neuro.js, /neuro.css; POST /api/neuro с Bearer и отдельной enabled-проверкой. Раздел в нижней навигации и на главной; курс #/ai и практикум assets/neuro связаны внешними ссылками.
+
+Кими возвращает reply, steps[{title,tool,action,prompt,check}], questions. История в запросе ограничена, system role от клиента запрещён; в UI только экранированный текст. Диалог живёт в page memory, есть TXT и копирование, при ошибке вопрос остаётся в поле. Никаких DB write/migration, outbox, messenger send. До двух AI-запросов раздела одновременно, до 40/час/пользователь, 5 секунд между стартами. Moonshot timeout 55s, max_tokens 2600; обрезанный/невалидный JSON возвращает явную ошибку.
+
+Адресный workflow timecode-neuro-advisor.yml проверяет documentation guard до SSH, tests/syntax; pinned source commit 1c44a5efba220ed0c78143fe0a3a0ef6a1f622c5. deploy-neuro-advisor.py сравнивает live fingerprints, делает backup и добавляет только два hooks, не заменяя drifted server/index копиями из Git. Один restart только timecode-bot.service. Ошибка installation откатывает эти файлы автоматически. probe-neuro-advisor.py вызывает реальный Kimi на синтетическом уроке и followup без import server и рассылки. Полный живой UI отдельно проверяется после установки.

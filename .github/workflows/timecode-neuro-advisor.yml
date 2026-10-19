@@ -1,0 +1,56 @@
+name: Install TIMECODE neural networks and Kimi workflow advisor
+on:
+  push:
+    branches: [boom-kadr-deploy]
+    paths: ['.github/workflows/timecode-neuro-advisor.yml']
+permissions:
+  contents: read
+concurrency:
+  group: timecode-neuro-advisor
+  cancel-in-progress: false
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    timeout-minutes: 12
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 2
+      - name: Enforce project documentation before SSH
+        run: bash scripts/check-project-documentation.sh HEAD^ HEAD
+      - uses: actions/checkout@v4
+        with:
+          repository: mityademon-rgb/media-center-bot
+          ref: 1c44a5efba220ed0c78143fe0a3a0ef6a1f622c5
+          path: source
+      - name: Verify advisor in isolation
+        working-directory: source/timecode-bot
+        run: |
+          python3 -m unittest discover -s tests -p test_neuro_advisor.py
+          python3 -m py_compile neuro_advisor.py
+          node --check static/neuro.js
+      - name: Connect deployment channel
+        env:
+          BOOM_SSH_KEY: ${{ secrets.BOOM_SSH_KEY }}
+        run: |
+          install -d -m 700 ~/.ssh
+          printf '%s\n' "$BOOM_SSH_KEY" > ~/.ssh/timecode
+          chmod 600 ~/.ssh/timecode
+          ssh-keyscan -T 8 -H 217.149.24.242 > ~/.ssh/known_hosts
+      - name: Back up and install only advisor and two hooks
+        run: |
+          set -Eeuo pipefail
+          ssh -i ~/.ssh/timecode -o BatchMode=yes root@217.149.24.242 'mkdir -p /tmp/timecode-neuro-source/static'
+          scp -i ~/.ssh/timecode source/timecode-bot/neuro_advisor.py source/timecode-bot/NEURO_ADVISOR.md root@217.149.24.242:/tmp/timecode-neuro-source/
+          scp -i ~/.ssh/timecode source/timecode-bot/static/neuro.js source/timecode-bot/static/neuro.css root@217.149.24.242:/tmp/timecode-neuro-source/static/
+          scp -i ~/.ssh/timecode scripts/deploy-neuro-advisor.py scripts/probe-neuro-advisor.py root@217.149.24.242:/tmp/timecode-neuro-source/
+          ssh -i ~/.ssh/timecode -o BatchMode=yes root@217.149.24.242 'python3 /tmp/timecode-neuro-source/deploy-neuro-advisor.py'
+      - name: Verify real Kimi task and followup without sending messages
+        run: |
+          ssh -i ~/.ssh/timecode -o BatchMode=yes root@217.149.24.242 'bash -s' <<'REMOTE'
+          set -Eeuo pipefail
+          set -a
+          . /etc/timecode-bot.env
+          set +a
+          python3 /tmp/timecode-neuro-source/probe-neuro-advisor.py
+          REMOTE
