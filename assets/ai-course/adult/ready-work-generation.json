@@ -1,0 +1,14 @@
+{
+  "tool": "image_gen built-in",
+  "date": "2026-10-20",
+  "assets": [
+    {
+      "file": "ready-workshop.webp",
+      "prompt": "Use case: stylized-concept. Asset type: wide editorial illustration for an adult Russian culture-center educators' practical AI course, not children's art. Primary request: a sophisticated physical miniature creative workshop, a sleek small brushed-aluminium AI assistant at a large warm ivory desk hands a neatly assembled cream document folder to a human teacher whose adult hands enter from the right. Desk has a ceramic bowl and clay tools, compact microphone, camera, colored art swatches and tidy stacked papers; visual story is 'you bring the idea, assistant prepares useful work'. One expressive clever detail: tiny robot has a pencil tucked behind its sensor. Premium photographic 3D craft realism, tactile materials, contemporary cultural-magazine art direction, cream and aubergine with restrained violet and burnt-orange accents. Wide 16:9 composition, single coherent scene, readable objects, substantial negative space above desk, beautiful soft studio daylight. No legible text, letters, logos, UI, charts, watermarks; no cute cartoon faces, toy-like preschool style, holograms or glowing brains."
+    },
+    {
+      "file": "playful-interview.webp",
+      "prompt": "Use case: photorealistic-natural. Asset type: widescreen educational-course visual about making a playful journalism lesson. Scene: in a bright contemporary Russian community arts classroom, a small group of three adolescents aged 12–14 are making a lighthearted interview on a smartphone on a mini tripod: one asks an animated question with a compact handheld microphone, another holds up an ordinary banana as a humorous 'newsworthy discovery', third records. An adult woman teacher beside them smiles and encourages rather than lectures. Realistic candid editorial photography, natural expressions, believable hands, premium cultural magazine look, warm ivory, aubergine accents on a notebook, restrained burnt orange art materials, soft daylight, contemporary uncluttered classroom. Landscape 16:9, show real action and useful equipment, no text, no logos, no watermarks, no diagrams or phone-interface overlays. Clearly an illustrative fictional classroom scene, not documentary about real students."
+    }
+  ]
+}

@@ -19,23 +19,17 @@ pdfmetrics.registerFont(TTFont('D','/usr/share/fonts/truetype/dejavu/DejaVuSans.
 pdfmetrics.registerFont(TTFont('DB','/usr/share/fonts/truetype/dejavu/DejaVuSans-Bold.ttf'))
 style=ParagraphStyle('body',fontName='D',fontSize=10.5,leading=15.2,textColor=HexColor('#17202a'))
 styleb=ParagraphStyle('bold',parent=style,fontName='DB')
-services=['https://giga.chat/','https://chat.deepseek.com/','https://gamma.app/','https://giga.chat/']
+services=['https://giga.chat/','https://chat.deepseek.com/','https://fusionbrain.ai/','https://giga.chat/']
 selected=[12,3,9,2]
 # A compact but complete prompt, leaving room for legible steps and QR codes.
-prompts=[
-'Ты методист ДК. Составь карточку кружка [название] для [возраст, уровень]. Условия: [материалы, длительность и частота встреч]. Формат: цель для родителей; конкретные навыки за 3 месяца; материалы; отдельно живой пост до 500 знаков с призывом записаться. Без клише и выдуманных цен, контактов, наград. Недостающие данные спроси.',
-'По нашей программе на год подробно распиши первый месяц. Занятия два раза в неделю, дети 12+, начинают с нуля. Для каждой встречи дай тему, простое объяснение и практическое задание. Затем создай игровой урок по одной теме: начало, правила игр, реплики педагога, практика и обсуждение.',
-'Создай презентацию на 6 слайдов для [тема, возраст] по проверенному сценарию: [вставить]. Структура: вопрос; объяснение с картинкой; правила игры; практика; сравнение; самопроверка. Один смысл и до 35 слов на экран. Предложи визуалы, не добавляй новые факты. Отдельно составь раздатку: 3 шага и критерий результата.',
-'Ты редактор документов ДК. Преврати проверенную заметку [вставить обезличенные факты] в отчёт до одной страницы A4. Разделы: дата и тема; аудитория; цель по исходным данным; проведённые действия; наблюдаемые результаты; отклонения от плана. Не выдумывай эффект, отзывы, охват и награды. Недостающие данные вынеси в вопросы.'
-]
-prompts[0] = next(c["prompt"] for c in course[0]["cards"] if c["title"] == "Теперь — карточка, которую можно использовать") + "\n\nПРОГРАММА НА ГОД\n" + next(c["prompt"] for c in course[0]["cards"] if c["title"] == "Теперь — программа на год")
+prompts = [next(c['prompt'] for c in l['cards'] if c.get('practice')) for l in course]
+prompts[0] += "\n\nПРОГРАММА НА ГОД\n" + next(c['prompt'] for c in course[0]['cards'] if c['title']=='Программа кружка на год')
 
 def qr_image(url):
  img=qrcode.make(url);b=io.BytesIO();img.save(b,format='PNG');b.seek(0);return ImageReader(b)
 def para(cv,text,y,width=511,bold=False,x=42):
  p=Paragraph(escape(text).replace('\n','<br/>'),styleb if bold else style);w,h=p.wrap(width,800);p.drawOn(cv,x,y-h);return y-h-7
 for i,l in enumerate(course):
- if i not in (0,1): continue
  filename=OUT/f'module-{i+1:02}.pdf';cv=canvas.Canvas(str(filename),pagesize=(595.28,841.89));cv.setTitle(f'TIMECODE. Памятка {i+1}. {l["title"]}');cv.setAuthor('TIMECODE')
  cv.setFillColor(HexColor('#2458ea'));cv.rect(0,827,595,15,fill=1,stroke=0)
  cv.setFillColor(HexColor('#2458ea'));cv.setFont('DB',11);cv.drawString(42,798,f'TIMECODE / КУЛЬТУРНЫЙ КОД / 0{i+1}')
@@ -70,7 +64,9 @@ for i,l in enumerate(course):
   if c.get('outcomes'):parts.extend(f'<p><b>{escape(o["title"])}</b>: {escape(o["text"])}</p>' for o in c['outcomes'])
   if c['steps']:parts.append('<ol>'+''.join(f'<li>{escape(t)}</li>' for t in c['steps'])+'</ol>')
   if c['prompt']:parts.append('<pre>'+escape(c['prompt'])+'</pre>')
+  if c.get('expected'):parts.append('<p><b>У вас готово:</b> '+escape(c['expected'])+'</p>')
+  for f in c.get('followups',[]):parts.append('<p><b>'+escape(f['label'])+'</b></p><pre>'+escape(f['prompt'])+'</pre>')
   if c.get('links'):parts.extend(f'<p><a href="{escape(t["url"])}">{escape(t["label"])}</a></p>' for t in c['links'])
   parts.append('</article>')
 parts.append('</html>');(ROOT/'assets/ai-course/workbook.html').write_text(''.join(parts))
-print('Updated handouts 1-2; rebuilt workbook and course QR; preserved handouts 3-4')
+print('Updated all four handouts and workbook from canonical lessons')

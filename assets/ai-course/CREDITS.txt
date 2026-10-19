@@ -35,3 +35,5 @@ Simple-plan revision: adult/journalism-path.svg and month-practice.svg are origi
 Prompt-building revision: adult/prompt-pyramid.webp is an original built-in image_gen photorealistic illustration, not a documentary photograph or technical diagram. An adult hand lowers a wooden ring over a stacking-toy peg; exact prompt semantics are HTML text. Generation record: adult/prompt-pyramid-generation.json.
 
 Creative team revision: adult/robot-creative-team.webp generated with built-in image_gen as a mature editorial 3D metaphor. Four robots write, paint, play violin and operate a camera. Not a service screenshot or documentary photo. Full original generation prompt in adult/robot-creative-team-generation.json.
+
+20.10.2026: adult/ready-workshop.webp и adult/playful-interview.webp — оригинальные сгенерированные иллюстрации для курса. Изображения не документальные. Промпты: adult/ready-work-generation.json; инструмент image_gen.
