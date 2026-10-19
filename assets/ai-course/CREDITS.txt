@@ -22,3 +22,10 @@ https://alice.yandex.ru/security/
 2026-10-19 · Adult editorial revision
 adult/desk.webp, context.webp, learning.webp, home.webp: original photorealistic images made with built-in image_gen; explicitly labeled as generated conceptual scenes, not documentary event photographs or screenshots. No supplied portrait used. No mascot/cartoon assets remain referenced by the first lesson. Exact image prompts recorded in adult/GENERATION.json.
 adult/media-types.svg, adult/memory.svg: original deterministic teaching diagrams, with visible HTML explanation alongside. The settings schematic is not a screenshot of a specific service.
+
+2026-10-19 · Cultural Code course
+All four AI modules and instructor guides rewritten for 4 x 90 minutes plus 30-40 minute home practice. Original authoring for TIMECODE; fictional Carnegie Hall and ballerina examples explicitly marked.
+adult/rkfo.svg, hours.svg, table.svg, visual-brief.svg, attendance.svg, report.svg, slides.svg, coloring.svg, poster.svg: original precise vector teaching graphics; not service output. Generator: scripts/build-ai-visuals.py.
+original-jingle.mp3: original 30-second programme-synthesized musical study, not Suno output or a recording. Generator and composition in scripts/build-ai-jingle.py. Can be reused as a course demonstration.
+Four original one-page PDFs and QR graphics generated with scripts/build-ai-handouts.py (reportlab, qrcode, pypdf for inspection). QR directs to canonical lesson and official service.
+Official conditions checked 19.10.2026: https://help.suno.com/en/articles/9601601 ; https://help.suno.com/en/articles/13876865 ; https://gamma.app/pricing ; https://yandex.ru/support/shedevrum/ru/install ; https://www.recraft.ai/vector-editor ; https://pika.art/pricing ; https://kling.ai/ . Limits and access vary. Kandinsky bot handle is not guessed; official web links provided.
