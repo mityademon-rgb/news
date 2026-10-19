@@ -1,0 +1,65 @@
+name: Keep older TIMECODE lab buttons working
+on:
+  push:
+    branches: [boom-kadr-deploy]
+    paths: ['.github/workflows/timecode-teacher-compat.yml']
+permissions:
+  contents: read
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 2
+      - run: bash scripts/check-project-documentation.sh HEAD^ HEAD
+      - uses: actions/checkout@v4
+        with:
+          repository: mityademon-rgb/media-center-bot
+          ref: 0c84ff9bd0da5fb052f8e59ff5589076beb74d99
+          path: source
+      - uses: actions/checkout@v4
+        with:
+          repository: mityademon-rgb/media-center-bot
+          ref: 6949374132d3ce58b2c825139977706e985713a9
+          path: previous
+      - name: Check previous and new user journeys
+        working-directory: source/timecode-bot
+        run: |
+          python3 -m unittest discover -s tests -p test_teacher_mode.py
+          python3 -m py_compile teacher_mode.py
+      - name: Connect
+        env:
+          BOOM_SSH_KEY: ${{ secrets.BOOM_SSH_KEY }}
+        run: |
+          install -d -m 700 ~/.ssh
+          printf '%s\n' "$BOOM_SSH_KEY" > ~/.ssh/timecode
+          chmod 600 ~/.ssh/timecode
+          ssh-keyscan -T 8 -H 217.149.24.242 > ~/.ssh/known_hosts
+      - name: Addressed module correction
+        run: |
+          set -Eeuo pipefail
+          ssh -i ~/.ssh/timecode -o BatchMode=yes root@217.149.24.242 'install -d -m 700 /tmp/timecode-teacher-compat'
+          scp -i ~/.ssh/timecode source/timecode-bot/teacher_mode.py root@217.149.24.242:/tmp/timecode-teacher-compat/new.py
+          scp -i ~/.ssh/timecode previous/timecode-bot/teacher_mode.py root@217.149.24.242:/tmp/timecode-teacher-compat/old.py
+          ssh -i ~/.ssh/timecode -o BatchMode=yes root@217.149.24.242 'bash -s' <<'REMOTE'
+          set -Eeuo pipefail
+          cd /opt/timecode-bot/timecode-bot
+          cmp teacher_mode.py /tmp/timecode-teacher-compat/old.py
+          backup=$(mktemp -d /opt/timecode-bot/teacher-compat-backup-XXXXXXXX)
+          chmod 700 "$backup"
+          cp -p teacher_mode.py "$backup/"
+          rollback() { cp -p "$backup/teacher_mode.py" .; systemctl restart timecode-bot.service || true; }
+          trap rollback ERR
+          install -m 0644 /tmp/timecode-teacher-compat/new.py teacher_mode.py
+          python3 -m py_compile teacher_mode.py server.py
+          systemctl restart timecode-bot.service
+          curl -fsS --retry 8 --retry-delay 2 --retry-connrefused --max-time 12 http://127.0.0.1:8097/health -o /dev/null
+          curl -fsS --max-time 12 https://timecode-lab.ru/tc/health -o /dev/null
+          cmp teacher_mode.py /tmp/timecode-teacher-compat/new.py
+          systemctl is-active --quiet timecode-bot.service
+          trap - ERR
+          printf '%s\n' "$backup" > /opt/timecode-bot/teacher-compat-latest-backup-path
+          echo 'TEACHER_COMPAT_LIVE_OK'
+          REMOTE
