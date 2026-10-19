@@ -6,3 +6,15 @@ No dk.mosreg.ru interface screenshots or private journal data used.
 
 2026-10-19 revision: gigachat-screen.jpg, deepseek-screen.jpg, qwen-screen.jpg, kimi-screen.jpg — actual public pre-login service interfaces, inspected before use; educational identification and UI orientation only. Qwen/Kimi contain an unsent synthetic teaching prompt, no generated answer or private data. Official sites linked beside images. Screens are not evidence of output quality. giga-history.png / giga-draw.png not published by this revision.
 Eight new *-result.svg files are original editorial teaching diagrams, explicitly labeled as examples, not service screenshots or measured service outputs.
+
+2026-10-19 · First lesson narrative rebuild
+show/story.webp, workshop.webp, team.webp, home.webp, learning.webp: original AI-generated editorial illustrations, built-in image_gen, illustration-story use case; resized non-destructively to 1400px WebP from PNG originals in workspace generated_images. A fictional teacher and violet helper are narrative metaphors, not real people or representations of service UIs or internal AI architecture. No private student/teacher photos used. Art specifications and purposes: show/README.md.
+First-lesson text, demos, prompt builder and teaching examples: original TIMECODE instructional content. Revealed demo text is explicitly identified as a prepared teaching example, not a live service answer.
+Additional official references checked 19.10.2026:
+https://giga.chat/help/articles/how-to-start-work-with-gigachat
+https://www.deepseek.com/en/download/
+https://qwen.ai/download
+https://www.kimi.com/en/products/download
+https://www.kimi.com/en/help/features/memory-space
+https://alice.yandex.ru/aliceapp
+https://alice.yandex.ru/security/
