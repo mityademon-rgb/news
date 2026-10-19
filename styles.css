@@ -7418,3 +7418,6 @@ html:fullscreen .ai-active .site-header,html:fullscreen .ai-active .site-footer{
 @media(max-width:700px){.ai-start-qr{grid-template-columns:1fr;gap:18px;padding:20px}.ai-start-qr img{width:190px;height:190px;margin:auto}.ai-start-qr strong{font-size:24px}.ai-lesson-bar .fullscreen-toggle{margin-left:auto}.ai-active.presentation-mode .ai-lesson{padding:12px}.ai-active.presentation-mode .ai-learning-card h1{font-size:36px}}
 
 .ai-audio{padding:20px;margin:24px 0;background:#edf2fc;border-radius:9px}.ai-audio audio{width:100%}.ai-audio figcaption{font-size:14px;line-height:1.6;margin-top:14px}
+
+/* Wide editorial art on the AI capabilities card. */
+.ai-learning-card.ai-image-wide:has(.ai-evidence-grid){display:block}.ai-learning-card.ai-image-wide>.ai-evidence-grid{position:static;display:block;margin:24px 0}.ai-learning-card.ai-image-wide .ai-evidence img{width:100%;max-height:620px;object-fit:contain}.ai-active.presentation-mode .ai-image-wide .ai-evidence img{max-height:55vh}
