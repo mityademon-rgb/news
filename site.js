@@ -8617,6 +8617,12 @@ Object.assign(window.TIMECODE_TEACHER_GUIDES, {
   function aiBind(n) {
     document.querySelector("#fullscreen-toggle")?.addEventListener("click",aiFullscreen);
     updateFullscreenButton();
+    const promptField=document.querySelector("#ai-prompt");
+    if(promptField){
+      const fitPrompt=()=>{if(!promptField.isConnected)return;promptField.style.height="auto";promptField.style.height=Math.max(210,promptField.scrollHeight+3)+"px";};
+      promptField.addEventListener("input",fitPrompt);requestAnimationFrame(fitPrompt);
+      document.fonts?.ready.then(fitPrompt);
+    }
     document.querySelectorAll("[data-ai-download]").forEach(b=>b.addEventListener("click",()=>aiDownload(Number(b.dataset.aiDownload)||null)));
     document.querySelector("[data-ai-copy]")?.addEventListener("click",e=>aiCopy(document.querySelector("#ai-prompt").value,e.currentTarget));
     document.querySelectorAll("[data-ai-followup]").forEach(b=>b.addEventListener("click",()=>{
