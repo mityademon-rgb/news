@@ -1,0 +1,104 @@
+name: Install TIMECODE teacher registration and daily mode
+on:
+  push:
+    branches: [boom-kadr-deploy]
+    paths: ['.github/workflows/timecode-teacher-mode.yml']
+permissions:
+  contents: read
+concurrency:
+  group: timecode-teacher-mode
+  cancel-in-progress: false
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    timeout-minutes: 7
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 2
+      - name: Project documentation gate
+        run: bash scripts/check-project-documentation.sh HEAD^ HEAD
+      - uses: actions/checkout@v4
+        with:
+          repository: mityademon-rgb/media-center-bot
+          ref: 6949374132d3ce58b2c825139977706e985713a9
+          path: source
+      - uses: actions/checkout@v4
+        with:
+          repository: mityademon-rgb/media-center-bot
+          ref: 4587637d07c148cb441d91284672f8b12bcddcde
+          path: previous
+      - name: Test registration, mode, AI and syntax
+        working-directory: source/timecode-bot
+        run: |
+          python3 -m unittest discover -s tests -p test_teacher_mode.py
+          python3 -m unittest discover -s tests -p test_neuro_advisor.py
+          python3 -m py_compile teacher_mode.py daily_status.py server.py
+          node --check static/neuro.js
+      - name: Connect to TIMECODE
+        env:
+          BOOM_SSH_KEY: ${{ secrets.BOOM_SSH_KEY }}
+        run: |
+          install -d -m 700 ~/.ssh
+          printf '%s\n' "$BOOM_SSH_KEY" > ~/.ssh/timecode
+          chmod 600 ~/.ssh/timecode
+          ssh-keyscan -T 8 -H 217.149.24.242 > ~/.ssh/known_hosts
+      - name: Back up and update only teacher mode, daily status, AI UI and hook
+        run: |
+          set -Eeuo pipefail
+          ssh -i ~/.ssh/timecode -o BatchMode=yes root@217.149.24.242 'install -d -m 700 /tmp/timecode-teacher-mode'
+          scp -i ~/.ssh/timecode source/timecode-bot/teacher_mode.py source/timecode-bot/daily_status.py source/timecode-bot/static/neuro.js source/timecode-bot/TEACHER_MODE.md root@217.149.24.242:/tmp/timecode-teacher-mode/
+          scp -i ~/.ssh/timecode previous/timecode-bot/daily_status.py root@217.149.24.242:/tmp/timecode-teacher-mode/previous-daily-status.py
+          scp -i ~/.ssh/timecode previous/timecode-bot/static/neuro.js root@217.149.24.242:/tmp/timecode-teacher-mode/previous-neuro.js
+          ssh -i ~/.ssh/timecode -o BatchMode=yes -o ServerAliveInterval=10 root@217.149.24.242 'bash -s' <<'REMOTE'
+          set -Eeuo pipefail
+          cd /opt/timecode-bot/timecode-bot
+          cmp daily_status.py /tmp/timecode-teacher-mode/previous-daily-status.py
+          cmp static/neuro.js /tmp/timecode-teacher-mode/previous-neuro.js
+          test ! -e teacher_mode.py
+          test ! -e TEACHER_MODE.md
+          python3 - <<'PY'
+          from pathlib import Path
+          p=Path('server.py')
+          text=p.read_text()
+          anchor='import neuro_advisor\nneuro_advisor.install(globals())\n'
+          assert text.count(anchor)==1 and 'teacher_mode.install(globals())' not in text
+          assert text.index(anchor)<text.index("if __name__=='__main__':")
+          PY
+          backup=$(mktemp -d /opt/timecode-bot/teacher-mode-backup-XXXXXXXX)
+          chmod 700 "$backup"
+          cp -p server.py daily_status.py "$backup/"
+          cp -p static/neuro.js "$backup/neuro.js"
+          rollback() {
+            cp -p "$backup/server.py" "$backup/daily_status.py" .
+            cp -p "$backup/neuro.js" static/neuro.js
+            rm -f teacher_mode.py TEACHER_MODE.md
+            systemctl restart timecode-bot.service || true
+          }
+          trap rollback ERR
+          install -m 0644 /tmp/timecode-teacher-mode/teacher_mode.py teacher_mode.py
+          install -m 0644 /tmp/timecode-teacher-mode/daily_status.py daily_status.py
+          install -m 0644 /tmp/timecode-teacher-mode/neuro.js static/neuro.js
+          install -m 0644 /tmp/timecode-teacher-mode/TEACHER_MODE.md TEACHER_MODE.md
+          python3 - <<'PY'
+          from pathlib import Path
+          p=Path('server.py');text=p.read_text()
+          anchor='import neuro_advisor\nneuro_advisor.install(globals())\n'
+          assert text.count(anchor)==1
+          p.write_text(text.replace(anchor,anchor+'import teacher_mode\nteacher_mode.install(globals())\n',1))
+          PY
+          python3 -m py_compile teacher_mode.py daily_status.py server.py
+          systemctl restart timecode-bot.service
+          curl -fsS --retry 8 --retry-delay 2 --retry-connrefused --max-time 12 http://127.0.0.1:8097/health -o /dev/null
+          curl -fsS --max-time 12 https://timecode-lab.ru/tc/health -o /dev/null
+          cmp teacher_mode.py /tmp/timecode-teacher-mode/teacher_mode.py
+          cmp daily_status.py /tmp/timecode-teacher-mode/daily_status.py
+          cmp static/neuro.js /tmp/timecode-teacher-mode/neuro.js
+          test "$(curl -sS --max-time 12 -o /dev/null -w '%{http_code}' -H 'Content-Type: application/json' -d '{"enabled":true}' http://127.0.0.1:8097/api/teacher-mode)" = 401
+          test "$(curl -sS --max-time 12 -o /dev/null -w '%{http_code}' -H 'Content-Type: application/json' -d '{"message":"test"}' http://127.0.0.1:8097/api/neuro)" = 401
+          curl -fsS --max-time 12 http://127.0.0.1:8097/neuro.js -o /dev/null
+          systemctl is-active --quiet timecode-bot.service
+          trap - ERR
+          printf '%s\n' "$backup" > /opt/timecode-bot/teacher-mode-latest-backup-path
+          echo 'TEACHER_MODE_LIVE_HEALTH_AUTH_STATIC_OK_NO_MESSAGES_SENT'
+          REMOTE
