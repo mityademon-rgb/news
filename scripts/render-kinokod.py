@@ -4,7 +4,7 @@ from PIL import Image, ImageDraw, ImageFont, ImageFilter
 import math, random, os
 random.seed(27012)
 W,H=1024,576
-ROOT=os.path.join(os.path.dirname(__file__),'..','..','kinokod-images')
+ROOT=os.path.join(os.path.dirname(__file__),'..','kinokod-images')
 os.makedirs(ROOT,exist_ok=True)
 F='/usr/share/fonts/truetype/dejavu/DejaVuSans.ttf'
 FB='/usr/share/fonts/truetype/dejavu/DejaVuSans-Bold.ttf'
