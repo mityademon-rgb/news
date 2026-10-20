@@ -1,4 +1,4 @@
-name: Deploy TIMECODE KinoKod safely
+name: Update TIMECODE KinoKod invitation mechanics
 on:
   push:
     branches: [boom-kadr-deploy]
@@ -9,19 +9,24 @@ concurrency:
   group: timecode-kinokod
   cancel-in-progress: false
 jobs:
-  install:
+  update:
     runs-on: ubuntu-latest
     timeout-minutes: 10
     steps:
       - uses: actions/checkout@v4
-        with: {fetch-depth: 5}
+        with: {fetch-depth: 4}
       - name: Documentation guard
-        run: bash scripts/check-project-documentation.sh HEAD~3 HEAD
+        run: bash scripts/check-project-documentation.sh HEAD~1 HEAD
+      - uses: actions/checkout@v4
+        with:
+          repository: mityademon-rgb/media-center-bot
+          ref: a4ec9c397a9c82a52ef588fd2d1664bee5f2d09c
+          path: source
       - uses: actions/checkout@v4
         with:
           repository: mityademon-rgb/media-center-bot
           ref: 30cbf260dfc6068f34f9d15c897a8523f1fe84df
-          path: source
+          path: previous
       - name: Syntax check
         run: python3 -m py_compile source/timecode-bot/kinokod.py
       - name: Connect
@@ -32,51 +37,31 @@ jobs:
           printf '%s\n' "$BOOM_SSH_KEY" > ~/.ssh/timecode
           chmod 600 ~/.ssh/timecode
           ssh-keyscan -T 8 -H 217.149.24.242 > ~/.ssh/known_hosts
-      - name: Deploy only new module and exact hook
+      - name: Address-only update with rollback
         run: |
           set -Eeuo pipefail
-          scp -i ~/.ssh/timecode source/timecode-bot/kinokod.py root@217.149.24.242:/tmp/timecode-kinokod.py
+          scp -i ~/.ssh/timecode source/timecode-bot/kinokod.py root@217.149.24.242:/tmp/timecode-kinokod-next.py
+          scp -i ~/.ssh/timecode previous/timecode-bot/kinokod.py root@217.149.24.242:/tmp/timecode-kinokod-prev.py
           ssh -i ~/.ssh/timecode -o BatchMode=yes root@217.149.24.242 'bash -s' <<'REMOTE'
           set -Eeuo pipefail
           cd /opt/timecode-bot/timecode-bot
-          python3 - <<'PY'
-          from pathlib import Path
-          src=Path('server.py').read_text()
-          anchor="import teacher_mode\nteacher_mode.install(globals())\n"
-          assert src.count(anchor)==1, 'Current production hook differs: nothing changed'
-          assert 'kinokod.install(globals())' not in src, 'KinoKod already installed'
-          assert not Path('kinokod.py').exists(), 'Existing module: nothing changed'
-          PY
-          backup=$(mktemp -d /opt/timecode-bot/kinokod-backup-XXXXXXXX)
+          cmp kinokod.py /tmp/timecode-kinokod-prev.py
+          grep -q 'kinokod.install(globals())' server.py
+          backup=$(mktemp -d /opt/timecode-bot/kinokod-update-backup-XXXXXXXX)
           chmod 700 "$backup"
-          cp -p server.py "$backup/server.py"
-          python3 - "$backup" <<'PY'
-          import sqlite3,sys
-          source=sqlite3.connect('file:/var/lib/timecode-bot/timecode.db?mode=ro',uri=True)
-          target=sqlite3.connect(sys.argv[1]+'/timecode.db')
-          source.backup(target)
-          target.close();source.close()
-          PY
-          chmod 600 "$backup/timecode.db"
+          cp -p kinokod.py "$backup/kinokod.py"
           rollback() {
-            cp -p "$backup/server.py" server.py
-            rm -f kinokod.py
+            cp -p "$backup/kinokod.py" kinokod.py
             systemctl restart timecode-bot.service || true
           }
           trap rollback ERR
-          install -m 0644 /tmp/timecode-kinokod.py kinokod.py
-          python3 - <<'PY'
-          from pathlib import Path
-          p=Path('server.py');s=p.read_text()
-          anchor="import teacher_mode\nteacher_mode.install(globals())\n"
-          p.write_text(s.replace(anchor,anchor+"import kinokod\nkinokod.install(globals())\n",1))
-          PY
-          python3 -m py_compile kinokod.py server.py
+          install -m 0644 /tmp/timecode-kinokod-next.py kinokod.py
+          python3 -m py_compile kinokod.py
           systemctl restart timecode-bot.service
           curl -fsS --retry 8 --retry-delay 2 --retry-connrefused --max-time 12 http://127.0.0.1:8097/health
-          echo "$backup" >/opt/timecode-bot/kinokod-latest-backup-path
+          echo "$backup" > /opt/timecode-bot/kinokod-update-latest-backup-path
           trap - ERR
-          echo "KinoKod module installed and service healthy"
+          echo "KinoKod invitations active"
           REMOTE
       - name: Verify public health
-        run: curl -fsS --retry 5 --retry-delay 3 --max-time 12 https://timecode-lab.ru/tc/health
+        run: curl -fsS --retry 4 --retry-delay 3 --max-time 12 https://timecode-lab.ru/tc/health
