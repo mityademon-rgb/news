@@ -21,7 +21,7 @@ jobs:
       - uses: actions/checkout@v4
         with:
           repository: mityademon-rgb/media-center-bot
-          ref: 4450dcf7f03b11493f12945eac38b0cd1de5ba9b
+          ref: 85a6d12a89323185da25a536028650b0a1ce4e34
           path: source
       - uses: actions/checkout@v4
         with:
@@ -172,7 +172,7 @@ jobs:
           python3 - <<'PY'
           import json,os,datetime
           info={'time_utc':datetime.datetime.now(datetime.timezone.utc).isoformat(),
-                'run_id':os.getenv('GITHUB_RUN_ID'),'source':'4450dcf7f03b11493f12945eac38b0cd1de5ba9b',
+                'run_id':os.getenv('GITHUB_RUN_ID'),'source':'85a6d12a89323185da25a536028650b0a1ce4e34',
                 'steps':{k:os.environ.get('STEP_'+k.upper(),'') for k in ('guard','tests','connect','deploy','audit','public')}}
           open('kinokod-ci-status.json','w').write(json.dumps(info,ensure_ascii=False,indent=2)+'\n')
           PY
