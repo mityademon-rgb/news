@@ -20,7 +20,7 @@ jobs:
       - uses: actions/checkout@v4
         with:
           repository: mityademon-rgb/media-center-bot
-          ref: 4b684d9577bb95fabd775aa2e3be5067984d7df9
+          ref: 351a4ab4f12dea91a4bd94a5110cb4d760ab7781
           path: source
       - uses: actions/checkout@v4
         with:

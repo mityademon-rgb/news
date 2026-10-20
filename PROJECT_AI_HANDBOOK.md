@@ -1095,3 +1095,7 @@ Canonical source `mityademon-rgb/media-center-bot` branch `feature/timecode-medi
 ## 2026-10-21 — Адресное восстановление надёжности вечерней переклички
 
 Используется штатный deployment workflow `.github/workflows/timecode-playful-checkins.yml` для строго одной функции `playful_checkins.py` из `media-center-bot` commit `4b684d9577bb95fabd775aa2e3be5067984d7df9`. Прежняя установленная версия соответствует commit `97743f8cf9e28c6c6abc8a1193788909017c13c1`. Workflow проверяет точное совпадение с live исходником, выполняет тесты, сохраняет копию `playful_checkins.py` и консистентную копию SQLite с ограничением доступа, устанавливает только указанный файл, перезапускает только `timecode-bot.service`, проверяет health. После сбоя restore только модуля: SQLite не перезатирать. Основное приглашение 18:00 переводится в notification_outbox с retries Telegram/MAX; catch-up допускается только до 20:00 текущего дня. Вечерний таблоид Кими 20:30 зависит от отдельного provider/редакторского контура и не восстановится автоматически при ошибках 429.
+
+## 2026-10-21 — Fixture для регрессии вечерней переклички
+
+Провал CI до установки исправлен только в тесте: `tests/test_playful_checkins.py` теперь моделирует уже завершивших регистрацию детей с пустым stage и фиксирует `teacher_daily_enabled` как отдельную функцию для изолированного стенда. Production-модуль не изменён; новая версия теста в commit `351a4ab4f12dea91a4bd94a5110cb4d760ab7781`. При test failure deploy не выполняется.
