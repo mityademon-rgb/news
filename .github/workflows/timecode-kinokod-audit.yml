@@ -1,0 +1,63 @@
+name: Audit TIMECODE KinoKod delivery read-only
+on:
+  push:
+    branches: [boom-kadr-deploy]
+    paths: ['.github/workflows/timecode-kinokod-audit.yml']
+permissions:
+  contents: read
+jobs:
+  audit:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v4
+        with: {fetch-depth: 6}
+      - name: Documentation guard
+        run: bash scripts/check-project-documentation.sh HEAD~3 HEAD
+      - name: Connect without changing runtime
+        env:
+          BOOM_SSH_KEY: ${{ secrets.BOOM_SSH_KEY }}
+        run: |
+          install -d -m 700 ~/.ssh
+          printf '%s\n' "$BOOM_SSH_KEY" > ~/.ssh/timecode
+          chmod 600 ~/.ssh/timecode
+          ssh-keyscan -T 8 -H 217.149.24.242 > ~/.ssh/known_hosts
+      - name: Compute safe aggregated receipts
+        run: |
+          ssh -i ~/.ssh/timecode -o BatchMode=yes root@217.149.24.242 'python3 -' <<'PY'
+          import json,sqlite3,datetime,pathlib,os,urllib.request
+          db=sqlite3.connect('file:/var/lib/timecode-bot/timecode.db?mode=ro',uri=True)
+          db.row_factory=sqlite3.Row
+          def platform(uid):
+              return 'MAX' if isinstance(uid,int) and uid<0 else 'Telegram' if isinstance(uid,int) else 'other'
+          deliveries={name:{kind:{} for kind in ('invitation','episode','other')} for name in ('Telegram','MAX','other')}
+          for row in db.execute("select message_key,chat,delivered from notification_outbox where message_key like 'kc-kinokod20261020-%'"):
+              try:target=platform(json.loads(row['chat']))
+              except Exception:target='other'
+              key=row['message_key']
+              kind='invitation' if '-invite-' in key else 'episode' if key.endswith(('-0','-1','-2','-3','-4','-5','-6','-final')) else 'other'
+              state=str(row['delivered'])
+              bucket=deliveries[target][kind]
+              bucket[state]=bucket.get(state,0)+1
+          pictures={name:{} for name in ('Telegram','MAX','other')}
+          for row in db.execute('select user_id,delivered from kinokod_visuals'):
+              bucket=pictures[platform(row['user_id'])]
+              state=str(row['delivered'])
+              bucket[state]=bucket.get(state,0)+1
+          players={name:0 for name in ('Telegram','MAX','other')}
+          for row in db.execute('select user_id from kinokod_players'):
+              players[platform(row['user_id'])]+=1
+          posts=[r['slot'] for r in db.execute('select slot from kinokod_posts order by slot')]
+          module=pathlib.Path('/opt/timecode-bot/timecode-bot/kinokod.py').read_text()
+          images=list(pathlib.Path('/opt/timecode-bot/timecode-bot/static').glob('kinokod-*.png'))
+          try:
+              with urllib.request.urlopen('http://127.0.0.1:8097/health',timeout=6) as r:health=(r.status==200)
+          except Exception:health=False
+          result={'checked_at_utc':datetime.datetime.now(datetime.timezone.utc).isoformat(),'healthy':health,
+              'rich_module':all(x in module for x in ('def send_visual','def kimi_answer','def kimi_photo','kinokod_players')),
+              'visual_cards_installed':len(images),'deliveries':deliveries,'pictures':pictures,'joined':players,'released_slots':posts}
+          dest=pathlib.Path('/opt/timecode-bot/kinokod-status.json')
+          dest.write_text(json.dumps(result,ensure_ascii=False,indent=2)+'\n')
+          os.chmod(dest,0o644)
+          print(json.dumps(result,ensure_ascii=False))
+          PY
