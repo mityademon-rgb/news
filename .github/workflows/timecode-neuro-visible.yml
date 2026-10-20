@@ -17,18 +17,21 @@ jobs:
       - uses: actions/checkout@v4
         with:
           repository: mityademon-rgb/media-center-bot
-          ref: 84b8ccaa653bf4251eec978f68f9a3b3479ac37c
+          ref: 84145aa724b75233fc9918d545fb40ef1c5196a1
           path: source
       - uses: actions/checkout@v4
         with:
           repository: mityademon-rgb/media-center-bot
-          ref: ac794aaf5a321c7414c641cc658b7ddfb36c0713
+          ref: 84b8ccaa653bf4251eec978f68f9a3b3479ac37c
           path: previous
       - name: Syntax and anchor
         run: |
           node --check source/timecode-bot/static/neuro.js
           grep -Fq "['more', '⋯', 'Ещё']" source/timecode-bot/static/neuro.js
           grep -Fq 'neuro.js?v=20261021-dock5' source/timecode-bot/static/index.html
+          grep -Fq 'neuro-max-access' source/timecode-bot/static/neuro.js
+          grep -Fq 'window.enterTeacherCode' source/timecode-bot/static/neuro.js
+          grep -Fq "['teacher', 'admin'].includes(nextState?.me?.role)" source/timecode-bot/static/neuro.js
       - name: Connect
         env:
           BOOM_SSH_KEY: ${{ secrets.BOOM_SSH_KEY }}
@@ -50,8 +53,8 @@ jobs:
           python3 - <<'PY'
           from pathlib import Path
           s=Path('static/index.html').read_text()
-          assert s.count('neuro.js?v=20261021-dock5"')==1
-          assert 'neuro.js?v=20261021-visible-all"' not in s
+          assert s.count('neuro.js?v=20261021-visible-all"')==1
+          assert 'neuro.js?v=20261021-max-auth"' not in s
           PY
           backup=$(mktemp -d /opt/timecode-bot/neuro-visible-backup-XXXXXXXX)
           chmod 700 "$backup"
@@ -62,8 +65,8 @@ jobs:
           python3 - <<'PY'
           from pathlib import Path
           p=Path('static/index.html');s=p.read_text()
-          assert s.count('neuro.js?v=20261021-dock5"')==1
-          p.write_text(s.replace('neuro.js?v=20261021-dock5"','neuro.js?v=20261021-visible-all"',1))
+          assert s.count('neuro.js?v=20261021-visible-all"')==1
+          p.write_text(s.replace('neuro.js?v=20261021-visible-all"','neuro.js?v=20261021-max-auth"',1))
           PY
           cmp static/neuro.js /tmp/timecode-neuro-visible/neuro.js
           BACKUP_DIR="$backup" python3 - <<'PY'
@@ -71,11 +74,11 @@ jobs:
           from pathlib import Path
           old=(Path(os.environ['BACKUP_DIR'])/'index.html').read_text()
           new=Path('static/index.html').read_text()
-          assert new==old.replace('neuro.js?v=20261021-dock5"','neuro.js?v=20261021-visible-all"',1)
+          assert new==old.replace('neuro.js?v=20261021-visible-all"','neuro.js?v=20261021-max-auth"',1)
           PY
           curl -fsS --max-time 12 http://127.0.0.1:8097/health -o /dev/null
           curl -fsS --max-time 12 https://timecode-lab.ru/tc/health -o /dev/null
-          curl -fsS --max-time 12 https://timecode-lab.ru/tc/ | grep -Fq 'neuro.js?v=20261021-visible-all'
+          curl -fsS --max-time 12 https://timecode-lab.ru/tc/ | grep -Fq 'neuro.js?v=20261021-max-auth'
           trap - ERR
           printf '%s\n' "$backup" > /opt/timecode-bot/neuro-visible-latest-backup-path
           echo 'NEURO_FIVE_TABS_LIVE_OK'
