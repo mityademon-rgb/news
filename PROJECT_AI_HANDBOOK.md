@@ -1071,3 +1071,7 @@ Read-only audit workflow `timecode-kinokod-audit.yml` отдельно от ус
 ## 2026-10-20 — Диагностика статуса workflow квеста
 
 Развёртывание timecode-kinokod.yml публикует отдельный технический marker `kinokod-ci-status.json` в ту же ветку GitHub при любом исходе, чтобы можно было отличить ошибку unit tests, preflight, SSH, deploy и production health. Marker содержит только исходы steps и id CI, никаких ключей и ответов детей. Право contents:write только для записи этого marker. Он не меняет bot production и не запускает повторный deploy, потому что watcher подписан лишь на изменения workflow YAML. Старые ci-status.json безопасно заменять новым статусом, а журнал изменений и handbook остаются обязательными.
+
+## 2026-10-20 — Regression test setup for story flow
+
+The isolated unit test `timecode-bot/tests/test_kinokod_flow.py` must call `kinokod.tables(test_db)` before inserting legacy player records or checking missing future rows. The original test suite failed during fixture setup (SQLite tables not initialized), not in the narrative code. Fixed in media-center-bot commit `85a6d12a89323185da25a536028650b0a1ce4e34`; pinned checkout in deployment workflow must follow this commit and run the tests before changing production.
