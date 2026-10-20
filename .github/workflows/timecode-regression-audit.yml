@@ -35,6 +35,8 @@ jobs:
               try:return [dict(r) for r in db.execute(sql,args).fetchall()]
               except sqlite3.Error as exc:return [{'error':type(exc).__name__}]
           users=collect('select role,enabled,count(*) n from users group by role,enabled')
+          roles_by_platform=collect("select case when id<0 then 'MAX' else 'Telegram' end platform,role,count(*) n from users group by platform,role")
+          linked_roles=collect("select m.platform,u.role,count(*) n from messenger_identities m join users u on m.user_id=u.id group by m.platform,u.role")
           slots=collect('select day,slot from sent where day in (?,?) order by day,slot',('2026-10-20','2026-10-21'))
           checkins={}
           for name in ('morning_checkins','evening_checkins'):
@@ -67,7 +69,7 @@ jobs:
           j=subprocess.run(['journalctl','-u','timecode-bot.service','--since','2026-10-20 15:00:00','--until','2026-10-21 00:00:00','--no-pager','-o','cat'],capture_output=True,text=True).stdout
           patterns=['Slot failed: evening','Scheduler:','Telegram: sendMessage transport code','Telegram: sendMessage request failed','Kimi edition pending: pm','Notification retry:','MAX send failed:']
           logcounts={k:sum(k in ln for ln in j.splitlines()) for k in patterns}
-          result=dict(checked_moscow=now.isoformat(),health=health,assets=attrs,role_counts=users,slots=slots,checkins=checkins,notification_counts=msgs,evening_queue=queue,kimi_jobs=jobs,kimi_editions=editions,log_counts=logcounts,db_check=db.execute('pragma quick_check').fetchone()[0])
+          result=dict(checked_moscow=now.isoformat(),health=health,assets=attrs,role_counts=users,roles_by_platform=roles_by_platform,linked_roles=linked_roles,slots=slots,checkins=checkins,notification_counts=msgs,evening_queue=queue,kimi_jobs=jobs,kimi_editions=editions,log_counts=logcounts,db_check=db.execute('pragma quick_check').fetchone()[0])
           print(json.dumps(result,ensure_ascii=False,indent=2))
           PY
       - name: Save safe diagnostic summary in GitHub
