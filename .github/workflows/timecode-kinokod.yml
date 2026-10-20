@@ -16,16 +16,16 @@ jobs:
       - uses: actions/checkout@v4
         with: {fetch-depth: 12}
       - name: Required documentation guard
-        run: bash scripts/check-project-documentation.sh HEAD~4 HEAD
+        run: bash scripts/check-project-documentation.sh HEAD~3 HEAD
       - uses: actions/checkout@v4
         with:
           repository: mityademon-rgb/media-center-bot
-          ref: c88c21519c4110260571567b23509200fd163c20
+          ref: b92dabb11818b32bdf8b7538552c9815e18b7ea2
           path: source
       - uses: actions/checkout@v4
         with:
           repository: mityademon-rgb/media-center-bot
-          ref: 30cbf260dfc6068f34f9d15c897a8523f1fe84df
+          ref: c88c21519c4110260571567b23509200fd163c20
           path: previous
       - uses: actions/setup-python@v5
         with:
