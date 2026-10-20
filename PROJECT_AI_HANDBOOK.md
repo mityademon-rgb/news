@@ -1075,3 +1075,7 @@ Read-only audit workflow `timecode-kinokod-audit.yml` отдельно от ус
 ## 2026-10-20 — Regression test setup for story flow
 
 The isolated unit test `timecode-bot/tests/test_kinokod_flow.py` must call `kinokod.tables(test_db)` before inserting legacy player records or checking missing future rows. The original test suite failed during fixture setup (SQLite tables not initialized), not in the narrative code. Fixed in media-center-bot commit `85a6d12a89323185da25a536028650b0a1ce4e34`; pinned checkout in deployment workflow must follow this commit and run the tests before changing production.
+
+## 2026-10-21 — Проверка регрессий «Нейросети» и вечерней переклички
+
+В связи с исчезновением кнопки в Mini App и пропуском вечерней переклички: безопасная read-only диагностика отдельным workflow `.github/workflows/timecode-regression-audit.yml` через неизвлекаемый BOOM_SSH_KEY. Проверяет отдельные слоты `sent`, агрегаты вечерних перекличек, Kimi job pm, очередь, роль пользователей в агрегате, факт наличия neuro.js/index.html и live health; результат содержит только агрегаты в `timecode-regression-status.json`, без идентификаторов, пользовательских сообщений или секретов. Не импортировать server.py и не вызывать getUpdates, не повторять вчерашние приглашения после закрытия окна.
