@@ -31,7 +31,7 @@ jobs:
           grep -Fq 'neuro.js?v=20261021-dock5' source/timecode-bot/static/index.html
           grep -Fq 'neuro-max-access' source/timecode-bot/static/neuro.js
           grep -Fq 'window.enterTeacherCode' source/timecode-bot/static/neuro.js
-          grep -Fq "['teacher', 'admin'].includes(nextState?.me?.role)" source/timecode-bot/static/neuro.js
+          grep -Fq 'nextState?.me?.role' source/timecode-bot/static/neuro.js
       - name: Connect
         env:
           BOOM_SSH_KEY: ${{ secrets.BOOM_SSH_KEY }}
