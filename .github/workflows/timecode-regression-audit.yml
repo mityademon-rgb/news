@@ -1,0 +1,84 @@
+name: Audit TIMECODE AI tab and evening delivery
+on:
+  push:
+    branches: [boom-kadr-deploy]
+    paths: ['.github/workflows/timecode-regression-audit.yml']
+permissions:
+  contents: write
+jobs:
+  audit:
+    runs-on: ubuntu-latest
+    timeout-minutes: 6
+    steps:
+      - uses: actions/checkout@v4
+        with: {fetch-depth: 5}
+      - name: Documentation guard
+        run: bash scripts/check-project-documentation.sh HEAD~3 HEAD
+      - name: SSH credentials (not logged)
+        env:
+          BOOM_SSH_KEY: ${{ secrets.BOOM_SSH_KEY }}
+        run: |
+          install -d -m 700 ~/.ssh
+          printf '%s\n' "$BOOM_SSH_KEY" > ~/.ssh/timecode
+          chmod 600 ~/.ssh/timecode
+          ssh-keyscan -T 8 -H 217.149.24.242 > ~/.ssh/known_hosts
+      - name: Read live runtime and SQLite aggregates only
+        run: |
+          ssh -i ~/.ssh/timecode -o BatchMode=yes root@217.149.24.242 'python3 -' > timecode-regression-status.json <<'PY'
+          import json,sqlite3,datetime,pathlib,collections,urllib.request,subprocess,re
+          from zoneinfo import ZoneInfo
+          now=datetime.datetime.now(ZoneInfo('Europe/Moscow'))
+          db=sqlite3.connect('file:/var/lib/timecode-bot/timecode.db?mode=ro',uri=True)
+          db.row_factory=sqlite3.Row
+          names={r[0] for r in db.execute("select name from sqlite_master where type='table'")}
+          def collect(sql,args=()):
+              try:return [dict(r) for r in db.execute(sql,args).fetchall()]
+              except sqlite3.Error as exc:return [{'error':type(exc).__name__}]
+          users=collect('select role,enabled,count(*) n from users group by role,enabled')
+          slots=collect('select day,slot from sent where day in (?,?) order by day,slot',('2026-10-20','2026-10-21'))
+          checkins={}
+          for name in ('morning_checkins','evening_checkins'):
+              checkins[name]=collect('select day,step,count(*) n from '+name+' where day in (?,?) group by day,step',('2026-10-20','2026-10-21'))
+          msgs=collect("select day, delivered,count(*) n from notification_outbox where day in (?,?) group by day,delivered",('2026-10-20','2026-10-21'))
+          queue=collect("select day,message_key,delivered,count(*) n from notification_outbox where day in (?,?) and (message_key like 'checkin-%' or message_key like 'evening-%') group by day,message_key,delivered",('2026-10-20','2026-10-21'))
+          jobs=collect("select day,period,status,attempts,reason from kimi_edition_jobs where day in (?,?)",('2026-10-20','2026-10-21'))
+          editions=collect("select day,period,count(*) n from kimi_editions where day in (?,?) group by day,period",('2026-10-20','2026-10-21'))
+          root=pathlib.Path('/opt/timecode-bot/timecode-bot')
+          index=(root/'static/index.html').read_text()
+          neuro=(root/'static/neuro.js').read_text()
+          app=(root/'static/app.js').read_text()
+          server=(root/'server.py').read_text()
+          attrs={
+            'neuro_script_index': 'neuro.js' in index,
+            'neuro_css_index':'neuro.css' in index,
+            'neuro_js_file':len(neuro),
+            'neuro_access_teacher_only': "['teacher', 'admin'].includes(state.me.role)" in neuro,
+            'neuro_dock_prepend':'dock.prepend(button)' in neuro,
+            'core_nav_six':"['profile','◎','Моё']" in app,
+            'server_neuro_hooks':"import neuro_advisor" in server and "neuro_advisor.install(globals())" in server,
+            'server_teacher_hooks':"teacher_mode.install(globals())" in server,
+            'server_quest_hooks':"kinokod.install(globals())" in server,
+          }
+          health={}
+          for name,url in [('internal','http://127.0.0.1:8097/health'),('neurojs','http://127.0.0.1:8097/neuro.js'),('neurocss','http://127.0.0.1:8097/neuro.css')]:
+              try:
+                  with urllib.request.urlopen(url,timeout=8) as r:health[name]={'code':r.status,'bytes':len(r.read())}
+              except Exception as e:health[name]={'error':type(e).__name__}
+          j=subprocess.run(['journalctl','-u','timecode-bot.service','--since','2026-10-20 15:00:00','--until','2026-10-21 00:00:00','--no-pager','-o','cat'],capture_output=True,text=True).stdout
+          patterns=['Slot failed: evening','Scheduler:','Telegram: sendMessage transport code','Telegram: sendMessage request failed','Kimi edition pending: pm','Notification retry:','MAX send failed:']
+          logcounts={k:sum(k in ln for ln in j.splitlines()) for k in patterns}
+          result=dict(checked_moscow=now.isoformat(),health=health,assets=attrs,role_counts=users,slots=slots,checkins=checkins,notification_counts=msgs,evening_queue=queue,kimi_jobs=jobs,kimi_editions=editions,log_counts=logcounts,db_check=db.execute('pragma quick_check').fetchone()[0])
+          print(json.dumps(result,ensure_ascii=False,indent=2))
+          PY
+      - name: Save safe diagnostic summary in GitHub
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          base64content=$(base64 -w0 timecode-regression-status.json)
+          file=timecode-regression-status.json
+          sha=$(gh api "repos/$GITHUB_REPOSITORY/contents/$file?ref=boom-kadr-deploy" --jq .sha 2>/dev/null || true)
+          if [ -n "$sha" ]; then
+            gh api --method PUT "repos/$GITHUB_REPOSITORY/contents/$file" -f message="Record safe TIMECODE audit" -f content="$base64content" -f branch=boom-kadr-deploy -f sha="$sha" >/dev/null
+          else
+            gh api --method PUT "repos/$GITHUB_REPOSITORY/contents/$file" -f message="Record safe TIMECODE audit" -f content="$base64content" -f branch=boom-kadr-deploy >/dev/null
+          fi
