@@ -20,13 +20,18 @@ jobs:
       - uses: actions/checkout@v4
         with:
           repository: mityademon-rgb/media-center-bot
-          ref: b92dabb11818b32bdf8b7538552c9815e18b7ea2
+          ref: 4450dcf7f03b11493f12945eac38b0cd1de5ba9b
           path: source
       - uses: actions/checkout@v4
         with:
           repository: mityademon-rgb/media-center-bot
-          ref: c88c21519c4110260571567b23509200fd163c20
+          ref: 3a569a6b32cde91ccfa4785fe9c9d31820af7fe6
           path: previous
+      - uses: actions/checkout@v4
+        with:
+          repository: mityademon-rgb/media-center-bot
+          ref: b92dabb11818b32bdf8b7538552c9815e18b7ea2
+          path: alternate
       - uses: actions/setup-python@v5
         with:
           python-version: '3.12'
@@ -34,6 +39,7 @@ jobs:
         run: |
           set -Eeuo pipefail
           python -m py_compile source/timecode-bot/kinokod.py
+          python -m unittest discover -s source/timecode-bot/tests -p test_kinokod_flow.py -v
           python -m pip install --disable-pip-version-check Pillow
           python scripts/render-kinokod.py
           python - <<'PY'
@@ -61,17 +67,28 @@ jobs:
           set -Eeuo pipefail
           scp -i ~/.ssh/timecode source/timecode-bot/kinokod.py root@217.149.24.242:/tmp/timecode-kinokod-updated.py
           scp -i ~/.ssh/timecode previous/timecode-bot/kinokod.py root@217.149.24.242:/tmp/timecode-kinokod-previous.py
+          scp -i ~/.ssh/timecode alternate/timecode-bot/kinokod.py root@217.149.24.242:/tmp/timecode-kinokod-alternate.py
           scp -i ~/.ssh/timecode kinokod-images/kinokod-*.png root@217.149.24.242:/tmp/
           ssh -i ~/.ssh/timecode -o BatchMode=yes root@217.149.24.242 'bash -s' <<'REMOTE'
           set -Eeuo pipefail
           cd /opt/timecode-bot/timecode-bot
           grep -Fq 'kinokod.install(globals())' server.py
           if ! cmp -s kinokod.py /tmp/timecode-kinokod-updated.py; then
-            cmp kinokod.py /tmp/timecode-kinokod-previous.py
+            if ! cmp -s kinokod.py /tmp/timecode-kinokod-previous.py; then
+              cmp kinokod.py /tmp/timecode-kinokod-alternate.py
+            fi
           fi
           backup=$(mktemp -d /opt/timecode-bot/kinokod-rich-backup-XXXXXXXX)
           chmod 700 "$backup"
           cp -p kinokod.py "$backup/kinokod.py"
+          python3 - "$backup" <<'PYDB'
+          import sqlite3,sys
+          source=sqlite3.connect('file:/var/lib/timecode-bot/timecode.db?mode=ro',uri=True)
+          target=sqlite3.connect(sys.argv[1]+'/timecode.db')
+          source.backup(target)
+          target.close();source.close()
+          PYDB
+          chmod 600 "$backup/timecode.db"
           mkdir -m 700 "$backup/static"
           for f in /tmp/kinokod-*.png; do
             name=${f##*/}
@@ -93,7 +110,7 @@ jobs:
           curl -fsS --retry 8 --retry-delay 2 --retry-connrefused --max-time 12 http://127.0.0.1:8097/health
           echo "$backup" >/opt/timecode-bot/kinokod-rich-latest-backup-path
           trap - ERR
-          echo 'KinoKod rich version installed and bot healthy'
+          echo 'KinoKod two-step detective narrative installed and bot healthy'
           REMOTE
       - name: Inspect per-platform delivery without exposing children
         run: |
@@ -121,7 +138,11 @@ jobs:
           joined=db.execute('select count(*) from kinokod_players').fetchone()[0]
           posts=[row['slot'] for row in db.execute('select slot from kinokod_posts order by slot')]
           file=pathlib.Path('/opt/timecode-bot/timecode-bot/kinokod.py')
-          result={'checked_at_utc':datetime.datetime.now(datetime.timezone.utc).isoformat(),'installed':('def send_visual' in file.read_text() and 'def kimi_answer' in file.read_text()),'outbox':stats,'visuals':images,'joined':joined,'released_slots':posts}
+          steps=db.execute('select count(*) from kinokod_steps').fetchone()[0]
+          bridges={}
+          for row in db.execute("select delivered,count(*) from notification_outbox where message_key like 'kc-bridge-%' group by delivered"):
+              bridges[str(row[0])]=row[1]
+          result={'checked_at_utc':datetime.datetime.now(datetime.timezone.utc).isoformat(),'installed':('CASE_RAILS' in file.read_text() and 'kinokod_steps' in file.read_text()),'outbox':stats,'visuals':images,'joined':joined,'steps_completed':steps,'bridge_receipts':bridges,'released_slots':posts}
           dest=pathlib.Path('/opt/timecode-bot/kinokod-status.json')
           dest.write_text(json.dumps(result,ensure_ascii=False,indent=2)+'\n')
           os.chmod(dest,0o644)
