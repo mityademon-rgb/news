@@ -1,4 +1,4 @@
-name: Restore five visible teacher tabs including AI, retain all sections
+name: Keep AI tab visibly present regardless of role while limiting course access
 on:
   push:
     branches: [boom-kadr-deploy]

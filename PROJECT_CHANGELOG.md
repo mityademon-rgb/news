@@ -19,6 +19,16 @@
 
 
 
+
+## 2026-10-21 — Исправление preflight публикации кнопки нейросетей
+
+- **Тип:** CI deployment guard fix.
+- **Цель:** корректно проверять переход query параметра `20261021-dock5` → `20261021-visible-all`.
+- **Изменено:** отдельный workflow, журнал и handbook атомарно, сохранены точное сравнение файлов и backup.
+- **Связи:** только Mini App.
+- **Проверки:** CI syntax/preflight, production GET, read-only browser role verification.
+- **Откат:** адресный backup нейро JS и index.html.
+
 ## 2026-10-21 — Возвращение кнопки «Нейросети» при любой роли
 
 - **Тип:** клиентский UI fix.
