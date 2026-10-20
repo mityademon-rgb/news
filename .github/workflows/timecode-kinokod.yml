@@ -1,4 +1,4 @@
-name: Update TIMECODE KinoKod invitation mechanics
+name: Deploy TIMECODE KinoKod rich detective and check delivery
 on:
   push:
     branches: [boom-kadr-deploy]
@@ -9,27 +9,46 @@ concurrency:
   group: timecode-kinokod
   cancel-in-progress: false
 jobs:
-  update:
+  install:
     runs-on: ubuntu-latest
-    timeout-minutes: 10
+    timeout-minutes: 12
     steps:
       - uses: actions/checkout@v4
-        with: {fetch-depth: 4}
-      - name: Documentation guard
-        run: bash scripts/check-project-documentation.sh HEAD~3 HEAD
+        with: {fetch-depth: 12}
+      - name: Required documentation guard
+        run: bash scripts/check-project-documentation.sh HEAD~4 HEAD
       - uses: actions/checkout@v4
         with:
           repository: mityademon-rgb/media-center-bot
-          ref: a4ec9c397a9c82a52ef588fd2d1664bee5f2d09c
+          ref: 3a569a6b32cde91ccfa4785fe9c9d31820af7fe6
           path: source
       - uses: actions/checkout@v4
         with:
           repository: mityademon-rgb/media-center-bot
           ref: 30cbf260dfc6068f34f9d15c897a8523f1fe84df
           path: previous
-      - name: Syntax check
-        run: python3 -m py_compile source/timecode-bot/kinokod.py
-      - name: Connect
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Validate bot and render original visual clues
+        run: |
+          set -Eeuo pipefail
+          python -m py_compile source/timecode-bot/kinokod.py
+          python -m pip install --disable-pip-version-check Pillow
+          python scripts/render-kinokod.py
+          python - <<'PY'
+          import importlib.util,sqlite3
+          spec=importlib.util.spec_from_file_location('kinokod','source/timecode-bot/kinokod.py')
+          mod=importlib.util.module_from_spec(spec);spec.loader.exec_module(mod)
+          assert len(mod.RELEASES)==7
+          db=sqlite3.connect(':memory:')
+          mod.tables(db)
+          assert {row[0] for row in db.execute('select name from sqlite_master where type="table"')} >= {'kinokod_players','kinokod_votes','kinokod_visuals','kinokod_posts'}
+          PY
+          test -s kinokod-images/kinokod--1.png
+          test -s kinokod-images/kinokod-0.png
+          test -s kinokod-images/kinokod-6.png
+      - name: Connect to TIMECODE
         env:
           BOOM_SSH_KEY: ${{ secrets.BOOM_SSH_KEY }}
         run: |
@@ -37,31 +56,77 @@ jobs:
           printf '%s\n' "$BOOM_SSH_KEY" > ~/.ssh/timecode
           chmod 600 ~/.ssh/timecode
           ssh-keyscan -T 8 -H 217.149.24.242 > ~/.ssh/known_hosts
-      - name: Address-only update with rollback
+      - name: Back up, install rich KinoKod, activate
         run: |
           set -Eeuo pipefail
-          scp -i ~/.ssh/timecode source/timecode-bot/kinokod.py root@217.149.24.242:/tmp/timecode-kinokod-next.py
-          scp -i ~/.ssh/timecode previous/timecode-bot/kinokod.py root@217.149.24.242:/tmp/timecode-kinokod-prev.py
+          scp -i ~/.ssh/timecode source/timecode-bot/kinokod.py root@217.149.24.242:/tmp/timecode-kinokod-updated.py
+          scp -i ~/.ssh/timecode previous/timecode-bot/kinokod.py root@217.149.24.242:/tmp/timecode-kinokod-previous.py
+          scp -i ~/.ssh/timecode kinokod-images/kinokod-*.png root@217.149.24.242:/tmp/
           ssh -i ~/.ssh/timecode -o BatchMode=yes root@217.149.24.242 'bash -s' <<'REMOTE'
           set -Eeuo pipefail
           cd /opt/timecode-bot/timecode-bot
-          cmp kinokod.py /tmp/timecode-kinokod-prev.py
-          grep -q 'kinokod.install(globals())' server.py
-          backup=$(mktemp -d /opt/timecode-bot/kinokod-update-backup-XXXXXXXX)
+          grep -Fq 'kinokod.install(globals())' server.py
+          if ! cmp -s kinokod.py /tmp/timecode-kinokod-updated.py; then
+            cmp kinokod.py /tmp/timecode-kinokod-previous.py
+          fi
+          backup=$(mktemp -d /opt/timecode-bot/kinokod-rich-backup-XXXXXXXX)
           chmod 700 "$backup"
           cp -p kinokod.py "$backup/kinokod.py"
+          mkdir -m 700 "$backup/static"
+          for f in /tmp/kinokod-*.png; do
+            name=${f##*/}
+            if [ -e "static/$name" ]; then cp -p "static/$name" "$backup/static/$name"; fi
+          done
           rollback() {
             cp -p "$backup/kinokod.py" kinokod.py
+            for f in /tmp/kinokod-*.png; do
+              name=${f##*/}
+              if [ -e "$backup/static/$name" ]; then cp -p "$backup/static/$name" "static/$name"; else rm -f "static/$name"; fi
+            done
             systemctl restart timecode-bot.service || true
           }
           trap rollback ERR
-          install -m 0644 /tmp/timecode-kinokod-next.py kinokod.py
+          install -m 0644 /tmp/timecode-kinokod-updated.py kinokod.py
+          for f in /tmp/kinokod-*.png; do install -m 0644 "$f" "static/${f##*/}"; done
           python3 -m py_compile kinokod.py
           systemctl restart timecode-bot.service
           curl -fsS --retry 8 --retry-delay 2 --retry-connrefused --max-time 12 http://127.0.0.1:8097/health
-          echo "$backup" > /opt/timecode-bot/kinokod-update-latest-backup-path
+          echo "$backup" >/opt/timecode-bot/kinokod-rich-latest-backup-path
           trap - ERR
-          echo "KinoKod invitations active"
+          echo 'KinoKod rich version installed and bot healthy'
           REMOTE
-      - name: Verify public health
-        run: curl -fsS --retry 4 --retry-delay 3 --max-time 12 https://timecode-lab.ru/tc/health
+      - name: Inspect per-platform delivery without exposing children
+        run: |
+          sleep 45
+          ssh -i ~/.ssh/timecode -o BatchMode=yes root@217.149.24.242 'python3 -' <<'PY'
+          import json,sqlite3,datetime,pathlib,os
+          p=pathlib.Path('/var/lib/timecode-bot/timecode.db')
+          db=sqlite3.connect('file:'+str(p)+'?mode=ro',uri=True)
+          db.row_factory=sqlite3.Row
+          stats={'telegram':{},'max':{},'other':{}}
+          for row in db.execute("select chat,delivered from notification_outbox where message_key like 'kc-kinokod20261020-%'"):
+              try:
+                  uid=json.loads(row['chat'])
+                  platform='max' if isinstance(uid,int) and uid<0 else 'telegram' if isinstance(uid,int) else 'other'
+              except Exception:
+                  platform='other'
+              key=str(row['delivered'])
+              stats[platform][key]=stats[platform].get(key,0)+1
+          images={'delivered':0,'pending':0,'total':0}
+          try:
+              for row in db.execute('select delivered,count(*) as n from kinokod_visuals group by delivered'):
+                  images['total']+=row['n']
+                  images['delivered' if row['delivered']==1 else 'pending']+=row['n']
+          except sqlite3.OperationalError:pass
+          joined=db.execute('select count(*) from kinokod_players').fetchone()[0]
+          posts=[row['slot'] for row in db.execute('select slot from kinokod_posts order by slot')]
+          file=pathlib.Path('/opt/timecode-bot/timecode-bot/kinokod.py')
+          result={'checked_at_utc':datetime.datetime.now(datetime.timezone.utc).isoformat(),'installed':('def send_visual' in file.read_text() and 'def kimi_answer' in file.read_text()),'outbox':stats,'visuals':images,'joined':joined,'released_slots':posts}
+          dest=pathlib.Path('/opt/timecode-bot/kinokod-status.json')
+          dest.write_text(json.dumps(result,ensure_ascii=False,indent=2)+'\n')
+          os.chmod(dest,0o644)
+          print(json.dumps(result,ensure_ascii=False))
+          PY
+      - name: Verify public bot HTTP
+        run: |
+          curl -fsS --retry 5 --retry-delay 3 --max-time 15 https://timecode-lab.ru/tc/health
