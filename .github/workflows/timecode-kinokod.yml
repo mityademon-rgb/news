@@ -4,7 +4,7 @@ on:
     branches: [boom-kadr-deploy]
     paths: ['.github/workflows/timecode-kinokod.yml']
 permissions:
-  contents: read
+  contents: write
 concurrency:
   group: timecode-kinokod
   cancel-in-progress: false
@@ -16,6 +16,7 @@ jobs:
       - uses: actions/checkout@v4
         with: {fetch-depth: 12}
       - name: Required documentation guard
+        id: guard
         run: bash scripts/check-project-documentation.sh HEAD~3 HEAD
       - uses: actions/checkout@v4
         with:
@@ -36,6 +37,7 @@ jobs:
         with:
           python-version: '3.12'
       - name: Validate bot and render original visual clues
+        id: tests
         run: |
           set -Eeuo pipefail
           python -m py_compile source/timecode-bot/kinokod.py
@@ -55,6 +57,7 @@ jobs:
           test -s kinokod-images/kinokod-0.png
           test -s kinokod-images/kinokod-6.png
       - name: Connect to TIMECODE
+        id: connect
         env:
           BOOM_SSH_KEY: ${{ secrets.BOOM_SSH_KEY }}
         run: |
@@ -63,6 +66,7 @@ jobs:
           chmod 600 ~/.ssh/timecode
           ssh-keyscan -T 8 -H 217.149.24.242 > ~/.ssh/known_hosts
       - name: Back up, install rich KinoKod, activate
+        id: deploy
         run: |
           set -Eeuo pipefail
           scp -i ~/.ssh/timecode source/timecode-bot/kinokod.py root@217.149.24.242:/tmp/timecode-kinokod-updated.py
@@ -113,6 +117,7 @@ jobs:
           echo 'KinoKod two-step detective narrative installed and bot healthy'
           REMOTE
       - name: Inspect per-platform delivery without exposing children
+        id: audit
         run: |
           sleep 45
           ssh -i ~/.ssh/timecode -o BatchMode=yes root@217.149.24.242 'python3 -' <<'PY'
@@ -149,5 +154,33 @@ jobs:
           print(json.dumps(result,ensure_ascii=False))
           PY
       - name: Verify public bot HTTP
+        id: public
         run: |
           curl -fsS --retry 5 --retry-delay 3 --max-time 15 https://timecode-lab.ru/tc/health
+
+      - name: Record safe workflow outcome
+        if: always()
+        env:
+          GH_TOKEN: ${{ github.token }}
+          STEP_GUARD: ${{ steps.guard.outcome }}
+          STEP_TESTS: ${{ steps.tests.outcome }}
+          STEP_CONNECT: ${{ steps.connect.outcome }}
+          STEP_DEPLOY: ${{ steps.deploy.outcome }}
+          STEP_AUDIT: ${{ steps.audit.outcome }}
+          STEP_PUBLIC: ${{ steps.public.outcome }}
+        run: |
+          python3 - <<'PY'
+          import json,os,datetime
+          info={'time_utc':datetime.datetime.now(datetime.timezone.utc).isoformat(),
+                'run_id':os.getenv('GITHUB_RUN_ID'),'source':'4450dcf7f03b11493f12945eac38b0cd1de5ba9b',
+                'steps':{k:os.environ.get('STEP_'+k.upper(),'') for k in ('guard','tests','connect','deploy','audit','public')}}
+          open('kinokod-ci-status.json','w').write(json.dumps(info,ensure_ascii=False,indent=2)+'\n')
+          PY
+          marker=kinokod-ci-status.json
+          base64content=$(base64 -w0 "$marker")
+          sha=$(gh api "repos/$GITHUB_REPOSITORY/contents/$marker?ref=boom-kadr-deploy" --jq .sha 2>/dev/null || true)
+          if [ -n "$sha" ]; then
+            gh api --method PUT "repos/$GITHUB_REPOSITORY/contents/$marker" -f message='Record KinoKod deploy outcome' -f content="$base64content" -f branch=boom-kadr-deploy -f sha="$sha" > /dev/null
+          else
+            gh api --method PUT "repos/$GITHUB_REPOSITORY/contents/$marker" -f message='Record KinoKod deploy outcome' -f content="$base64content" -f branch=boom-kadr-deploy > /dev/null
+          fi
