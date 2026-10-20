@@ -1,5 +1,5 @@
 {
-  "checked_moscow": "2026-10-21T01:21:55.223418+03:00",
+  "checked_moscow": "2026-10-21T02:04:14.205000+03:00",
   "health": {
     "internal": {
       "code": 200,
@@ -7,7 +7,7 @@
     },
     "neurojs": {
       "code": 200,
-      "bytes": 17872
+      "bytes": 19247
     },
     "neurocss": {
       "code": 200,
@@ -17,9 +17,9 @@
   "assets": {
     "neuro_script_index": true,
     "neuro_css_index": true,
-    "neuro_js_file": 13978,
+    "neuro_js_file": 15163,
     "neuro_access_teacher_only": true,
-    "neuro_dock_prepend": true,
+    "neuro_dock_prepend": false,
     "core_nav_six": true,
     "server_neuro_hooks": true,
     "server_teacher_hooks": true,
@@ -40,6 +40,45 @@
       "role": "teacher",
       "enabled": 1,
       "n": 2
+    }
+  ],
+  "roles_by_platform": [
+    {
+      "platform": "MAX",
+      "role": "member",
+      "n": 9
+    },
+    {
+      "platform": "MAX",
+      "role": "teacher",
+      "n": 1
+    },
+    {
+      "platform": "Telegram",
+      "role": "admin",
+      "n": 1
+    },
+    {
+      "platform": "Telegram",
+      "role": "member",
+      "n": 9
+    },
+    {
+      "platform": "Telegram",
+      "role": "teacher",
+      "n": 1
+    }
+  ],
+  "linked_roles": [
+    {
+      "platform": "max",
+      "role": "member",
+      "n": 9
+    },
+    {
+      "platform": "max",
+      "role": "teacher",
+      "n": 1
     }
   ],
   "slots": [
