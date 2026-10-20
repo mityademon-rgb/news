@@ -50,7 +50,7 @@ jobs:
           python3 - <<'PY'
           from pathlib import Path
           s=Path('static/index.html').read_text()
-          assert s.count('neuro.js?v=20261021-visible-all"')==1
+          assert s.count('neuro.js?v=20261021-dock5"')==1
           assert 'neuro.js?v=20261021-visible-all"' not in s
           PY
           backup=$(mktemp -d /opt/timecode-bot/neuro-visible-backup-XXXXXXXX)
@@ -62,8 +62,8 @@ jobs:
           python3 - <<'PY'
           from pathlib import Path
           p=Path('static/index.html');s=p.read_text()
-          assert s.count('neuro.js?v=20261021-visible-all"')==1
-          p.write_text(s.replace('neuro.js?v=20261021-visible-all"','neuro.js?v=20261021-visible-all"',1))
+          assert s.count('neuro.js?v=20261021-dock5"')==1
+          p.write_text(s.replace('neuro.js?v=20261021-dock5"','neuro.js?v=20261021-visible-all"',1))
           PY
           cmp static/neuro.js /tmp/timecode-neuro-visible/neuro.js
           BACKUP_DIR="$backup" python3 - <<'PY'
@@ -71,11 +71,11 @@ jobs:
           from pathlib import Path
           old=(Path(os.environ['BACKUP_DIR'])/'index.html').read_text()
           new=Path('static/index.html').read_text()
-          assert new==old.replace('neuro.js?v=20261021-visible-all"','neuro.js?v=20261021-visible-all"',1)
+          assert new==old.replace('neuro.js?v=20261021-dock5"','neuro.js?v=20261021-visible-all"',1)
           PY
           curl -fsS --max-time 12 http://127.0.0.1:8097/health -o /dev/null
           curl -fsS --max-time 12 https://timecode-lab.ru/tc/health -o /dev/null
-          curl -fsS --max-time 12 https://timecode-lab.ru/tc/ | grep -Fq 'neuro.js?v=20261021-dock5'
+          curl -fsS --max-time 12 https://timecode-lab.ru/tc/ | grep -Fq 'neuro.js?v=20261021-visible-all'
           trap - ERR
           printf '%s\n' "$backup" > /opt/timecode-bot/neuro-visible-latest-backup-path
           echo 'NEURO_FIVE_TABS_LIVE_OK'
