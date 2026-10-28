@@ -38,3 +38,6 @@ existing_continuations вызывается tick без ограничения �
 6. Телеметрия без текстов/имён: invitation/delivery/first_action/completed, timestamps и campaign expiry. Через неделю сравнить возвраты и завершения, не «лайки», которых API не даёт.
 
 Не выполнено этим аудитом: новая общая очередь всех событий, preflight-банк фактов, глобальные quiet hours и новая кампания. Не подменять эти планы заявлением «всё исправлено».
+
+## Дополнительная подтверждённая причина вечерней тишины
+Journal 28 октября 18:00:20–18:02:41 МСК: Scheduler / Slot failed evening, Error binding parameter 2: type function is not supported. В playful_checkins.invitation recent SQL передавал callable s['today'] вместо s['today'](). Там же локальный import json после первого json.dumps создал бы UnboundLocalError после устранения SQL-дефекта. Нулевая вечерняя активность за 28 октября не является показателем интереса: приглашение не состоялось. Оба дефекта добавлены в адресный repair; тест AM/PM с двумя аккаунтами, повтором PM, отключённой сетью и mocked send/retry прошёл. Старые события не отправляются ночью.

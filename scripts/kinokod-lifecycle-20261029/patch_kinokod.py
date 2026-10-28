@@ -1,6 +1,6 @@
 from pathlib import Path
 import hashlib
-EXPECTED='6dc244fca21ae40429607ddcd6ce4d2554b28b918b94125420dac0bcba970076'
+EXPECTED='df8d28f1cbcfd1994a23d0520c807cfc44742c526dcc0c65f3b2914da703b559'
 
 def patch(text):
     if 'def campaign_open():' in text:return text
@@ -20,5 +20,5 @@ def patch(text):
     return text
 if __name__=='__main__':
     p=Path('kinokod.py')
-    assert hashlib.sha256(p.read_bytes()).hexdigest()==EXPECTED,'Live kinokod changed; stop instead of overwriting'
+    assert hashlib.sha256((p.read_text().rstrip()+'\n').encode()).hexdigest()==EXPECTED,'Live kinokod changed; stop instead of overwriting'
     p.write_text(patch(p.read_text()))

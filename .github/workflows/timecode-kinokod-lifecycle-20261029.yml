@@ -1,4 +1,4 @@
-name: Close expired KinoKod and stop midnight clue loop
+name: Repair expired KinoKod and broken check-in date binding
 on:
   push:
     branches: [boom-kadr-deploy]
@@ -21,7 +21,7 @@ jobs:
           bash scripts/check-project-documentation.sh HEAD~1 HEAD
           git diff --check HEAD~1 HEAD
           cd scripts/kinokod-lifecycle-20261029
-          python3 -m unittest test_kinokod_lifecycle -v
+          python3 -m unittest test_kinokod_lifecycle test_invitation -v
       - name: Backup and apply only expired campaign repair
         env:
           BOOM_SSH_KEY: ${{ secrets.BOOM_SSH_KEY }}
@@ -31,13 +31,14 @@ jobs:
           chmod 600 ~/.ssh/timecode
           ssh-keyscan -T 8 -H 217.149.24.242 > ~/.ssh/known_hosts
           scp -i ~/.ssh/timecode scripts/kinokod-lifecycle-20261029/patch_kinokod.py root@217.149.24.242:/tmp/patch-kinokod-lifecycle-20261029.py
+          scp -i ~/.ssh/timecode scripts/kinokod-lifecycle-20261029/patch_playful.py root@217.149.24.242:/tmp/patch_playful.py
           ssh -i ~/.ssh/timecode root@217.149.24.242 'bash -s' <<'REMOTE'
           set -Eeuo pipefail
           cd /opt/timecode-bot/timecode-bot
           backup=$(mktemp -d /opt/timecode-bot/kinokod-lifecycle-backup-XXXXXXXX)
           chmod 700 "$backup"
           export KINOKOD_BACKUP="$backup"
-          cp -p kinokod.py PROJECT_AI_HANDBOOK.md "$backup/"
+          cp -p kinokod.py playful_checkins.py PROJECT_AI_HANDBOOK.md "$backup/"
           set -a
           . /etc/timecode-bot.env
           set +a
@@ -46,11 +47,15 @@ jobs:
           from pathlib import Path
           spec=importlib.util.spec_from_file_location('repair','/tmp/patch-kinokod-lifecycle-20261029.py')
           m=importlib.util.module_from_spec(spec);spec.loader.exec_module(m)
-          assert hashlib.sha256(Path('kinokod.py').read_bytes()).hexdigest()==m.EXPECTED
+          assert hashlib.sha256((Path('kinokod.py').read_text().rstrip()+'\n').encode()).hexdigest()==m.EXPECTED
           m.patch(Path('kinokod.py').read_text())
+          spec=importlib.util.spec_from_file_location('checkin_repair','/tmp/patch_playful.py')
+          p=importlib.util.module_from_spec(spec);spec.loader.exec_module(p)
+          assert hashlib.sha256((Path('playful_checkins.py').read_text().rstrip()+'\n').encode()).hexdigest()==p.EXPECTED
+          p.patch(Path('playful_checkins.py').read_text())
           PY
           systemctl stop timecode-bot.service
-          rollback() { cp -p "$backup/kinokod.py" .; systemctl start timecode-bot.service || true; }
+          rollback() { cp -p "$backup/kinokod.py" "$backup/playful_checkins.py" .; systemctl start timecode-bot.service || true; }
           trap rollback ERR
           python3 - <<'PY'
           import os,sqlite3
@@ -59,7 +64,8 @@ jobs:
           os.chmod(os.environ['KINOKOD_BACKUP']+'/before.sqlite',0o600)
           PY
           python3 /tmp/patch-kinokod-lifecycle-20261029.py
-          python3 -m py_compile kinokod.py
+          python3 /tmp/patch_playful.py
+          python3 -m py_compile kinokod.py playful_checkins.py
           python3 - <<'PY'
           import os,sqlite3
           c=sqlite3.connect(os.environ['DATABASE'])
@@ -77,7 +83,8 @@ jobs:
           p=Path('PROJECT_AI_HANDBOOK.md')
           marker='### 2026-10-29 — Закрыт просроченный KinoKod и ночной цикл'
           if marker not in p.read_text():p.write_text(p.read_text()+'\n'+marker+'\nОбработчик existing_continuations продолжал после завершения кампании 23 октября и переотправлял старые шаги ежедневно в 00:00: unique outbox включает day. kinokod.py теперь ограничивает кампанию датой 24.10 00:00, автоматические действия окном 08:00–21:00 МСК, а bridge дедуплицируется по всей кампании. Просроченные callbacks отвечают о закрытии, обычное Кими-общение не перехватывается. Только ожидающие сообщения и visuals старой кампании отменены (-2); ответы/голоса/результаты и успешные доставки сохранены. Protected code/SQLite backup: /opt/timecode-bot/kinokod-lifecycle-latest-backup-path. Не восстанавливать полный snapshot поверх последующей активности. Пять lifecycle тестов пройдены до установки; delivery ребёнку тестами не вызывалась.\n')
-          print('KINOKOD_LIFECYCLE_REPAIRED')
+          p.write_text(p.read_text()+'\nТакже исправлен playful_checkins.invitation: в history SQL теперь вызывается today(), удалён затеняющий глобальный json локальный import. Это устраняет function binding error и скрытый UnboundLocalError в am/pm. Тест с mock transport проверил обе платформы, два вызова PM не дублируют outbox. Шесть тестов пройдены, пропущенная вечерняя перекличка не отправляется ночью задним числом.\n')
+          print('KINOKOD_LIFECYCLE_AND_CHECKIN_REPAIRED')
           PY
           systemctl is-active timecode-bot.service
           curl -fsS --max-time 15 https://timecode-lab.ru/tc/health -o /dev/null

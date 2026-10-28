@@ -429,4 +429,3 @@ def install(s):
         tick()
         return old_reminders()
     s.update(bot_message=message,callback=callback,class_reminders=reminders,kinokod_tick=tick)
-
