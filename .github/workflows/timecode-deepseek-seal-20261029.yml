@@ -1,0 +1,35 @@
+name: Prepare sealed DeepSeek configuration
+on:
+  push:
+    branches: [boom-kadr-deploy]
+    paths: ['.github/workflows/timecode-deepseek-seal-20261029.yml']
+permissions:
+  contents: read
+jobs:
+  prepare:
+    runs-on: ubuntu-latest
+    timeout-minutes: 4
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 2
+      - name: Documentation guard
+        run: |
+          bash scripts/check-project-documentation.sh HEAD~1 HEAD
+          git diff --check HEAD~1 HEAD
+      - name: Create server-only envelope key
+        env:
+          BOOM_SSH_KEY: ${{ secrets.BOOM_SSH_KEY }}
+        run: |
+          install -d -m 700 ~/.ssh
+          printf '%s\n' "$BOOM_SSH_KEY" > ~/.ssh/timecode
+          chmod 600 ~/.ssh/timecode
+          ssh-keyscan -T 8 -H 217.149.24.242 > ~/.ssh/known_hosts
+          ssh -i ~/.ssh/timecode root@217.149.24.242 'bash -s' <<'REMOTE'
+          set -Eeuo pipefail
+          umask 077
+          install -d -m 700 /opt/timecode-bot/deepseek-seal-20261029
+          cd /opt/timecode-bot/deepseek-seal-20261029
+          test -f private.pem || openssl genpkey -algorithm RSA -pkeyopt rsa_keygen_bits:3072 -out private.pem 2>/dev/null
+          openssl pkey -in private.pem -pubout
+          REMOTE
