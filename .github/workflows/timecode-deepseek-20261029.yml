@@ -1,0 +1,43 @@
+name: Switch Kimi text generation to DeepSeek
+on:
+  push:
+    branches: [boom-kadr-deploy]
+    paths: ['.github/workflows/timecode-deepseek-20261029.yml']
+permissions:
+  contents: read
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    timeout-minutes: 7
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 2
+      - name: Validate routing and project memory
+        run: |
+          bash scripts/check-project-documentation.sh HEAD~1 HEAD
+          git diff --check HEAD~1 HEAD
+          cd scripts/deepseek-20261029
+          python3 -m unittest test_provider -v
+          python3 -m py_compile ai_provider.py deploy.py
+      - name: Install only after live JSON and voice preflight
+        env:
+          BOOM_SSH_KEY: ${{ secrets.BOOM_SSH_KEY }}
+        run: |
+          install -d -m 700 ~/.ssh
+          printf '%s\n' "$BOOM_SSH_KEY" > ~/.ssh/timecode
+          chmod 600 ~/.ssh/timecode
+          ssh-keyscan -T 8 -H 217.149.24.242 > ~/.ssh/known_hosts
+          base64 -d scripts/deepseek-20261029/credential.sealed.b64 > /tmp/credential.sealed
+          ssh -i ~/.ssh/timecode root@217.149.24.242 'install -d -m 700 /tmp/deepseek-20261029'
+          scp -i ~/.ssh/timecode scripts/deepseek-20261029/ai_provider.py scripts/deepseek-20261029/deploy.py /tmp/credential.sealed root@217.149.24.242:/tmp/deepseek-20261029/
+          ssh -i ~/.ssh/timecode root@217.149.24.242 'bash -s' <<'REMOTE'
+          set -Eeuo pipefail
+          set -a
+          . /etc/timecode-bot.env
+          set +a
+          cd /tmp/deepseek-20261029
+          python3 deploy.py
+          systemctl is-active timecode-bot.service
+          curl -fsS --max-time 15 https://timecode-lab.ru/tc/health -o /dev/null
+          REMOTE

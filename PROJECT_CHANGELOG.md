@@ -1,3 +1,13 @@
+## 2026-10-29 — DeepSeek для текстов Кими, Moonshot для фото
+
+- **Тип:** provider integration / configuration.
+- **Цель:** выполнить прямое поручение владельца после блокировки Gemini по региону сервера.
+- **Изменено:** ai_provider.install перед chef_voice, DeepSeek Flash для текстов и JSON; creative_digest получает thinking disabled для DeepSeek. Входные картинки маршрутизируются на прежние Moonshot endpoint/key/vision model, память персонажа сохраняется. Новый key только в защищённом env после успешного preflight.
+- **Безопасность:** Git содержит исключительно RSA-OAEP-SHA256 шифротекст; приватный одноразовый ключ остаётся на сервере, удаляется после установки. Открытых ключей API в Git/Actions нет. Guard и offline tests до SSH. Env backup 0600, каталог 0700.
+- **Проверки:** две routing regression tests; на сервере три synthetic JSON/voice пробы ДО переключения; py_compile; затем service, local/public health. Результат workflow ещё предстоит проверить; детям ничего не отправлять.
+- **Откат:** защищённый pointer /opt/timecode-bot/deepseek-latest-backup-path, вернуть server.py, creative_digest.py и env; restart только бота. БД не меняется, игры и очереди не откатывать.
+- **Ограничения:** DeepSeek images не подключены; фото зависят от прежнего Kimi. Общий scheduler не переделан; provider switch не устраняет все причины задержек.
+
 ## 2026-10-29 — DeepSeek: защищённая подготовка подключения
 
 - **Цель:** по прямому поручению владельца заменить текстовую генерацию Кими на DeepSeek. Read-only тест с bot host получил HTTP 200; детям ничего не отправлялось.
