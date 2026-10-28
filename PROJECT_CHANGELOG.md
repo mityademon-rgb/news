@@ -1,3 +1,11 @@
+## 2026-10-29 — Подтверждён переход текстов Кими на DeepSeek
+
+- **Результат:** workflow 40774169490 success, DeepSeek Flash включён в live env и provider hook; фото остаются на Moonshot.
+- **Проверки:** service active/running без перезапусков, local/public GET health 200, Telegram getMe/MAX me 200, текущие text/photo pending=0. Три synthetic JSON/voice preflight и две routing tests пройдены. Тестовых сообщений детям нет.
+- **Безопасность:** серверный одноразовый private key удалён, шифротекст удаляется из текущего дерева; оригинальный API-ключ только в env. Защищённый code/env backup pointer /opt/timecode-bot/deepseek-latest-backup-path.
+- **Ограничения:** качество не объявляется улучшившимся по трём пробам; настоящий таблоид должен пройти действующую редакторскую проверку. Картинки не генерируются. БД не изменялась.
+- **Откат:** вернуть code/env из адресного backup и restart; не восстанавливать старую БД.
+
 ## 2026-10-29 — DeepSeek для текстов Кими, Moonshot для фото
 
 - **Тип:** provider integration / configuration.

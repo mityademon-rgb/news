@@ -43,3 +43,7 @@ Alert — уведомление о состоянии на тот момент,
 - /opt/timecode-bot/truth-correction-latest-backup-path
 
 Прочитать pointer, проверить соответствие файлам и дате, затем составить адресный rollback. Не предполагать, что любой последний backup подходит любому модулю.
+
+## DeepSeek: подтверждённый переход 29 октября 2026
+
+Текстовый provider теперь DeepSeek Flash (AI_TEXT_PROVIDER=deepseek, DEEPSEEK_MODEL=deepseek-flash), ai_provider.install перед chef_voice. Фото остаются Moonshot. Creative digest имеет собственный direct JSON transport, поэтому для миграций недостаточно заменить только kimi_request. Backup code/env pointer /opt/timecode-bot/deepseek-latest-backup-path. Три synthetic пробы/две routing tests PASS, Actions 40774169490 success; service/оба HTTP health/оба messenger API подтверждены 00:44 МСК. Это историческая проверка, не статус сейчас. Не повторять одноразовый deploy: envelope private удалён после успеха, исходник охраняется SHA. Секретов в Git нет; ciphertext из текущего дерева удалён. Details docs/ai/2026-10-29-deepseek-switch.md. Первые пробы не доказывают улучшения качества, реальный таблоид проходит editor check.
