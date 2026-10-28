@@ -1,0 +1,79 @@
+name: Publish reviewed monthly questions and short answer games
+on:
+  push:
+    branches: [boom-kadr-deploy]
+    paths: ['.github/workflows/timecode-monthly-games-20261029.yml']
+permissions:
+  contents: read
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    timeout-minutes: 7
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 2
+      - name: Verify month and offline delivery behavior
+        run: |
+          bash scripts/check-project-documentation.sh HEAD~1 HEAD
+          git diff --check HEAD~1 HEAD
+          cd scripts/monthly-games-20261029
+          python3 -m unittest test_monthly -v
+          python3 -m py_compile monthly_games.py apply_monthly.py
+      - name: Install reviewed content without sending any test messages
+        env:
+          BOOM_SSH_KEY: ${{ secrets.BOOM_SSH_KEY }}
+        run: |
+          install -d -m 700 ~/.ssh
+          printf '%s\n' "$BOOM_SSH_KEY" > ~/.ssh/timecode
+          chmod 600 ~/.ssh/timecode
+          ssh-keyscan -T 8 -H 217.149.24.242 > ~/.ssh/known_hosts
+          ssh -i ~/.ssh/timecode root@217.149.24.242 'install -d -m 700 /tmp/monthly-games-20261029'
+          scp -i ~/.ssh/timecode scripts/monthly-games-20261029/monthly_games.py scripts/monthly-games-20261029/monthly_games.json scripts/monthly-games-20261029/apply_monthly.py root@217.149.24.242:/tmp/monthly-games-20261029/
+          ssh -i ~/.ssh/timecode root@217.149.24.242 'bash -s' <<'REMOTE'
+          set -Eeuo pipefail
+          cd /opt/timecode-bot/timecode-bot
+          set -a
+          . /etc/timecode-bot.env
+          set +a
+          backup=$(mktemp -d /opt/timecode-bot/monthly-games-backup-XXXXXXXX)
+          chmod 700 "$backup"
+          export MONTHLY_BACKUP="$backup"
+          cp -p server.py truth_game.py PROJECT_AI_HANDBOOK.md "$backup/"
+          for f in monthly_games.py monthly_games.json; do if test -e "$f"; then cp -p "$f" "$backup/"; fi; done
+          python3 - <<'PY'
+          import importlib.util
+          from pathlib import Path
+          spec=importlib.util.spec_from_file_location('repair','/tmp/monthly-games-20261029/apply_monthly.py');m=importlib.util.module_from_spec(spec);spec.loader.exec_module(m)
+          for name,h in m.EXPECTED.items():assert m.normhash(Path(name))==h,'concurrent change: '+name
+          PY
+          systemctl stop timecode-bot.service
+          rollback() { cp -p "$backup/server.py" "$backup/truth_game.py" .; systemctl start timecode-bot.service || true; }
+          trap rollback ERR
+          python3 - <<'PY'
+          import sqlite3,os
+          c=sqlite3.connect(os.environ['DATABASE']);b=sqlite3.connect(os.environ['MONTHLY_BACKUP']+'/before.sqlite');c.backup(b);b.close();c.close();os.chmod(os.environ['MONTHLY_BACKUP']+'/before.sqlite',0o600)
+          PY
+          cp /tmp/monthly-games-20261029/monthly_games.py /tmp/monthly-games-20261029/monthly_games.json .
+          python3 /tmp/monthly-games-20261029/apply_monthly.py
+          python3 -m py_compile server.py truth_game.py monthly_games.py
+          systemctl start timecode-bot.service
+          trap - ERR
+          printf '%s\n' "$backup" > /opt/timecode-bot/monthly-games-latest-backup-path
+          curl -fsS --retry 5 --retry-delay 2 --retry-connrefused --max-time 10 http://127.0.0.1:8097/health -o /dev/null
+          python3 - <<'PY'
+          from pathlib import Path
+          import json,sqlite3,os
+          v=json.loads(Path('monthly_games.json').read_text());assert len(v['truth'])==30 and len(v['quick'])==15
+          assert Path('server.py').read_text().count('monthly_games.install(globals())')==1
+          c=sqlite3.connect('file:'+os.environ['DATABASE']+'?mode=ro',uri=True)
+          assert c.execute("select 1 from sqlite_master where name='monthly_game_results'").fetchone()
+          assert c.execute('pragma quick_check').fetchone()[0]=='ok'
+          p=Path('PROJECT_AI_HANDBOOK.md')
+          p.write_text(p.read_text()+'\n### 2026-10-29 — Месяц проверенных игр вместо зависимости от генерации в минуту отправки\nПо поручению владельца установлен monthly_games.py последним после kinokod. monthly_games.json содержит 30 проверенных truth-вопросов 29.10–27.11 с ответами и первоисточниками, 15 мини-игр Спаси дубль/Кто накосячил через день. Правда 17:00, дополнительная игра 16:00 через день вместо прежних ежедневных селфи на этот период. Никаких сетевых AI-запросов при публикации; truth_game.daily берёт датированный проверенный банк до прежней генерации, сохраняя уже существующий кэш. Catch-up truth ограничен 17:00–19:00, quick 16:00–17:00; outbox keys фиксированы на день, нет ночных догонялок. monthly_game_results фиксирует один ответ и частный результат. Прежние результаты и фото сохранены. Конец кампании 27.11; после него возвращаются прежние обработчики, нужна следующая редакционная партия до этой даты. Backup pointer /opt/timecode-bot/monthly-games-latest-backup-path, полный snapshot не накатывать поверх последующей активности. DeepSeek/Gemini не подключены: API-ключей в окружении бота не обнаружено, провайдер таблоидов не менялся. Три offline теста прошли; будущую реальную доставку не объявлять выполненной.\n')
+          print('MONTHLY_GAMES_INSTALLED',v['start'],v['end'],'truth',len(v['truth']),'quick',len(v['quick']))
+          print('NO_TEST_MESSAGES_SENT')
+          PY
+          systemctl is-active timecode-bot.service
+          curl -fsS --max-time 15 https://timecode-lab.ru/tc/health -o /dev/null
+          REMOTE
