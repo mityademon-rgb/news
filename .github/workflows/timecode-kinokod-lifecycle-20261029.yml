@@ -1,0 +1,84 @@
+name: Close expired KinoKod and stop midnight clue loop
+on:
+  push:
+    branches: [boom-kadr-deploy]
+    paths: ['.github/workflows/timecode-kinokod-lifecycle-20261029.yml']
+permissions:
+  contents: read
+concurrency:
+  group: timecode-kinokod-lifecycle-20261029
+  cancel-in-progress: false
+jobs:
+  fix:
+    runs-on: ubuntu-latest
+    timeout-minutes: 6
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 2
+      - name: Check documentation and lifecycle behavior
+        run: |
+          bash scripts/check-project-documentation.sh HEAD~1 HEAD
+          git diff --check HEAD~1 HEAD
+          cd scripts/kinokod-lifecycle-20261029
+          python3 -m unittest test_kinokod_lifecycle -v
+      - name: Backup and apply only expired campaign repair
+        env:
+          BOOM_SSH_KEY: ${{ secrets.BOOM_SSH_KEY }}
+        run: |
+          install -d -m 700 ~/.ssh
+          printf '%s\n' "$BOOM_SSH_KEY" > ~/.ssh/timecode
+          chmod 600 ~/.ssh/timecode
+          ssh-keyscan -T 8 -H 217.149.24.242 > ~/.ssh/known_hosts
+          scp -i ~/.ssh/timecode scripts/kinokod-lifecycle-20261029/patch_kinokod.py root@217.149.24.242:/tmp/patch-kinokod-lifecycle-20261029.py
+          ssh -i ~/.ssh/timecode root@217.149.24.242 'bash -s' <<'REMOTE'
+          set -Eeuo pipefail
+          cd /opt/timecode-bot/timecode-bot
+          backup=$(mktemp -d /opt/timecode-bot/kinokod-lifecycle-backup-XXXXXXXX)
+          chmod 700 "$backup"
+          export KINOKOD_BACKUP="$backup"
+          cp -p kinokod.py PROJECT_AI_HANDBOOK.md "$backup/"
+          set -a
+          . /etc/timecode-bot.env
+          set +a
+          python3 - <<'PY'
+          import importlib.util,hashlib
+          from pathlib import Path
+          spec=importlib.util.spec_from_file_location('repair','/tmp/patch-kinokod-lifecycle-20261029.py')
+          m=importlib.util.module_from_spec(spec);spec.loader.exec_module(m)
+          assert hashlib.sha256(Path('kinokod.py').read_bytes()).hexdigest()==m.EXPECTED
+          m.patch(Path('kinokod.py').read_text())
+          PY
+          systemctl stop timecode-bot.service
+          rollback() { cp -p "$backup/kinokod.py" .; systemctl start timecode-bot.service || true; }
+          trap rollback ERR
+          python3 - <<'PY'
+          import os,sqlite3
+          c=sqlite3.connect(os.environ['DATABASE']);b=sqlite3.connect(os.environ['KINOKOD_BACKUP']+'/before.sqlite')
+          c.backup(b);b.close();c.close()
+          os.chmod(os.environ['KINOKOD_BACKUP']+'/before.sqlite',0o600)
+          PY
+          python3 /tmp/patch-kinokod-lifecycle-20261029.py
+          python3 -m py_compile kinokod.py
+          python3 - <<'PY'
+          import os,sqlite3
+          c=sqlite3.connect(os.environ['DATABASE'])
+          print('CANCELLED_EXPIRED_TEXTS',c.execute("update notification_outbox set delivered=-2 where delivered=0 and (message_key like 'kc-kinokod20261020-%' or message_key like 'kc-bridge-kinokod20261020-%')").rowcount)
+          print('CANCELLED_EXPIRED_VISUALS',c.execute('update kinokod_visuals set delivered=-2 where delivered=0').rowcount)
+          c.commit();assert c.execute('pragma quick_check').fetchone()[0]=='ok'
+          c.close()
+          PY
+          systemctl start timecode-bot.service
+          trap - ERR
+          printf '%s\n' "$backup" > /opt/timecode-bot/kinokod-lifecycle-latest-backup-path
+          curl -fsS --retry 5 --retry-delay 2 --retry-connrefused --max-time 10 http://127.0.0.1:8097/health -o /dev/null
+          python3 - <<'PY'
+          from pathlib import Path
+          p=Path('PROJECT_AI_HANDBOOK.md')
+          marker='### 2026-10-29 — Закрыт просроченный KinoKod и ночной цикл'
+          if marker not in p.read_text():p.write_text(p.read_text()+'\n'+marker+'\nОбработчик existing_continuations продолжал после завершения кампании 23 октября и переотправлял старые шаги ежедневно в 00:00: unique outbox включает day. kinokod.py теперь ограничивает кампанию датой 24.10 00:00, автоматические действия окном 08:00–21:00 МСК, а bridge дедуплицируется по всей кампании. Просроченные callbacks отвечают о закрытии, обычное Кими-общение не перехватывается. Только ожидающие сообщения и visuals старой кампании отменены (-2); ответы/голоса/результаты и успешные доставки сохранены. Protected code/SQLite backup: /opt/timecode-bot/kinokod-lifecycle-latest-backup-path. Не восстанавливать полный snapshot поверх последующей активности. Пять lifecycle тестов пройдены до установки; delivery ребёнку тестами не вызывалась.\n')
+          print('KINOKOD_LIFECYCLE_REPAIRED')
+          PY
+          systemctl is-active timecode-bot.service
+          curl -fsS --max-time 15 https://timecode-lab.ru/tc/health -o /dev/null
+          REMOTE

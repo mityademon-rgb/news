@@ -1119,3 +1119,8 @@ MAX и Telegram имеют раздельные проверенные иден�
 ## 2026-10-21 — Точный guard MAX
 
 Для MAX форма /login подготовлена в neuro.js; проверка CI должна искать фактически написанный идентификатор `nextState?.me?.role`. Предыдущий буквальный grep не совпадал из-за пробелов. После выпуска проверять живой скрипт и доступ преподавателя отдельно от health.
+
+
+### 2026-10-29 — KinoKod lifecycle и аудит вовлечения
+
+Подтверждён ежедневный bridge старой кампании после её финала 23 октября: unique outbox по day вызывал повтор после полуночи. Подготовлен адресный patch kinokod.py: campaign expiry, 08:00–21:00 МСК automatic window, bridge dedup across all days, закрытые callbacks и пропуск обычного диалога в старую обработку. Только pending старой кампании отменяются (-2), голоса и успешные доставки не меняются. Backup pointer /opt/timecode-bot/kinokod-lifecycle-latest-backup-path; полную БД не откатывать поверх новой активности. Полный обезличенный отчёт: docs/ai/2026-10-29-bot-engagement-audit.md. 28 октября truth исчез после отказа от кругового fallback без добавления retry/preparation; watchdog не следит за chat-game. Общая политика quiet hours и устойчивая очередь truth пока не реализованы.
