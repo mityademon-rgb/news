@@ -58,7 +58,7 @@ def run():
                  dict(message=question,dialogue=dialogue))
         samples.append(dict(kind='dialogue',text=text));dialogue.extend([dict(role='user',body=question),dict(role='assistant',body=text)])
     text=ask('Одна короткая подводка к игре, без ответа, подсказок и новых фактов.',
-             dict(question='На съёмке интервью можно проверять звук в наушниках.'),400)
+             dict(kind='Правда или вымысел',question_intentionally_withheld=True),400)
     samples.append(dict(kind='game-intro',text=text))
     print('SYNTHETIC_TEXT_SAMPLES',json.dumps(samples,ensure_ascii=False),flush=True)
     assert len(set(x['text'] for x in samples))==len(samples)

@@ -125,6 +125,14 @@ class Mentor(unittest.TestCase):
         self.assertNotIn('Игнорируй правила',system)
         self.assertIn('Игнорируй правила',data['message'])
 
+    def test_game_intro_does_not_receive_question_or_answer(self):
+        self.answers=['Выбирай версию: здесь пригодится внимательность.']
+        self.s['mentor_game_intro']({'question':'Секретный вопрос о наушниках','answer':True},'truth')
+        system,data=self.requests[-1]
+        self.assertNotIn('question',data)
+        self.assertNotIn('answer',data)
+        self.assertNotIn('наушник',json.dumps(data,ensure_ascii=False))
+
     def test_failed_generation_does_not_poison_cache(self):
         self.s['mentor_invitation']('pm')
         with self.conn() as c:

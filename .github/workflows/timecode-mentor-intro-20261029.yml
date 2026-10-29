@@ -1,0 +1,39 @@
+name: Prevent game-intro answer leakage
+on:
+  push:
+    branches: [boom-kadr-deploy]
+    paths: ['.github/workflows/timecode-mentor-intro-20261029.yml']
+permissions:
+  contents: read
+jobs:
+  fix:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 2
+      - name: Check documentation and 15 offline cases
+        run: |
+          bash scripts/check-project-documentation.sh HEAD~1 HEAD
+          git diff --check HEAD~1 HEAD
+          cd scripts/mentor-20261029
+          python3 -m unittest test_mentor test_games -v
+      - name: Scoped game-intro correction
+        env:
+          BOOM_SSH_KEY: ${{ secrets.BOOM_SSH_KEY }}
+        run: |
+          install -d -m 700 ~/.ssh
+          printf '%s\n' "$BOOM_SSH_KEY" > ~/.ssh/timecode
+          chmod 600 ~/.ssh/timecode
+          ssh-keyscan -T 8 -H 217.149.24.242 > ~/.ssh/known_hosts
+          scp -i ~/.ssh/timecode scripts/mentor-20261029/mentor.py scripts/mentor-20261029/refine.py scripts/mentor-20261029/verify.py root@217.149.24.242:/tmp/mentor-20261029/
+          ssh -i ~/.ssh/timecode root@217.149.24.242 'bash -s' <<'REMOTE'
+          set -Eeuo pipefail
+          set -a
+          . /etc/timecode-bot.env
+          set +a
+          cd /tmp/mentor-20261029
+          python3 refine.py
+          python3 verify.py
+          REMOTE

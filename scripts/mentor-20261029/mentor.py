@@ -226,8 +226,8 @@ def install(s):
 
     def game_intro(item, kind):
         return cached('mentor-game-' + kind, lambda: generate('Одна короткая живая подводка к игре, без ответа, '
-            'подсказок, новых фактов и повторения вопроса. Сам вопрос сервер добавит отдельно.',
-            dict(question=item['question'], kind=kind, calendar=calendar()), 200, recent('mentor-game-' + kind)))
+            'подсказок, новых фактов и утверждений о кинотехнике. Содержание вопроса тебе намеренно не передано. Сам вопрос сервер добавит отдельно.',
+            dict(kind=kind, calendar=calendar()), 200, recent('mentor-game-' + kind)))
 
     def make_daily(kind):
         if kind != 'tip':
