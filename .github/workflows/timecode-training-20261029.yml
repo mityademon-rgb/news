@@ -1,0 +1,55 @@
+name: Add voluntary speech and camera practice to existing Kimi
+on:
+  push:
+    branches: [boom-kadr-deploy]
+    paths: ['.github/workflows/timecode-training-20261029.yml']
+permissions:
+  contents: read
+concurrency:
+  group: timecode-training-20261029
+  cancel-in-progress: false
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    timeout-minutes: 18
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 2
+      - name: Offline tests before production
+        run: |
+          bash scripts/check-project-documentation.sh HEAD~1 HEAD
+          git diff --check HEAD~1 HEAD
+          cd scripts/mentor-20261029
+          python3 -m unittest test_mentor test_games -q
+          cd ../speech-20261029
+          python3 -m unittest test_speech test_review -v
+          python3 -m py_compile *.py
+      - name: Make synthetic Russian audio, never a child's recording
+        run: |
+          if ! command -v espeak-ng >/dev/null; then sudo apt-get update -qq; sudo apt-get install -y -qq espeak-ng; fi
+          python3 - <<'PY'
+          import subprocess
+          text='Сегодня наша команда готовит новый сюжет. Камера стоит у окна. Мы читаем текст спокойно и делаем короткие паузы. '
+          subprocess.run(['espeak-ng','-v','ru','-s','140','-w','/tmp/synthetic-speech.wav',text*4],check=True)
+          PY
+      - name: Separate local audio runtime, real synthetic preflight, scoped install
+        env:
+          BOOM_SSH_KEY: ${{ secrets.BOOM_SSH_KEY }}
+        run: |
+          install -d -m 700 ~/.ssh
+          printf '%s\n' "$BOOM_SSH_KEY" > ~/.ssh/timecode
+          chmod 600 ~/.ssh/timecode
+          ssh-keyscan -T 8 -H 217.149.24.242 > ~/.ssh/known_hosts
+          ssh -i ~/.ssh/timecode root@217.149.24.242 'install -d -m 700 /tmp/training-20261029'
+          scp -i ~/.ssh/timecode scripts/speech-20261029/*.py scripts/speech-20261029/*.json scripts/mentor-20261029/verify.py /tmp/synthetic-speech.wav root@217.149.24.242:/tmp/training-20261029/
+          ssh -i ~/.ssh/timecode root@217.149.24.242 'bash -s' <<'REMOTE'
+          set -Eeuo pipefail
+          cd /tmp/training-20261029
+          python3 setup_audio.py
+          set -a
+          . /etc/timecode-bot.env
+          set +a
+          python3 deploy.py
+          python3 verify.py
+          REMOTE
