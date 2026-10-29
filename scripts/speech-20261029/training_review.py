@@ -31,6 +31,7 @@ def audio_feedback(data):
 def install(s):
     import shared_media
     old_callback=s['callback'];old_message=s['bot_message'];old_max=s.get('max_update')
+    old_reminders=s.get('class_reminders',lambda:None);cleaned_day=[None]
     gate=threading.BoundedSemaphore(1)
     with s['conn']() as c:
         c.execute('''create table if not exists training_review_requests(
@@ -142,5 +143,11 @@ def install(s):
         return message({'chat':{'type':'private','id':uid},'from':{'id':uid},'message_id':body.get('mid'),
                         'audio':{},'max_audio_url':url})
 
-    s.update(callback=callback,bot_message=message)
+    def reminders():
+        if cleaned_day[0]!=s['today']():
+            with s['conn']() as c:c.execute('delete from training_review_requests where expires<?',(int(time.time())-172800,))
+            cleaned_day[0]=s['today']()
+        return old_reminders()
+
+    s.update(callback=callback,bot_message=message,class_reminders=reminders)
     if old_max:s['max_update']=max_update

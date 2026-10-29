@@ -15,7 +15,7 @@ def main():
     interpreter=root/'venv/bin/python'
     if not interpreter.exists():subprocess.run(['python3','-m','venv','--without-pip',str(root/'venv')],check=True)
     subprocess.run(['pip3','--python',str(interpreter),'install','--disable-pip-version-check',
-        'vosk==0.3.45','imageio-ffmpeg==0.6.0'],check=True,timeout=240)
+        'vosk==0.3.45','imageio-ffmpeg==0.6.0'],check=True,timeout=360)
     model=root/'vosk-model-small-ru-0.22'
     if not model.exists():
         package=root/'model.zip'

@@ -62,6 +62,10 @@ class Speech(unittest.TestCase):
  def test_ai_failure_does_not_skip_workout(self):
   self.s['AI_KEY']='placeholder';self.s['ai_json']=Mock(side_effect=TimeoutError())
   self.s['class_reminders']();self.assertEqual(self.count(),2)
+ def test_text_and_review_reference_commit_atomically(self):
+  with self.conn() as c:c.execute("create trigger synthetic_failure before insert on daily_content when NEW.kind='speech-workout-pm' begin select raise(ABORT,'synthetic failure'); end")
+  with self.assertRaises(sqlite3.IntegrityError):self.s['speech_workout']('pm')
+  with self.conn() as c:self.assertEqual(c.execute("select count(*) from daily_content where kind='speech-reading-pm'").fetchone()[0],0)
  def test_daily_cache_not_regenerated_on_restart(self):
   self.s['AI_KEY']='placeholder';self.s['ai_json']=Mock(return_value={'intro':'Разбудим дикцию.','reading':''})
   a=self.s['speech_workout']('am');b=self.s['speech_workout']('am')

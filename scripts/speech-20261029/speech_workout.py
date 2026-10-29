@@ -122,11 +122,12 @@ def install(s):
             body += '\n' + intro.strip() + '\n'
         body += '\n' + '\n\n'.join(str(i) + '. ' + title + '\n' + task for i, (title, task) in enumerate(items, 1))
         body += '\n\nДелай спокойно, без натуживания. Разминка самостоятельная — отвечать боту не требуется.'
+        expected = None
         if period == 'pm':
             if Path('/opt/timecode-speech/READY').exists():body += ' Проверка чтения по кнопке — по желанию.'
             expected = items[-1][1].rsplit('«', 1)[-1].rsplit('»', 1)[0]
-            with s['conn']() as c:c.execute('insert or ignore into daily_content(day,kind,title,body) values(?,?,?,?)',(day,'speech-reading-pm','Текст для чтения',expected))
         with s['conn']() as c:
+            if expected is not None:c.execute('insert or ignore into daily_content(day,kind,title,body) values(?,?,?,?)',(day,'speech-reading-pm','Текст для чтения',expected))
             c.execute('insert or ignore into daily_content(day,kind,title,body) values(?,?,?,?)', (day, kind, PERIODS[period][2], body))
             return c.execute('select body from daily_content where day=? and kind=?', (day, kind)).fetchone()['body']
 

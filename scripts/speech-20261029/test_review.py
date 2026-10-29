@@ -48,6 +48,10 @@ class Reviews(unittest.TestCase):
   with patch.object(r.threading,'Thread') as thread:
    self.s['bot_message'](msg);self.s['bot_message'](msg)
    self.assertEqual(thread.call_count,1)
+ def test_expired_requests_purged_by_normal_scheduler(self):
+  with self.conn() as c:c.execute("insert into training_review_requests(uid,day,kind,expected,expires,state) values(1,'2026-10-01','camera','public exercise',0,'done')")
+  self.s['class_reminders']()
+  with self.conn() as c:self.assertEqual(c.execute('select count(*) from training_review_requests').fetchone()[0],0)
  def test_unreliable_recognition_is_not_bad_diction(self):
   text=r.audio_feedback({'recognized_words':3,'confidence':.2,'reference_overlap':.1,'clipping':0})
   self.assertIn('не оценка твоей дикции',text)

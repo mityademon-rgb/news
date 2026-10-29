@@ -16,7 +16,7 @@ jobs:
       - uses: actions/checkout@v4
         with:
           fetch-depth: 2
-      - name: Offline tests before production
+      - name: Check 31 offline cases before production
         run: |
           bash scripts/check-project-documentation.sh HEAD~1 HEAD
           git diff --check HEAD~1 HEAD
