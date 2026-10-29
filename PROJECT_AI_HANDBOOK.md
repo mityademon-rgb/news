@@ -1140,3 +1140,6 @@ MAX и Telegram имеют раздельные проверенные иден�
 
 ### Подтверждение 29.10.2026 00:44 МСК
 Actions 40774169490 completed/success, commit 571f3333e4ef09b30532cca84f0dd5c944d4876c. Live hook присутствует, AI_TEXT_PROVIDER=deepseek, DEEPSEEK_MODEL=deepseek-flash, ключ присутствует (значение не выводилось). service active/running, NRestarts=0, старт 00:42:57 МСК; local/public GET health 200. Telegram getMe и MAX me 200. За 28–29 октября актуальные text/photo pending=0; -1 — недоступные доставки, не успех. Никаких test sends. Одноразовый envelope private удалён, runtime backup pointer создан. Три synthetic JSON-пробы прошли. Редакционное ограничение: первые пробы местами театральны и придумывают неподтверждённый анонс; это техническая проверка, не доказательство роста качества. Боевые таблоиды по-прежнему обязаны проходить существующий fact/editor check, реальные будущие выпуски ещё не проверены.
+
+### 2026-10-29 — Аудит AI наставника
+Перед модернизацией по поручению владельца timecode-mentor-audit-20261029.yml сохраняет только текущие исходники и bot handbook в artifact на 1 день. Это read-only source audit, без env/SQLite/детских сообщений/фотографий, без restart и тестовой рассылки. Часы действующего scheduler и проверенный месячный банк сохраняются.

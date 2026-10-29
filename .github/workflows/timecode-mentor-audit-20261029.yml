@@ -1,0 +1,32 @@
+name: TIMECODE mentor source audit without messages
+on:
+  push:
+    branches: [boom-kadr-deploy]
+    paths: ['.github/workflows/timecode-mentor-audit-20261029.yml']
+permissions:
+  contents: read
+jobs:
+  audit:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 2
+      - name: Documentation guard
+        run: bash scripts/check-project-documentation.sh HEAD~1 HEAD
+      - name: Read current source only
+        env:
+          BOOM_SSH_KEY: ${{ secrets.BOOM_SSH_KEY }}
+        run: |
+          install -d -m 700 ~/.ssh snapshot
+          printf '%s\n' "$BOOM_SSH_KEY" > ~/.ssh/timecode
+          chmod 600 ~/.ssh/timecode
+          ssh-keyscan -T 8 -H 217.149.24.242 > ~/.ssh/known_hosts
+          ssh -i ~/.ssh/timecode root@217.149.24.242 'cd /opt/timecode-bot/timecode-bot && tar -czf - server.py chef_voice.py CHEF_MEMORY.md playful_checkins.py creative_digest.py editorial_voice.py truth_game.py monthly_games.py ai_provider.py shared_media.py PROJECT_AI_HANDBOOK.md' > snapshot/source.tar.gz
+          ssh -i ~/.ssh/timecode root@217.149.24.242 'systemctl show timecode-bot.service -p ActiveState -p SubState -p NRestarts; curl -fsS --max-time 10 http://127.0.0.1:8097/health' > snapshot/status.txt
+      - uses: actions/upload-artifact@v4
+        with:
+          name: mentor-source-audit
+          path: snapshot/
+          retention-days: 1
