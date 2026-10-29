@@ -148,7 +148,7 @@ def install(s):
             body = edition(period)
             buttons = None
             if period == 'camera':buttons = [[{'text':'📷 Проверить мой кадр','callback_data':'tr:camera:'+s['today']()}]]
-            if period == 'pm' and Path('/opt/timecode-speech/READY').exists():buttons = [[{'text':'🎙 Хочу проверить чтение','callback_data':'tr:speech:'+s['today']()}]]
+            if period == 'pm' and Path('/opt/timecode-speech/READY').exists():buttons = [[{'text':'🎙 Проверить запись','callback_data':'tr:speech:'+s['today']()}]]
             with s['conn']() as c:
                 targets = [r['id'] for r in c.execute('select id from users where enabled=1')]
                 for uid in targets:

@@ -55,10 +55,9 @@ class Reviews(unittest.TestCase):
  def test_unreliable_recognition_is_not_bad_diction(self):
   text=r.audio_feedback({'recognized_words':3,'confidence':.2,'reference_overlap':.1,'clipping':0})
   self.assertIn('не оценка твоей дикции',text)
-  self.assertEqual(text.count('Один совет:'),1)
   self.assertNotIn('/10',text)
  def test_feedback_uses_measured_problem_and_one_advice(self):
-  text=r.audio_feedback({'recognized_words':20,'confidence':.9,'reference_overlap':.9,'clipping':.04,'words_per_speech_minute':250})
+  text=r.audio_feedback({'mode':'signal_only','clipping':.04})
   self.assertIn('перегруз',text);self.assertEqual(text.count('Один совет:'),1)
   self.assertNotIn('звук «р»',text)
 

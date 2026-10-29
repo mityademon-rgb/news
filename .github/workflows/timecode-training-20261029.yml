@@ -33,7 +33,7 @@ jobs:
           text='Сегодня наша команда готовит новый сюжет. Камера стоит у окна. Мы читаем текст спокойно и делаем короткие паузы. '
           subprocess.run(['espeak-ng','-v','ru','-s','140','-w','/tmp/synthetic-speech.wav',text*4],check=True)
           PY
-      - name: Verify cached local audio runtime and install only after success
+      - name: Verify lightweight signal analysis and install training
         env:
           BOOM_SSH_KEY: ${{ secrets.BOOM_SSH_KEY }}
         run: |
