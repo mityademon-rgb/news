@@ -11,6 +11,7 @@ import sys
 
 
 def analyze(path, model_path, ffmpeg, expected):
+    print('AUDIO_STAGE import',file=sys.stderr,flush=True)
     import vosk
     vosk.SetLogLevel(-1)
     # Bound decode output to 65 seconds, mono 16 kHz PCM, without following media URLs.
@@ -28,6 +29,7 @@ def analyze(path, model_path, ffmpeg, expected):
     speech_seconds=sum(active)*.02
     if speech_seconds<2:raise ValueError('audio-no-reliable-speech')
     clipped=sum(abs(x)>=32700 for x in samples)/len(samples)
+    print('AUDIO_STAGE model',file=sys.stderr,flush=True)
     model=vosk.Model(str(model_path));rec=vosk.KaldiRecognizer(model,16000);rec.SetWords(True)
     words=[]
     for i in range(0,len(p.stdout),8000):

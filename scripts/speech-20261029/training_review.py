@@ -12,7 +12,7 @@ import time
 def audio_feedback(data):
     if data.get('error'):
         if data['error']=='audio-duration-outside-30-60':
-            return 'Для этой проверки нужен фрагмент на 30–60 секунд: прочитай текст дважды, спокойно, с паузами.'
+            return 'Для этой проверки нужен фрагмент на 30–60 секунд: прочитай текст несколько раз, спокойно, с паузами.'
         return 'Не удалось надёжно разобрать запись. Попробуй ещё раз в тихом месте, направив микрофон к себе.'
     reliable=data.get('recognized_words',0)>=5 and data.get('confidence',0)>=.65 and data.get('reference_overlap',0)>=.55
     fact=('В записи удалось распознать основную часть предложенного текста.' if reliable else
@@ -64,7 +64,7 @@ def install(s):
             c.execute('''insert into training_review_requests(uid,day,kind,expected,expires,state)
                 values(?,?,?,?,?,'awaiting') on conflict(uid,day,kind) do update set state='awaiting',expires=excluded.expires''',
                 (uid,s['today'](),kind,row['body'],int(time.time())+3600))
-        text=('По желанию пришли голосовое на 30–60 секунд: прочитай текст дважды, с паузами. '
+        text=('По желанию пришли голосовое на 30–60 секунд: прочитай текст несколько раз, с паузами. '
               'Проверю темп, звучание записи и совпадение слов с текстом. Без отметок.\n\n'+row['body'] if kind=='speech' else
               'Пришли одну фотографию по сегодняшнему заданию. Посмотрю, что получилось, и предложу одно улучшение. '
               'Движение и устойчивость видео по фотографии не оцениваю.')

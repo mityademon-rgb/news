@@ -45,6 +45,10 @@ def main():
     p=subprocess.run([str(interpreter),str(Path(__file__).with_name('audio_worker.py'))],
         input=json.dumps(dict(path=str(sample),model=str(model),ffmpeg=ffmpeg,expected=expected)),
         capture_output=True,text=True,timeout=65,env=dict(os.environ,OPENBLAS_NUM_THREADS='1',OMP_NUM_THREADS='1'))
+    if not p.stdout.strip():
+        print('SYNTHETIC_AUDIO_PROCESS_EXIT',p.returncode,flush=True)
+        print('SYNTHETIC_AUDIO_STDERR',p.stderr[-1800:],flush=True)
+        raise RuntimeError('synthetic audio worker returned no result')
     result=json.loads(p.stdout)
     print('SYNTHETIC_AUDIO_PROBE',json.dumps({k:v for k,v in result.items() if k!='transcript'}),flush=True)
     assert p.returncode==0 and result.get('recognized_words',0)>=5,'local audio probe failed'
