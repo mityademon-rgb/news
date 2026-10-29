@@ -1,0 +1,36 @@
+name: Inspect speech runtime without recordings
+on:
+  push:
+    branches: [boom-kadr-deploy]
+    paths: ['.github/workflows/timecode-speech-probe-20261029.yml']
+permissions:
+  contents: read
+jobs:
+  inspect:
+    runs-on: ubuntu-latest
+    timeout-minutes: 4
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 2
+      - run: bash scripts/check-project-documentation.sh HEAD~1 HEAD
+      - name: Inspect tools, not messages
+        env:
+          BOOM_SSH_KEY: ${{ secrets.BOOM_SSH_KEY }}
+        run: |
+          install -d -m 700 ~/.ssh
+          printf '%s\n' "$BOOM_SSH_KEY" > ~/.ssh/timecode
+          chmod 600 ~/.ssh/timecode
+          ssh-keyscan -T 8 -H 217.149.24.242 > ~/.ssh/known_hosts
+          ssh -i ~/.ssh/timecode root@217.149.24.242 'python3 -' <<'PY'
+          import shutil,hashlib,sys,subprocess
+          from pathlib import Path
+          print('PYTHON',sys.version)
+          for n in ('ffmpeg','ffprobe','espeak','espeak-ng','pip3'):print('TOOL',n,shutil.which(n))
+          print('DISK_FREE',shutil.disk_usage('/opt').free)
+          print('MEMORY',Path('/proc/meminfo').read_text().splitlines()[:3])
+          root=Path('/opt/timecode-bot/timecode-bot')
+          for n in ('server.py','mentor.py'):print('HASH',n,hashlib.sha256((root/n).read_bytes()).hexdigest())
+          print('HANDBOOK_TAIL',(root/'PROJECT_AI_HANDBOOK.md').read_text()[-4500:])
+          print('READ_ONLY_NO_AUDIO_OR_MESSAGES')
+          PY
