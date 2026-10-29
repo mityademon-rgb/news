@@ -930,3 +930,6 @@
 - **Откат:** revert commit `4ae84fb`; operational сведения перед откатом сохранить, если они ещё актуальны.
 - **Риски и продолжение:** handbook требует актуализации после существенных изменений; эта запись привела к созданию обязательного журнала.
 
+
+### Итог 29.10.2026, 15:18 МСК
+Адресная изоляция intro: run 40872052761 completed/success, commit 402207ab8f1b98a9e196ea6ac44a890c42df5e13. 15 offline tests PASS; mentor.py SHA256 5dbbd99a191aaf073fbcdcfdda6c1600fb9df02e826aa561839396a0864db597 совпадает с source. Service active/running/NRestarts=0; local/public health 200; Telegram getMe и MAX me 200. Text outbox: TG 25 delivered/2 unreachable, MAX 19/2; photo TG 22/2, MAX 18/2, pending обеих платформ 0. Это существующие доставки за день, не тестовая рассылка и не доказательство качества будущих выпусков. Тестовых сообщений детям не отправлялось. Приватное приложение оператора обновлено до 1.0.1 с прежним plugin_id; release pluginrel_6ae3396434e88191b2e5255e34985d26 прочитан повторно, все 8 компонентов сохранены.

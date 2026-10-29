@@ -2,8 +2,10 @@
   "plugin_id": "plugins_6ad1ee90472c81919499bdd13743a28c",
   "plugin_url": "https://chatgpt.com/plugins/plugins_6ad1ee90472c81919499bdd13743a28c",
   "release_id_at_creation": "pluginrel_6ad1ee90e19c81918885b79ec4a7e6b3",
-  "version": "1.0.0",
+  "version": "1.0.1",
   "created": "2026-10-16",
   "skill_path": "skills/timecode-bot-operator",
-  "note": "Before updating inspect current files/release; do not duplicate or assume this release remains latest."
+  "note": "Before updating inspect current files/release; do not duplicate or assume this release remains latest.",
+  "current_release_id": "pluginrel_6ae3396434e88191b2e5255e34985d26",
+  "updated": "2026-10-29"
 }
