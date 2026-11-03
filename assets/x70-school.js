@@ -13,7 +13,7 @@ function result(root,ok,good,bad){const o=el(root,"[data-x70-result]");if(o){o.t
 function frame(){return '<div class="x70-view"><div class="x70-grid"></div>'+face+'<span class="x70-rec">● STBY</span><span class="x70-meta" data-x70-meta>1080 / 25p</span></div>';}
 function credit(src,label){return '<p class="x70-credit">Иллюстрация: <a target="_blank" rel="noopener noreferrer" href="'+e(src)+'">'+e(label)+'</a></p>';}
 function render(s,copy){
-const title='<section class="x70-stage"><div class="x70-demo">';
+
 let body="";
 if(s.mode==="photo"){
 body='<div class="x70-real-photo"><img src="'+PHOTO+'" alt="Реальная Sony PXW-X70: боковые кнопки питания, WHT BAL, IRIS, GAIN, SHUTTER SPEED, слот SD" loading="eager" referrerpolicy="no-referrer"/><div class="x70-photo-points">'+[
@@ -30,10 +30,10 @@ credit("https://multimedia.journalism.berkeley.edu/tutorials/sony-x70/","Berkele
 body='<div class="x70-sideby"><img class="x70-camera-picture" src="'+COMMONS+'" alt="Настоящая Sony PXW-X70 на штативе: объектив, рукоятка, экран, видоискатель" loading="lazy"/><div class="x70-steps"><strong>Осмотри настоящую камеру</strong><p>Найди: объектив, бленду, ручку, откидной экран, видоискатель, батарею и разъём микрофона. Если сомневаешься, спроси у преподавателя, а не тяни за непонятную деталь.</p><div class="x70-chips">Объектив · Экран · Видоискатель · Рукоятка · Аккумулятор</div><p class="x70-small">Камеру переносим только за штатную рукоятку или корпус, со страховкой ремнём. Не переносим за экран и микрофон.</p></div></div>'+credit("https://commons.wikimedia.org/wiki/File:Camera124.jpg","Niyasbinnazeer · CC BY-SA 3.0, оригинальная фотография, без изменения")+'<a class="x70-source" target="_blank" rel="noopener" href="'+SOURCE+'">Схемы корпуса в руководстве Sony, страницы 4–11</a>';
 }else if(s.mode==="order"||s.mode==="sequence"){
 let items=s.items||[];
-body='<div class="x70-sideby"><div class="x70-steps"><h3>'+e(s.mode==="order"?"Собери алгоритм":"Выстрой монтаж")+'</h3><p>Нажимай действия в правильной последовательности. Для мыши доступно перетаскивание, для телефона — касание.</p><div class="x70-order-options">'+items.map((x,i)=>'<button draggable="true" type="button" data-x70-order="'+i+'">'+e(x)+'</button>').join("")+'</div></div><div class="x70-steps"><h3>Твой порядок</h3><ol data-x70-order-list></ol><button type="button" data-x70-order-reset>Начать заново</button><button type="button" data-x70-order-verify>Проверить последовательность</button><div class="x70-feedback" data-x70-result>Ошибаться можно. Важно понять, почему порядок имеет значение.</div></div></div>';
+body='<div class="x70-sideby"><div class="x70-steps"><h3>'+e(s.mode==="order"?"Собери алгоритм":"Выстрой монтаж")+'</h3><p>Нажимай действия в правильной последовательности. Для мыши доступно перетаскивание, для телефона — касание.</p><div class="x70-order-options">'+items.map((x,i)=>({x,i})).sort((a,b)=>((a.i*5+3)%items.length)-((b.i*5+3)%items.length)).map(v=>'<button draggable="true" type="button" data-x70-order="'+v.i+'">'+e(v.x)+'</button>').join("")+'</div></div><div class="x70-steps"><h3>Твой порядок</h3><ol data-x70-order-list></ol><button type="button" data-x70-order-reset>Начать заново</button><button type="button" data-x70-order-verify>Проверить последовательность</button><div class="x70-feedback" data-x70-result>Ошибаться можно. Важно понять, почему порядок имеет значение.</div></div></div>';
 }else if(s.mode==="video"){
 const start=Number(s.start||0);
-body='<div class="x70-video"><iframe loading="lazy" title="'+e(s.videoTitle||"Обучающее видео Sony PXW-X70")+'" src="https://www.youtube-nocookie.com/embed/oHytL4rJXg0?start='+start+'&rel=0" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share" referrerpolicy="strict-origin-when-cross-origin" allowfullscreen></iframe></div><p class="x70-small">Фрагмент демонстрации Bath Spa University, автор Frederick Reed. Если YouTube недоступен, выполните параллельную проверку на настоящей камере.</p><a href="https://www.youtube.com/watch?v=oHytL4rJXg0&t='+start+'s" target="_blank" rel="noopener">Открыть исходный ролик</a><div class="x70-feedback">Задание: после просмотра покажи преподавателю тот же орган управления на Sony.</div>';
+body='<div class="x70-video"><iframe loading="lazy" title="'+e(s.videoTitle||"Обучающее видео Sony PXW-X70")+'" src="https://www.youtube-nocookie.com/embed/oHytL4rJXg0?start='+start+'&end='+(start+100)+'&rel=0" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share" referrerpolicy="strict-origin-when-cross-origin" allowfullscreen></iframe></div><p class="x70-small">Фрагмент демонстрации Bath Spa University, автор Frederick Reed. Если YouTube недоступен, выполните параллельную проверку на настоящей камере.</p><a href="https://www.youtube.com/watch?v=oHytL4rJXg0&t='+start+'s" target="_blank" rel="noopener">Открыть исходный ролик</a><div class="x70-feedback">Задание: после просмотра покажи преподавателю тот же орган управления на Sony.</div>';
 }else if(s.mode==="compare"||s.mode==="framing"||s.mode==="focus"){
 body='<div class="x70-sideby"><div class="x70-shot">'+frame()+'</div><div class="x70-steps"><h3>'+e(s.action||"Найди правильный кадр")+'</h3><p>'+e(s.instruction||"Меняй параметры и наблюдай, как изменяется изображение.")+'</p>';
 if(s.mode==="compare")body+='<label class="x70-field">'+e(s.sliderLabel||"Параметр")+'<input type="range" min="0" max="100" value="100" data-x70-slide/><span data-x70-readout>100%</span></label>';
@@ -63,7 +63,7 @@ body='<div class="x70-resolutions">'+[["HD",1280,720],["FULL HD",1920,1080],["4K
 }else{
 body='<div class="x70-feedback">Демонстрация не найдена.</div>';
 }
-return title+body+'</div></section>';
+return '<section class="x70-stage">'+copy+'<div class="x70-demo">'+body+'</div></section>';
 }
 function bind(s,mark,lessonId,sceneNo){
 const root=document.querySelector("#scene-content .x70-stage");if(!root)return;
