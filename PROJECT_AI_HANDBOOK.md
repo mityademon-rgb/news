@@ -3,6 +3,9 @@ Total output lines: 1181
 
 # TIMECODE — PROJECT AI HANDBOOK
 
+> **Обновление 03.11.2026 — уроки Sony PXW-X70.** В каталог добавлены интерактивные занятия KIDS LAB №12 (`kids-sony-x70-video`, 20 сцен) и MEDIA LAB A09 (`adult-sony-x70-video`, 19 сцен). Для них предусмотрены планы в `lesson-plans.js`. Используются поддерживаемые типы сцен (`cover`, `rule`, `choice`, `practice`, `finish`) и штатный `app.js`. Главная сортирует новые карточки по номеру; маршруты: `#/lesson/kids-sony-x70-video`, `#/lesson/adult-sony-x70-video`. Собран `site.js` в порядке `lessons.js + lesson-plans.js + app.js`; cache-busting параметр обновлён в `index.html`. Старые уроки, игры и бот не затронуты. Критерий окончания — реальная съёмка и воспроизведение файлов на Sony. Источник: Sony PXW-X70 Operating Guide, стр. 8–11 и 37–43. Контроль публикации по GitHub Actions и живому сайту; откат через revert соответствующего коммита.
+
+
 > Эксплуатационный паспорт сайта, контура публикации и связанного TIMECODE-бота.  
 > Этот документ нужно прочитать до любых изменений проекта.
 
