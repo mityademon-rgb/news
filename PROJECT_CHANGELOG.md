@@ -1,3 +1,12 @@
+## 2026-11-03 — Уроки операторского мастерства Sony PXW-X70
+
+- Добавлены два интерактивных урока в существующий каталог: KIDS LAB 12 (kids-sony-x70-video) и MEDIA LAB A09 (adult-sony-x70-video).
+- Содержание: работа с реальными кнопками PXW-X70, формат 1080/25p, выдержка 1/50, IRIS, GAIN, ND, баланс белого WB SET, фокус, контроль REC и воспроизведения; интерактивные вопросы с немедленной обратной связью, практические задания и отдельные планы преподавателя.
+- Проверено по Sony PXW-X70 Operating Guide: https://pro.sony/s3/cms-static-content/uploadfile/99/1237493098399.pdf ; модель PXW-Z90 не подменяется.
+- Не менялись старые уроки, их номера, данные, общая логика SPA и бот. Сборка site.js = lessons.js + lesson-plans.js + app.js. Изменён параметр версии site.js в index.html.
+- Проверки: контроль новых ID, синтаксис, deterministic bundle в CI, затем проверить Github Actions и живые маршруты. Не считать опубликованным до проверки.
+- Откат: revert коммита в boom-kadr-deploy, затем штатный деплой.
+
 ## 2026-10-29 — Подтверждение наставника и изоляция подводки от ответа
 
 - **Подтверждено:** deploy run 40871251812 completed/success, commit a77f3940f460cb8d81eef735b2bf49e71b339865. 14 offline tests, 10 synthetic DeepSeek ответов и synthetic PNG vision прошли. 15:14 МСК service active/running, NRestarts=0, Telegram/MAX API 200, оба health 200. Pending text/photo=0, недоступные (-1) отдельно от доставленных. Live hashes записаны в logs, тестовых отправок детям нет.
