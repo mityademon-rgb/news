@@ -1906,6 +1906,8 @@
 
     if (scene.type === "camera-sim") return cameraSimTemplate(scene, copy);
 
+    if (scene.type === "x70" && window.TIMECODE_X70) return window.TIMECODE_X70.render(scene, copy);
+
     if (scene.type === "cover") {
       return `<article class="scene scene-cover">${copy}<div class="cover-slate" aria-hidden="true">
         <img src="${escapeHtml(state.lesson.cover || "./assets/camera-hero.webp")}" alt="" />
@@ -2199,6 +2201,7 @@
   }
 
   function bindSceneActions(scene) {
+    if (scene.type === "x70" && window.TIMECODE_X70) window.TIMECODE_X70.bind(scene, markAnswered, state.lesson.id, state.scene);
 
     const cam = document.querySelector("[data-cam-sim]");
     if (cam) {

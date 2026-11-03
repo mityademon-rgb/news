@@ -1,0 +1,52 @@
+
+/* TIMECODE Sony PXW-X70 lesson lab — isolated visuals */
+.x70-stage{width:100%;max-width:1100px;margin:0 auto 18px;color:#ebfcff;font-family:inherit}
+.x70-demo{padding:clamp(14px,2vw,26px);border:1px solid #2e656e;border-radius:20px;background:linear-gradient(130deg,#071a27,#13313b);overflow:hidden;box-shadow:0 10px 24px #07151d50}
+.x70-demo button,.x70-demo select{font:inherit}
+.x70-demo button{cursor:pointer;border:1px solid #77bebf;border-radius:9px;padding:10px 13px;color:#eefdfb;background:#164958;font-weight:750;min-height:42px}
+.x70-demo button:focus-visible,.x70-demo select:focus-visible{outline:3px solid #f6c84c;outline-offset:2px}
+.x70-demo button:hover{background:#246877}.x70-demo button:disabled{opacity:.36;cursor:default}
+.x70-real-photo{max-width:850px;margin:auto;position:relative}.x70-real-photo img{display:block;width:100%;border-radius:14px;background:#273f4c}
+.x70-photo-points{position:absolute;inset:0}.x70-photo-points button{position:absolute;transform:translate(-50%,-50%);border-radius:50%;padding:0;width:34px;height:34px;background:#f7b841;color:#101a25;border:2px solid white;box-shadow:0 2px 12px #000a}
+.x70-photo-points button.seen{background:#2ad5a8}
+.x70-credit,.x70-small{font-size:12px;line-height:1.6;color:#bfdae0;margin:10px 0}
+.x70-credit a,.x70-source,.x70-demo a{color:#94f0dd}
+.x70-tip,.x70-track,.x70-feedback{border:1px solid #437780;background:#153947;border-radius:10px;padding:14px 17px;margin:12px 0;color:#eafcff;line-height:1.55}
+.x70-feedback.is-right{background:#165341;border-color:#60c99f}.x70-feedback.is-wrong{background:#493526;border-color:#d59c69}
+.x70-sideby{display:grid;grid-template-columns:minmax(0,1.25fr) minmax(260px,1fr);gap:21px;align-items:center}
+.x70-camera-picture{width:100%;max-height:480px;object-fit:contain;border-radius:12px}
+.x70-steps{display:grid;gap:13px;align-content:start}.x70-steps h3{font-size:23px;margin:0}.x70-steps p{margin:0;color:#e8f6f6}
+.x70-chips{color:#91eed7;font-weight:700}
+.x70-order-options{display:grid;gap:8px}.x70-order-options button{text-align:left}.x70-steps ol{min-height:140px;padding:20px 22px;background:#102831;border-radius:8px}
+.x70-video{position:relative;aspect-ratio:16/9;max-width:850px;margin:auto}.x70-video iframe{width:100%;height:100%;border:0;border-radius:13px}
+.x70-view{--x70-wb-tint:transparent;position:relative;aspect-ratio:16/9;overflow:hidden;border-radius:15px;border:4px solid #8ba3a8;background:radial-gradient(circle at 72% 22%,#fff3c3 2%,#b9d6d5 19%,#577b9b 65%,#30455b 100%)}
+.x70-view:after{content:"";position:absolute;inset:0;background:var(--x70-wb-tint);pointer-events:none;mix-blend-mode:multiply}
+.x70-view.has-noise:before{content:"";position:absolute;inset:0;z-index:4;pointer-events:none;opacity:.23;background-image:repeating-linear-gradient(10deg,transparent 0px,transparent 2px,#eef 3px,#111 4px)}
+.x70-grid{position:absolute;inset:0;background:linear-gradient(to right,transparent 33.2%,#fff7 33.4%,transparent 33.7%,transparent 66.2%,#fff7 66.5%,transparent 66.8%),linear-gradient(to bottom,transparent 33%,#fff7 33.4%,transparent 33.8%,transparent 66%,#fff7 66.4%,transparent 66.8%);z-index:3;pointer-events:none}
+.x70-person{position:absolute;width:38%;height:84%;left:32%;bottom:-4%;transform-origin:50% 75%}
+.x70-shirt{position:absolute;bottom:0;left:1%;width:98%;height:49%;border-radius:42% 42% 8% 8%;background:linear-gradient(135deg,#db792e,#8c3241);border:3px solid #512b37}
+.x70-head{position:absolute;left:27%;top:7%;height:56%;width:45%;background:#e5b48a;border:2px solid #7a514d;border-radius:44% 44% 47% 47%;z-index:1}
+.x70-hair{position:absolute;left:24%;top:3%;height:28%;width:52%;border-radius:47% 50% 20% 20%;background:#33313b;z-index:2}
+.x70-head i{position:absolute;top:50%;width:9%;height:4%;background:#383b43;border-radius:60%}.x70-head i:first-child{left:24%}.x70-head i:nth-child(2){right:24%}.x70-head b{position:absolute;width:18%;height:4%;left:41%;top:73%;border-radius:60%;background:#ad6b58}
+.x70-rec,.x70-meta{position:absolute;z-index:5;background:#11232fdc;color:#fff;padding:5px 9px;border-radius:4px;font:700 11px/1.3 monospace}
+.x70-rec{top:10px;left:10px;color:#ff858d}.x70-meta{bottom:10px;left:10px}
+.x70-shot{min-width:0}.x70-blurred .x70-person{filter:blur(6px)}
+.x70-field{display:grid;gap:6px;color:#b5e9e3;font:700 13px/1.4 Arial,sans-serif}
+.x70-field input[type="range"]{accent-color:#f4ca65;width:100%}
+.x70-field select{min-width:0;border-radius:7px;background:#173f4a;border:1px solid #649999;color:white;padding:9px}
+.x70-controls{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px}
+.x70-option,.x70-cards{display:grid;gap:9px}.x70-cards{grid-template-columns:repeat(2,minmax(0,1fr))}
+.x70-cards button{text-align:left;display:grid;gap:6px}.x70-cards span{font-weight:400;font-size:14px}
+.x70-wb-overlay{position:absolute;inset:0;pointer-events:none;mix-blend-mode:multiply}
+.x70-motion{display:grid;grid-template-columns:1fr 1fr;gap:15px}
+.x70-motion-track{height:140px;position:relative;overflow:hidden;background:linear-gradient(#9fcbe3 65%,#6b9a74 65%);border-radius:12px;margin:10px 0}
+.x70-runner{position:absolute;top:45%;left:5%;font-size:62px;color:#ffb957;text-shadow:0 0 8px #fffb;animation:x70-run 1.9s linear infinite alternate}
+.x70-runner.is-smooth{filter:blur(4px)}.x70-runner.is-staccato{animation-timing-function:steps(6,end);filter:none}
+.is-paused .x70-runner{animation-play-state:paused}@keyframes x70-run{to{left:78%}}
+.x70-checklist{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px;margin-bottom:15px}
+.x70-checklist label{display:flex;gap:11px;padding:13px;border:1px solid #31606d;background:#193944;border-radius:10px;line-height:1.4;cursor:pointer}
+.x70-checklist input{accent-color:#32d7ab;width:20px;height:20px;flex-shrink:0}
+.x70-resolutions{display:flex;align-items:end;gap:12px;justify-content:center}.x70-resolution-card{display:grid;gap:5px;text-align:center;font-size:12px}
+.x70-resolution-box{display:grid;place-items:center;color:white;border:2px solid #8adddf;background:#28517a;border-radius:6px}
+.x70-size-0{width:90px;height:50px}.x70-size-1{width:145px;height:82px}.x70-size-2{width:220px;height:125px}
+@media(max-width:680px){.x70-sideby,.x70-motion,.x70-checklist,.x70-cards{grid-template-columns:1fr}.x70-steps h3{font-size:19px}.x70-controls{grid-template-columns:repeat(2,minmax(0,1fr))}.x70-photo-points button{width:27px;height:27px}.x70-resolutions{gap:5px}.x70-size-0{width:55px;height:32px}.x70-size-1{width:89px;height:52px}.x70-size-2{width:125px;height:76px}}
