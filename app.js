@@ -1865,6 +1865,21 @@
     return html;
   }
 
+
+  function cameraSimTemplate(scene, copy) {
+    const field = (key, label, options, current) => '<label class="tc-sim-field">' + escapeHtml(label) + '<select data-sim-control="' + key + '">' + options.map((opt) => '<option value="' + escapeHtml(String(opt[0])) + '"' + (String(opt[0]) === String(current) ? ' selected' : '') + '>' + escapeHtml(String(opt[1])) + '</option>').join('') + '</select></label>';
+    const controls = [
+      field("shutter", "SHUTTER", [[25,"1/25"],[50,"1/50"],[100,"1/100"],[200,"1/200"]], 100),
+      field("iris", "IRIS", [[2.8,"F2.8"],[4,"F4"],[5.6,"F5.6"],[8,"F8"],[11,"F11"]], 5.6),
+      field("gain", "GAIN", [[0,"0 dB"],[6,"+6 dB"],[12,"+12 dB"],[18,"+18 dB"]], 0),
+      field("nd", "ND FILTER", [[0,"CLEAR"],[1,"ND1 · 1/4"],[2,"ND2 · 1/16"],[3,"ND3 · 1/64"]], 0),
+      field("wb", "WHT BAL", [[3200,"3200 K · лампа"],[5600,"5600 K · день"]], 5600),
+      field("focus", "FOCUS", [["background","Резкий фон"],["eyes","Глаза героя"]], "background")
+    ].join("");
+    const src = escapeHtml(scene.image || "./assets/kids06-one-person.webp");
+    return '<article class="scene">' + copy + '<div class="scene-visual tc-camera-simulator" data-cam-sim><div class="tc-sim-viewport"><img data-sim-image src="' + src + '" alt="Учебная сцена для настройки камеры" /><span class="tc-sim-white" data-sim-tint></span><span class="tc-sim-rec">● STBY</span><span class="tc-sim-readout" data-sim-readout></span></div><p class="tc-sim-disclaimer">Учебная модель: яркость, цвет и резкость показаны условно. Это не точный экспонометр Sony.</p><div class="tc-sim-controls">' + controls + '</div><button class="tc-sim-test" type="button" data-sim-test>Проверить кадр</button><p class="tc-sim-feedback" data-sim-feedback role="status" aria-live="polite">Поменяй параметры, затем проверь результат.</p></div></article>';
+  }
+
   function baseSceneTemplate(scene) {
     const sceneLabels = {
       "sound-media": "Смотрим и слушаем",
@@ -1888,6 +1903,8 @@
         ${scene.accent ? `<div class="scene-accent">${escapeHtml(scene.accent)}</div>` : ""}
         ${teacherNote(scene.type, scene.teacher)}
       </div>`;
+
+    if (scene.type === "camera-sim") return cameraSimTemplate(scene, copy);
 
     if (scene.type === "cover") {
       return `<article class="scene scene-cover">${copy}<div class="cover-slate" aria-hidden="true">
@@ -2182,6 +2199,47 @@
   }
 
   function bindSceneActions(scene) {
+
+    const cam = document.querySelector("[data-cam-sim]");
+    if (cam) {
+      const get = (key) => cam.querySelector('[data-sim-control="' + key + '"]').value;
+      const preview = cam.querySelector("[data-sim-image]");
+      const tint = cam.querySelector("[data-sim-tint]");
+      const readout = cam.querySelector("[data-sim-readout]");
+      const feedback = cam.querySelector("[data-sim-feedback]");
+      const light = scene.light === "sun" ? 16 : scene.light === "dark" ? 0.2 : 1;
+      const expected = Number(scene.targetWB || 3200);
+      const calculate = () => {
+        const shutter = Number(get("shutter")), iris = Number(get("iris")), gain = Number(get("gain"));
+        const nd = Number(get("nd")), wb = Number(get("wb")), focus = get("focus");
+        const brightness = light * Math.pow(4 / iris, 2) * (50 / shutter) * Math.pow(2, gain / 6) / Math.pow(4, nd);
+        preview.style.filter = "brightness(" + Math.max(.23, Math.min(2.2, .35 + .7 * brightness)).toFixed(2) + ")" + (focus === "eyes" ? "" : " blur(3px)");
+        tint.style.background = wb === expected ? "transparent" : expected === 3200 ? "rgba(55,137,255,.34)" : "rgba(255,128,38,.34)";
+        readout.textContent = "1/" + shutter + " · F" + iris + " · " + gain + " dB · " + (nd ? "ND" + nd : "CLEAR") + " · " + wb + "K";
+        const issues=[];
+        if (shutter !== 50) issues.push("Для обычного 25p начни с выдержки 1/50.");
+        if (brightness < .63) issues.push("Слишком темно: открой IRIS, убери ND или добавь свет.");
+        if (brightness > 1.55) issues.push("Пересвет: подстрой IRIS или добавь ND.");
+        if (scene.light === "sun" && gain !== 0) issues.push("При ярком солнце GAIN лучше оставить 0 dB.");
+        if (scene.light !== "sun" && nd > 0) issues.push("В помещении обычно не нужен ND.");
+        if (scene.light === "studio" && gain > 6) issues.push("Избыточный GAIN увеличивает шум.");
+        if (wb !== expected) issues.push("Нужно выставить баланс белого под источник света.");
+        if (focus !== "eyes") issues.push("Герой не в фокусе: настрой резкость на глазах.");
+        return issues;
+      };
+      cam.querySelectorAll("[data-sim-control]").forEach((select) => select.addEventListener("change", () => {
+        calculate();
+        feedback.classList.remove("is-passed");
+        feedback.textContent = "Параметры изменены. Нажми «Проверить кадр».";
+      }));
+      cam.querySelector("[data-sim-test]").addEventListener("click", () => {
+        const issues = calculate();
+        feedback.classList.toggle("is-passed", !issues.length);
+        feedback.textContent = issues.length ? issues.slice(0,3).join(" ") : "Кадр готов! Экспозиция, движение, цвет и резкость согласованы. Повтори эти настройки на настоящей Sony.";
+        if (!issues.length) markAnswered();
+      });
+      calculate();
+    }
     const players = Array.from(document.querySelectorAll("#scene-content audio, #scene-content video, .ai-learning-card audio, .ai-learning-card video"));
     players.forEach((player) => {
       player.addEventListener("play", () => players.forEach((other) => { if (other !== player) other.pause(); }));
