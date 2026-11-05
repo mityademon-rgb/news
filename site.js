@@ -6865,15 +6865,16 @@ Object.assign(window.TIMECODE_TEACHER_GUIDES, {
         <a class="lifehack-all-link" href="#/lifehacks"><span>Вся библиотека лайфхаков</span><b>${lifehacks.length}</b><i>→</i></a>
       </section>` : ""}
 
-      <section class="studio-about" id="about" aria-labelledby="about-title">
+      <section class="studio-about studio-about-teaser" id="about" aria-labelledby="lab-about-title">
         <div class="about-splash" aria-hidden="true"><span>10</span><b>лет<br />в эфире</b></div>
         <div class="about-copy">
           <p class="eyebrow">Лаборатория TIMECODE</p>
-          <h2 id="about-title">Здесь не играют<br />в телевидение.</h2>
+          <h2 id="lab-about-title">Здесь не играют<br />в телевидение.</h2>
           <p>Здесь снимают, задают вопросы, ошибаются, переснимают и выпускают настоящие истории.</p>
           <div class="about-chips">
             <span>Камера в руках</span><span>Практика сразу</span><span>История важнее кнопок</span>
           </div>
+          <a class="about-teaser-link" href="#/about">Открыть лабораторию <b>→</b></a>
         </div>
       </section>`;
 
@@ -8767,9 +8768,196 @@ Object.assign(window.TIMECODE_TEACHER_GUIDES, {
   }
   const AI_LETTER_CODE=1040;
 
+  function bindAboutContact() {
+    const form = document.querySelector("#about-contact-form");
+    const status = document.querySelector("#about-contact-status");
+    if (!form || !status) return;
+  
+    form.addEventListener("submit", async (event) => {
+      event.preventDefault();
+      const fields = Object.fromEntries(new FormData(form));
+      const message = [
+        "Сообщение для команды TIMECODE",
+        "",
+        `Имя: ${String(fields.name || "").trim()}`,
+        `Как связаться: ${String(fields.contact || "").trim()}`,
+        "",
+        String(fields.message || "").trim()
+      ].join("\n");
+  
+      window.open("https://vk.me/theinsideeye", "_blank", "noopener,noreferrer");
+  
+      let copied = false;
+      try {
+        await navigator.clipboard.writeText(message);
+        copied = true;
+      } catch {
+        const helper = document.createElement("textarea");
+        helper.value = message;
+        helper.setAttribute("readonly", "");
+        helper.style.position = "fixed";
+        helper.style.opacity = "0";
+        document.body.appendChild(helper);
+        helper.select();
+        copied = document.execCommand("copy");
+        helper.remove();
+      }
+  
+      status.textContent = copied
+        ? "Готово: сообщение скопировано. Вставьте его в открывшийся диалог VK и отправьте."
+        : "Диалог VK открыт. Скопируйте текст из формы и отправьте его в сообщения сообщества.";
+      status.classList.add("is-ready");
+    });
+  }
+
+  function renderAbout() {
+    clearSceneTimer();
+    clearInterval(state.homeTimer);
+    state.homeTimer = null;
+    state.lesson = null;
+    document.body.classList.remove("home-active", "lesson-active", "teacher-mode", "presentation-mode", "teacher-portal-active", "play-active", "cinema-active", "topic-active", "lifehacks-active", "ai-active");
+    document.body.classList.add("about-active");
+  
+    main.innerHTML = `<div class="about-page">
+      <section class="about-hero" aria-labelledby="about-page-title">
+        <div class="about-hero-grid" aria-hidden="true"></div>
+        <div class="about-hero-copy">
+          <a class="about-back" href="#/">← На главную</a>
+          <p class="about-kicker">Медиацентр Марфино · с 2017 года</p>
+          <h1 id="about-page-title"><span>Медиа</span><br />начинаются<br />с возможности.</h1>
+          <p class="about-hero-lead">TIMECODE — лаборатория креативных медиа, где подростки проходят весь путь от первого вопроса до готового выпуска, фильма или репортажа.</p>
+          <div class="about-hero-actions">
+            <a href="#about-works">Смотреть работы <b>↘</b></a>
+            <a href="#about-contact">Связаться <b>→</b></a>
+          </div>
+        </div>
+        <div class="about-hero-visual" aria-label="Съёмочная среда TIMECODE">
+          <div class="about-orbit about-orbit-one"></div>
+          <div class="about-orbit about-orbit-two"></div>
+          <img class="about-hero-camera" src="./assets/camera-hero.webp" alt="Профессиональная видеокамера" />
+          <img class="about-hero-mic" src="./assets/boom-mic-hero.webp" alt="Студийный микрофон" />
+          <strong class="about-hero-code" aria-hidden="true">TIME<br /><i>:</i>CODE</strong>
+          <span class="about-hero-label label-one">СНИМАЕМ</span>
+          <span class="about-hero-label label-two">СПРАШИВАЕМ</span>
+          <span class="about-hero-label label-three">ВЫПУСКАЕМ</span>
+        </div>
+        <div class="about-facts" aria-label="TIMECODE в цифрах">
+          <div><strong>10</strong><span>лет в эфире<br />в январе 2027</span></div>
+          <div><strong>3</strong><span>камеры<br />в студии</span></div>
+          <div><strong>2</strong><span>лаборатории<br />KIDS + MEDIA</span></div>
+          <div><strong>1</strong><span>правило:<br />делать по-настоящему</span></div>
+        </div>
+      </section>
+  
+      <section class="about-manifesto" aria-labelledby="about-manifesto-title">
+        <p class="about-section-index">01 / О НАС</p>
+        <div>
+          <h2 id="about-manifesto-title">Не учимся<br />«когда-нибудь».<br /><span>Работаем сейчас.</span></h2>
+          <p class="about-manifesto-lead">Камера попадает в руки на первом занятии. Вопрос проверяется на собеседнике. Текст — в записи. Монтаж — на зрителе.</p>
+        </div>
+        <div class="about-principles">
+          <article><span>01</span><h3>Смотреть</h3><p>Замечать героя, конфликт, деталь и тот самый кадр, ради которого история становится живой.</p></article>
+          <article><span>02</span><h3>Слушать</h3><p>Не читать список вопросов, а слышать ответ и вести настоящий разговор.</p></article>
+          <article><span>03</span><h3>Снимать</h3><p>Работать с камерой, светом, звуком, телесуфлёром и хромакеем как единая команда.</p></article>
+          <article><span>04</span><h3>Выпускать</h3><p>Собирать материал в монтажной и доводить его до фильма, шоу, новости или репортажа.</p></article>
+        </div>
+      </section>
+  
+      <section class="about-works" id="about-works" aria-labelledby="about-works-title">
+        <header class="about-section-head">
+          <p class="about-section-index">02 / СИЛЬНЫЕ РАБОТЫ</p>
+          <h2 id="about-works-title">Истории,<br />которые вышли<br /><span>из студии.</span></h2>
+          <p>Не учебные макеты. Реальные форматы, герои, съёмочные решения и зрители.</p>
+        </header>
+        <div class="about-work-grid">
+          <article class="about-work about-work-main">
+            <a href="#/you-in-topic" aria-label="Открыть страницу шоу «Ты в теме!»">
+              <img src="./assets/you-in-topic-hosts.webp" alt="Ведущие молодёжного шоу «Ты в теме!»" loading="lazy" />
+              <div><span>ШОУ · 10 ВЫПУСКОВ</span><h3>Ты в теме!</h3><p>Младшие задают вопросы, на которые взрослые не готовы отвечать. Без фильтров и заученных реплик.</p><b>Смотреть историю →</b></div>
+            </a>
+          </article>
+          <article class="about-work">
+            <a href="https://www.youtube.com/@%D0%9F%D0%BE%D0%BB%D0%B5%D0%B7%D0%BD%D1%8B%D0%B9%D0%B1%D0%BB%D0%BE%D0%B3" target="_blank" rel="noopener noreferrer">
+              <img src="./assets/media05-content-factory.webp" alt="Производство выпусков проекта «Полезный блог»" loading="lazy" />
+              <div><span>МЕДИАПРОЕКТ</span><h3>Полезный блог</h3><p>Короткие видео, в которых идея сразу проходит проверку камерой, монтажом и зрителем.</p><b>YouTube ↗</b></div>
+            </a>
+          </article>
+          <article class="about-work">
+            <a href="https://www.youtube.com/@-m50" target="_blank" rel="noopener noreferrer">
+              <img src="./assets/adult01-intruder-storyboard.webp" alt="Раскадровка короткометражного фильма INTRUDER" loading="lazy" />
+              <div><span>КОРОТКИЙ МЕТР</span><h3>INTRUDER</h3><p>История, собранная через сценарий, раскадровку, съёмку и режиссёрское решение.</p><b>Канал TIMECODE ↗</b></div>
+            </a>
+          </article>
+          <article class="about-work about-work-wide">
+            <a href="https://www.youtube.com/@-m50" target="_blank" rel="noopener noreferrer">
+              <img src="./assets/kids07-concert-cover.webp" alt="Съёмка концерта командой юных корреспондентов" loading="lazy" />
+              <div><span>РЕПОРТАЖ · СОБЫТИЯ</span><h3>Живой эфир города</h3><p>Концерты, интервью, новости и события — там, где нужно быстро увидеть главное и не потерять живую эмоцию.</p><b>Смотреть работы ↗</b></div>
+            </a>
+          </article>
+        </div>
+      </section>
+  
+      <section class="about-labs" aria-labelledby="about-labs-title">
+        <p class="about-section-index">03 / ДВЕ ТРАЕКТОРИИ</p>
+        <h2 id="about-labs-title">Возраст разный.<br /><span>Планка настоящая.</span></h2>
+        <div class="about-lab-cards">
+          <article>
+            <span class="about-lab-age">12+</span><p>KIDS LAB</p><h3>Увидеть историю и не испугаться камеры.</h3><ul><li>кадр и композиция</li><li>интервью и работа ведущего</li><li>репортаж и первый монтаж</li></ul><a href="#lessons">Уроки KIDS LAB →</a>
+          </article>
+          <article>
+            <span class="about-lab-age">14+</span><p>MEDIA LAB</p><h3>Собрать авторское высказывание и довести его до экрана.</h3><ul><li>драматургия и сценарий</li><li>журналистика и режиссура</li><li>короткий метр и собственный формат</li></ul><a href="#lessons">Уроки MEDIA LAB →</a>
+          </article>
+        </div>
+        <div class="about-studio-line" aria-label="Оснащение студии">
+          <span>3 камеры</span><span>Свет</span><span>Звук</span><span>Хромакей</span><span>Телесуфлёр</span><span>Монтажная</span>
+        </div>
+      </section>
+  
+      <section class="about-socials" aria-labelledby="about-socials-title">
+        <header>
+          <p class="about-section-index">04 / ГДЕ НАС СМОТРЕТЬ</p>
+          <h2 id="about-socials-title">Весь TIMECODE.<br /><span>Без потерянных ссылок.</span></h2>
+        </header>
+        <div class="about-social-grid">
+          <a href="https://vk.ru/theinsideeye" target="_blank" rel="noopener noreferrer"><span>VK</span><div><strong>Сообщество TIMECODE</strong><small>Новости, съёмки, объявления</small></div><b>↗</b></a>
+          <a href="https://www.youtube.com/@-m50" target="_blank" rel="noopener noreferrer"><span>YT</span><div><strong>Медиацентр Марфино</strong><small>Фильмы, репортажи, выпуски</small></div><b>↗</b></a>
+          <a href="https://www.youtube.com/@%D0%9F%D0%BE%D0%BB%D0%B5%D0%B7%D0%BD%D1%8B%D0%B9%D0%B1%D0%BB%D0%BE%D0%B3" target="_blank" rel="noopener noreferrer"><span>YT</span><div><strong>Полезный блог</strong><small>Отдельный канал проекта</small></div><b>↗</b></a>
+          <a href="https://vkvideo.ru/playlist/-236346873_1/season_0" target="_blank" rel="noopener noreferrer"><span>VK</span><div><strong>«Ты в теме!»</strong><small>Плейлист сезона</small></div><b>↗</b></a>
+          <a href="https://dk.mosreg.ru/dk/marfino/workshops/804ce64a-bcbd-48ad-80cc-630f23d0c9dd" target="_blank" rel="noopener noreferrer"><span>ДК</span><div><strong>Официальная страница</strong><small>Медиацентр Марфино</small></div><b>↗</b></a>
+        </div>
+      </section>
+  
+      <section class="about-contact" id="about-contact" aria-labelledby="about-contact-title">
+        <div class="about-contact-copy">
+          <p class="about-section-index">05 / СВЯЗАТЬСЯ</p>
+          <h2 id="about-contact-title">Есть разговор?<br /><span>Начинайте.</span></h2>
+          <p>Напишите, кто вы и о чём хотите поговорить. Форма соберёт сообщение, скопирует его и откроет диалог с командой TIMECODE во VK.</p>
+          <a href="https://vk.me/theinsideeye" target="_blank" rel="noopener noreferrer">Открыть сообщения VK напрямую ↗</a>
+        </div>
+        <form id="about-contact-form" class="about-contact-form">
+          <label><span>Как вас зовут</span><input name="name" type="text" autocomplete="name" required placeholder="Имя" /></label>
+          <label><span>Как с вами связаться</span><input name="contact" type="text" autocomplete="email" required placeholder="Телефон, почта или профиль" /></label>
+          <label><span>О чём хотите поговорить</span><textarea name="message" rows="6" required placeholder="Например: хотим предложить героя для выпуска…"></textarea></label>
+          <button type="submit">Скопировать и открыть VK <b>→</b></button>
+          <p class="about-contact-note">Данные не отправляются автоматически и не сохраняются на сайте.</p>
+          <p id="about-contact-status" class="about-contact-status" role="status" aria-live="polite"></p>
+        </form>
+      </section>
+  
+      <footer class="about-page-footer">
+        <strong>TIME<span>:</span>CODE</strong>
+        <p>Смотрим. Слушаем. Снимаем.</p>
+        <a href="#/">На главную ↑</a>
+      </footer>
+    </div>`;
+  
+    bindAboutContact();
+    window.scrollTo({ top: 0, behavior: "instant" });
+  }
+
   function route() {
     stopLessonMedia();
-    document.body.classList.remove("ai-active");
+    document.body.classList.remove("ai-active", "about-active");
     document.removeEventListener("keydown", lessonKeydown);
     document.body.classList.remove("presentation-mode");
     state.lesson = null;
@@ -8806,9 +8994,12 @@ Object.assign(window.TIMECODE_TEACHER_GUIDES, {
       renderLifehackLibrary();
       return;
     }
+    if (hash === "#/about" || hash === "#about") {
+      renderAbout();
+      return;
+    }
     if (hash === "#lessons") renderHome("#lessons");
     else if (hash === "#lifehacks") renderHome("#lifehacks");
-    else if (hash === "#about") renderHome("#about");
     else renderHome();
   }
 
