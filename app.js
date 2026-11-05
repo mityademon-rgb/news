@@ -3038,8 +3038,15 @@
         <div class="about-hero-visual" aria-label="Съёмочная среда TIMECODE">
           <div class="about-orbit about-orbit-one"></div>
           <div class="about-orbit about-orbit-two"></div>
-          <img class="about-hero-camera" src="./assets/camera-hero.webp" alt="Профессиональная видеокамера" />
-          <img class="about-hero-mic" src="./assets/boom-mic-hero.webp" alt="Студийный микрофон" />
+          <figure class="about-hero-photo about-hero-photo-main">
+            <img src="./assets/about/team-cameras.webp" alt="Команда TIMECODE работает с двумя видеокамерами" />
+          </figure>
+          <figure class="about-hero-photo about-hero-photo-left">
+            <img src="./assets/about/camera-practice.webp" alt="Участники лаборатории снимают на камеру со штатива" />
+          </figure>
+          <figure class="about-hero-photo about-hero-photo-right">
+            <img src="./assets/about/camera-team.webp" alt="Команда TIMECODE проверяет камеру перед съёмкой" />
+          </figure>
           <strong class="about-hero-code" aria-hidden="true">TIME<br /><i>:</i>CODE</strong>
           <span class="about-hero-label label-one">СНИМАЕМ</span>
           <span class="about-hero-label label-two">СПРАШИВАЕМ</span>
@@ -3066,10 +3073,26 @@
           <article><span>04</span><h3>Выпускать</h3><p>Собирать материал в монтажной и доводить его до фильма, шоу, новости или репортажа.</p></article>
         </div>
       </section>
+
+      <section class="about-reality" aria-labelledby="about-reality-title">
+        <header class="about-reality-head">
+          <p class="about-section-index">02 / ЛАБОРАТОРИЯ В РАБОТЕ</p>
+          <h2 id="about-reality-title">Вот как это<br /><span>выглядит.</span></h2>
+          <p>Не постановочные картинки и не стоки. Это наши камеры, наши выезды, наши интервью и наша студия.</p>
+        </header>
+        <div class="about-photo-grid">
+          <figure class="about-photo about-photo-tall"><img src="./assets/about/camera-observer.webp" alt="Оператор TIMECODE снимает выступление на видеокамеру" loading="lazy" /><figcaption><span>01</span> Камера</figcaption></figure>
+          <figure class="about-photo about-photo-wide"><img src="./assets/about/reporter-standup.webp" alt="Юный корреспондент записывает стендап на улице" loading="lazy" /><figcaption><span>02</span> Стендап</figcaption></figure>
+          <figure class="about-photo"><img src="./assets/about/event-interview.webp" alt="Корреспондент TIMECODE берёт интервью на выездном мероприятии" loading="lazy" /><figcaption><span>03</span> Выезд</figcaption></figure>
+          <figure class="about-photo"><img src="./assets/about/field-crew.webp" alt="Съёмочная группа TIMECODE на медиамероприятии" loading="lazy" /><figcaption><span>04</span> Команда</figcaption></figure>
+          <figure class="about-photo about-photo-bottom"><img src="./assets/about/studio-workshop.webp" alt="Разбор материала в студии TIMECODE" loading="lazy" /><figcaption><span>05</span> Разбор</figcaption></figure>
+          <figure class="about-photo about-photo-bottom-wide"><img src="./assets/about/neon-studio.webp" alt="Студия TIMECODE с экраном, светом и камерами" loading="lazy" /><figcaption><span>06</span> Студия</figcaption></figure>
+        </div>
+      </section>
   
       <section class="about-works" id="about-works" aria-labelledby="about-works-title">
         <header class="about-section-head">
-          <p class="about-section-index">02 / СИЛЬНЫЕ РАБОТЫ</p>
+          <p class="about-section-index">03 / СИЛЬНЫЕ РАБОТЫ</p>
           <h2 id="about-works-title">Истории,<br />которые вышли<br /><span>из студии.</span></h2>
           <p>Не учебные макеты. Реальные форматы, герои, съёмочные решения и зрители.</p>
         </header>
@@ -3082,7 +3105,7 @@
           </article>
           <article class="about-work">
             <a href="https://www.youtube.com/@%D0%9F%D0%BE%D0%BB%D0%B5%D0%B7%D0%BD%D1%8B%D0%B9%D0%B1%D0%BB%D0%BE%D0%B3" target="_blank" rel="noopener noreferrer">
-              <img src="./assets/media05-content-factory.webp" alt="Производство выпусков проекта «Полезный блог»" loading="lazy" />
+              <img src="./assets/about/reporter-standup.webp" alt="Корреспондент TIMECODE записывает стендап для выпуска" loading="lazy" />
               <div><span>МЕДИАПРОЕКТ</span><h3>Полезный блог</h3><p>Короткие видео, в которых идея сразу проходит проверку камерой, монтажом и зрителем.</p><b>YouTube ↗</b></div>
             </a>
           </article>
@@ -3094,7 +3117,7 @@
           </article>
           <article class="about-work about-work-wide">
             <a href="https://www.youtube.com/@-m50" target="_blank" rel="noopener noreferrer">
-              <img src="./assets/kids07-concert-cover.webp" alt="Съёмка концерта командой юных корреспондентов" loading="lazy" />
+              <img src="./assets/about/event-interview.webp" alt="Выездное интервью команды TIMECODE" loading="lazy" />
               <div><span>РЕПОРТАЖ · СОБЫТИЯ</span><h3>Живой эфир города</h3><p>Концерты, интервью, новости и события — там, где нужно быстро увидеть главное и не потерять живую эмоцию.</p><b>Смотреть работы ↗</b></div>
             </a>
           </article>
@@ -3102,7 +3125,7 @@
       </section>
   
       <section class="about-labs" aria-labelledby="about-labs-title">
-        <p class="about-section-index">03 / ДВЕ ТРАЕКТОРИИ</p>
+        <p class="about-section-index">04 / ДВЕ ТРАЕКТОРИИ</p>
         <h2 id="about-labs-title">Возраст разный.<br /><span>Планка настоящая.</span></h2>
         <div class="about-lab-cards">
           <article>
@@ -3119,7 +3142,7 @@
   
       <section class="about-socials" aria-labelledby="about-socials-title">
         <header>
-          <p class="about-section-index">04 / ГДЕ НАС СМОТРЕТЬ</p>
+          <p class="about-section-index">05 / ГДЕ НАС СМОТРЕТЬ</p>
           <h2 id="about-socials-title">Весь TIMECODE.<br /><span>Без потерянных ссылок.</span></h2>
         </header>
         <div class="about-social-grid">
@@ -3133,7 +3156,7 @@
   
       <section class="about-contact" id="about-contact" aria-labelledby="about-contact-title">
         <div class="about-contact-copy">
-          <p class="about-section-index">05 / СВЯЗАТЬСЯ</p>
+          <p class="about-section-index">06 / СВЯЗАТЬСЯ</p>
           <h2 id="about-contact-title">Есть разговор?<br /><span>Начинайте.</span></h2>
           <p>Напишите, кто вы и о чём хотите поговорить. Форма соберёт сообщение, скопирует его и откроет диалог с командой TIMECODE во VK.</p>
           <a href="https://vk.me/theinsideeye" target="_blank" rel="noopener noreferrer">Открыть сообщения VK напрямую ↗</a>
