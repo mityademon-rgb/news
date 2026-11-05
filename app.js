@@ -3031,8 +3031,8 @@
           <h1 id="about-page-title"><span>Медиа</span><br />начинаются<br />с возможности.</h1>
           <p class="about-hero-lead">TIMECODE — лаборатория креативных медиа, где подростки проходят весь путь от первого вопроса до готового выпуска, фильма или репортажа.</p>
           <div class="about-hero-actions">
-            <a href="#about-works">Смотреть работы <b>↘</b></a>
-            <a href="#about-contact">Связаться <b>→</b></a>
+            <a href="#/about" data-about-scroll="#about-works">Смотреть работы <b>↘</b></a>
+            <a href="#/about" data-about-scroll="#about-contact">Связаться <b>→</b></a>
           </div>
         </div>
         <div class="about-hero-visual" aria-label="Съёмочная среда TIMECODE">
@@ -3155,6 +3155,13 @@
       </footer>
     </div>`;
   
+    document.querySelectorAll("[data-about-scroll]").forEach((link) => {
+      link.addEventListener("click", (event) => {
+        event.preventDefault();
+        const target = document.querySelector(link.dataset.aboutScroll);
+        target?.scrollIntoView({ behavior: window.matchMedia("(prefers-reduced-motion: reduce)").matches ? "auto" : "smooth", block: "start" });
+      });
+    });
     bindAboutContact();
     window.scrollTo({ top: 0, behavior: "instant" });
   }
