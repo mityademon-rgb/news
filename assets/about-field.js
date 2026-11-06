@@ -238,8 +238,8 @@
     destroy();
     if (!(target instanceof HTMLCanvasElement)) return;
     canvas = target;
-    hero = canvas.closest(".about-hero");
-    cameraObject = hero?.querySelector("[data-about-camera]") || null;
+    hero = canvas.closest(".title-stage");
+    cameraObject = hero?.querySelector("[data-home-camera]") || null;
     context = canvas.getContext("2d", { alpha: true });
     if (!hero || !context) return;
 
@@ -263,33 +263,33 @@
   }
 
   function inject() {
-    if (location.hash !== "#/about" && location.hash !== "#about") return;
-    const targetHero = document.querySelector(".about-hero");
-    const visual = targetHero?.querySelector(".about-hero-visual");
-    if (!targetHero || !visual || targetHero.dataset.aboutEffectMounted === "true") return;
+    const hash = location.hash;
+    if (hash && hash !== "#/" && hash !== "#") return;
+    const targetHero = document.querySelector(".title-stage");
+    const visual = targetHero?.querySelector(".title-stage-picture");
+    if (!targetHero || !visual || targetHero.dataset.homeCameraMounted === "true") return;
 
-    targetHero.dataset.aboutEffectMounted = "true";
+    targetHero.dataset.homeCameraMounted = "true";
     const signalCanvas = document.createElement("canvas");
-    signalCanvas.className = "about-signal-field";
-    signalCanvas.dataset.aboutField = "";
+    signalCanvas.className = "home-signal-field";
+    signalCanvas.dataset.homeField = "";
     signalCanvas.setAttribute("aria-hidden", "true");
     targetHero.prepend(signalCanvas);
     visual.innerHTML = `
-      <div class="about-orbit about-orbit-one"></div>
-      <div class="about-orbit about-orbit-two"></div>
-      <div class="about-camera-stage">
-        <div class="about-camera-halo" aria-hidden="true"></div>
-        <figure class="about-camera-object" data-about-camera>
-          <img class="about-camera-depth" src="./assets/camera-hero.webp" alt="" aria-hidden="true" />
-          <img class="about-camera-main" src="./assets/camera-hero.webp" alt="Профессиональная кинокамера — главный инструмент лаборатории TIMECODE" />
+      <div class="studio-depth-lines"><i></i><i></i><i></i></div>
+      <div class="home-camera-stage">
+        <div class="home-camera-halo" aria-hidden="true"></div>
+        <figure class="home-camera-object" data-home-camera>
+          <img class="home-camera-depth" src="./assets/camera-hero.webp" alt="" aria-hidden="true" />
+          <img class="home-camera-main" src="./assets/camera-hero.webp" alt="" />
           <figcaption><i></i> REC&nbsp;&nbsp;00:10:00:00</figcaption>
         </figure>
-        <div class="about-camera-scan" aria-hidden="true"></div>
+        <div class="home-camera-scan" aria-hidden="true"></div>
       </div>
-      <strong class="about-hero-code" aria-hidden="true">TIME<br /><i>:</i>CODE</strong>
-      <span class="about-hero-label label-one">СНИМАЕМ</span>
-      <span class="about-hero-label label-two">СПРАШИВАЕМ</span>
-      <span class="about-hero-label label-three">ВЫПУСКАЕМ</span>`;
+      <span class="title-sticker sticker-rec"><i></i> REC</span>
+      <span class="title-sticker sticker-take">ДУБЛЬ 1</span>
+      <span class="title-sticker sticker-ready">ГОТОВЫ?</span>
+      <div class="title-frame"><i></i><i></i><i></i><i></i></div>`;
     mount(signalCanvas);
   }
 
@@ -298,7 +298,7 @@
     requestAnimationFrame(() => requestAnimationFrame(inject));
   }
 
-  window.TIMECODE_ABOUT_FIELD = { mount, destroy, inject };
+  window.TIMECODE_HOME_CAMERA = { mount, destroy, inject };
   window.addEventListener("hashchange", syncRoute);
   requestAnimationFrame(() => requestAnimationFrame(inject));
 })();
