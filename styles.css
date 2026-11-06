@@ -7882,6 +7882,8 @@ body.ai-active{background:#f3f0e9;color:#252035}
   object-fit: cover;
   transition: transform .55s ease, filter .55s ease;
 }
+.about-page img[src$="/reporter-standup.webp"] { object-position: center top; }
+.about-page img[src$="/event-interview.webp"] { object-position: center 27%; }
 .about-photo figcaption {
   position: absolute;
   z-index: 2;
