@@ -1,0 +1,46 @@
+{
+  "date": "2026-11-12",
+  "tool": "image_gen built-in",
+  "images": [
+    {
+      "key": "welcome",
+      "prompt": "Premium cinematic 3D editorial illustration for a 12+ creative media laboratory, sophisticated playful science museum quality, not preschool cartoon. Consistent assistant character: compact pearl-white and brushed titanium robot with black glass face and two simple violet optical eyes, expressive physical pose, violet and cyan edge light, subtle warm orange prop accents. Rich tactile materials, crisp detail, dark midnight indigo studio, physically believable objects, no flat vector shapes, no text, no letters, no logos, no watermark. Landscape 16:9, subject fits safely within frame. The assistant arrives at a small creative-media workbench with a camera, microphone, sketchbook and a tiny model rocket. A curious friendly introduction, one hand waves and the other points to the creative tools. A dramatic violet-lit doorway behind, joyful discovery, wide composition with clear single focus.",
+      "source": "exec-24530068-6308-419f-8280-da8c1709821f.png"
+    },
+    {
+      "key": "learning",
+      "prompt": "Premium cinematic 3D editorial illustration for a 12+ creative media laboratory, sophisticated playful science museum quality, not preschool cartoon. Consistent assistant character: compact pearl-white and brushed titanium robot with black glass face and two simple violet optical eyes, expressive physical pose, violet and cyan edge light, subtle warm orange prop accents. Rich tactile materials, crisp detail, dark midnight indigo studio, physically believable objects, no flat vector shapes, no text, no letters, no logos, no watermark. Landscape 16:9, subject fits safely within frame. The assistant studies a rich collection of example material physically arranged on shelves around a workbench: tiny picture panels of cats, boats and forests, blank story books, music sheets without legible notation. On its desk it assembles a brand-new whimsical paper airship, visually conveying 'learning from examples then creating something new'. No screen UI, no exact technical diagram, no glowing brain.",
+      "source": "exec-987d23ef-2bd0-4a7a-98e2-78445b8f2234.png"
+    },
+    {
+      "key": "writer",
+      "prompt": "Premium cinematic 3D editorial illustration for a 12+ creative media laboratory, sophisticated playful science museum quality, not preschool cartoon. Consistent assistant character: compact pearl-white and brushed titanium robot with black glass face and two simple violet optical eyes, expressive physical pose, violet and cyan edge light, subtle warm orange prop accents. Rich tactile materials, crisp detail, dark midnight indigo studio, physically believable objects, no flat vector shapes, no text, no letters, no logos, no watermark. Landscape 16:9, subject fits safely within frame. The assistant is a writer and interviewer: at a desk writing in an open notebook with a large pencil, small microphone beside it, crumpled draft papers and a neat storyboard strip with blank frames. It pauses thoughtfully, then has an idea. One character only, medium-wide view.",
+      "source": "exec-843401c3-edaf-4493-a339-a603954f3e54.png"
+    },
+    {
+      "key": "artist",
+      "prompt": "Premium cinematic 3D editorial illustration for a 12+ creative media laboratory, sophisticated playful science museum quality, not preschool cartoon. Consistent assistant character: compact pearl-white and brushed titanium robot with black glass face and two simple violet optical eyes, expressive physical pose, violet and cyan edge light, subtle warm orange prop accents. Rich tactile materials, crisp detail, dark midnight indigo studio, physically believable objects, no flat vector shapes, no text, no letters, no logos, no watermark. Landscape 16:9, subject fits safely within frame. The assistant paints a spectacular friendly cosmic cat in a small space helmet on a large upright easel; physical paint tubes and brushes in foreground, beautiful brush texture on canvas, the robot holds a brush, strong composition clearly about making pictures. One character only.",
+      "source": "exec-034c89a2-c12f-4776-bb00-c865626f3b80.png"
+    },
+    {
+      "key": "musician",
+      "prompt": "Premium cinematic 3D editorial illustration for a 12+ creative media laboratory, sophisticated playful science museum quality, not preschool cartoon. Consistent assistant character: compact pearl-white and brushed titanium robot with black glass face and two simple violet optical eyes, expressive physical pose, violet and cyan edge light, subtle warm orange prop accents. Rich tactile materials, crisp detail, dark midnight indigo studio, physically believable objects, no flat vector shapes, no text, no letters, no logos, no watermark. Landscape 16:9, subject fits safely within frame. The assistant plays a violin in a compact sound-recording corner with microphone and headphones, small mixing console with no labels, elegant musical motion in its pose. Physical violin and bow anatomically coherent, celebratory rather than childish, one character only.",
+      "source": "exec-544cd549-fa1a-445d-bb5d-01ab4711a716.png"
+    },
+    {
+      "key": "director",
+      "prompt": "Premium cinematic 3D editorial illustration for a 12+ creative media laboratory, sophisticated playful science museum quality, not preschool cartoon. Consistent assistant character: compact pearl-white and brushed titanium robot with black glass face and two simple violet optical eyes, expressive physical pose, violet and cyan edge light, subtle warm orange prop accents. Rich tactile materials, crisp detail, dark midnight indigo studio, physically believable objects, no flat vector shapes, no text, no letters, no logos, no watermark. Landscape 16:9, subject fits safely within frame. The assistant is a film director beside a cinema camera on a tripod, holding a blank clapperboard; on a tiny practical tabletop set a paper rocket is ready to launch. Beautiful studio spotlights and physical backdrop, clearly creating a video scene, one robot only.",
+      "source": "exec-26fca975-1365-4f80-948d-55ea2205e8a6.png"
+    },
+    {
+      "key": "universal",
+      "prompt": "Premium cinematic 3D editorial illustration for a 12+ creative media laboratory, sophisticated playful science museum quality, not preschool cartoon. Consistent assistant character: compact pearl-white and brushed titanium robot with black glass face and two simple violet optical eyes, expressive physical pose, violet and cyan edge light, subtle warm orange prop accents. Rich tactile materials, crisp detail, dark midnight indigo studio, physically believable objects, no flat vector shapes, no text, no letters, no logos, no watermark. Landscape 16:9, subject fits safely within frame. The assistant is at the centre of a semicircular multimedia workbench combining an open notebook, easel with cosmic-cat art, headphones and a camera on a small tripod. It points to two different tools as if switching between tasks. One robot, all four tools distinct, uncluttered modern lab.",
+      "source": "exec-8ba3b138-2578-423f-8034-765731d4d880.png"
+    },
+    {
+      "key": "reality",
+      "prompt": "Premium cinematic 3D editorial illustration for a 12+ creative media laboratory, sophisticated playful science museum quality, not preschool cartoon. Consistent assistant character: compact pearl-white and brushed titanium robot with black glass face and two simple violet optical eyes, expressive physical pose, violet and cyan edge light, subtle warm orange prop accents. Rich tactile materials, crisp detail, dark midnight indigo studio, physically believable objects, no flat vector shapes, no text, no letters, no logos, no watermark. Landscape 16:9, subject fits safely within frame. The assistant confidently presents an absurdly oversized miniature stage proposal with tiny spotlights, a model smoke machine, a toy drone and rows of dancers as figurines; beside it a REAL modest classroom table with one smartphone and three empty chairs. Comic mismatch of imaginary blockbuster and available classroom, visually obvious contrast, no text, no readable UI, no real children. Same white chrome robot.",
+      "source": "exec-97464de4-7d6f-482d-850c-3345ba0ef641.png"
+    }
+  ]
+}

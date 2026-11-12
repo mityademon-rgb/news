@@ -1884,6 +1884,7 @@
   function baseSceneTemplate(scene) {
     const sceneLabels = {
       "sound-media": "Смотрим и слушаем",
+      "kids-ai": "Нейросети: смотрим и пробуем",
       cover: "Вход в тему",
       compare: "Смотрим и сравниваем",
       rule: "Разбираем приём",
@@ -1906,6 +1907,8 @@
       </div>`;
 
     if (scene.type === "camera-sim") return cameraSimTemplate(scene, copy);
+
+    if (scene.type === "kids-ai" && window.TIMECODE_KIDS_AI) return window.TIMECODE_KIDS_AI.render(scene, copy);
 
     if (scene.type === "x70" && window.TIMECODE_X70) return window.TIMECODE_X70.render(scene, copy);
 
@@ -2202,6 +2205,8 @@
   }
 
   function bindSceneActions(scene) {
+    if (scene.type === "kids-ai" && window.TIMECODE_KIDS_AI) window.TIMECODE_KIDS_AI.bind(scene, markAnswered, state.lesson.id, state.scene);
+
     if (scene.type === "x70" && window.TIMECODE_X70) window.TIMECODE_X70.bind(scene, markAnswered, state.lesson.id, state.scene);
 
     const cam = document.querySelector("[data-cam-sim]");
