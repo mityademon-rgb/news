@@ -1235,3 +1235,6 @@ Run 40898428634 completed/success, commit 0a90b89f5e7aebba9225ec55dd7051be7c74ce
 8 оригинальных image_gen-иллюстраций: assets/kids-ai/*.webp, промпты в generation.json, происхождение в CREDITS.md. Три коротких двухсекундных GIF и анимированных WebP созданы из этих изображений плавным движением камеры (не покадровая анимация персонажей), генератор scripts/build-kids-ai-motion.sh. На сайте более лёгкий WebP, рядом ссылка GIF. Пауза заменяет анимацию статичным изображением; prefers-reduced-motion включает статику. При листании DOM старой сцены удаляется. Урок не требует платных видео/музыкальных сервисов.
 
 Для проекторного показа анимированные WebP генерируются напрямую из исходных иллюстраций в 960×540, а не из палитровых GIF; GIF 400×225 остаётся компактным скачиваемым вариантом. URL анимированного WebP версионирован для обхода кеша.
+
+### KIDS neural lesson: gallery scope (2026-11-13)
+`nai-types` is the scene mode class; the inner four-card gallery uses `nai-type-cards`. Never share their grid selectors: it collapses the entire scene into four narrow columns.
