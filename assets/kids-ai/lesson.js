@@ -13,7 +13,7 @@ const helpers=[
 const offline='Космический кот оказался в обычном кабинете. Карандаш на столе вдруг заявил: «Я тоже хочу в космос!» Кот построил ему ракету из бумаги, торжественно начал отсчёт — и карандаш нарисовал на листе Луну. «Прибыли», — сказал он. Кот посмотрел на рисунок: «Самый экономный полёт в моей жизни». Конец.';
 function art(s){
  if(!s.image)return '';
- const motion=s.motion?BASE+s.motion+'-motion.webp':'';
+ const motion=s.motion?BASE+s.motion+'-motion.webp?v=20261112-02':'';
  const still=esc(s.image);
  return `<figure class="nai-art"><img src="${still}" alt="${esc(s.imageAlt||s.title)}" ${motion?`data-nai-motion="${esc(motion)}" data-nai-still="${still}"`:''} loading="eager"><figcaption><span>Иллюстрация создана нейросетью</span>${motion?`<button type="button" data-nai-motion-toggle aria-pressed="false">Включить анимацию</button><a href="${BASE+s.motion}-motion.gif" download>GIF ↓</a>`:''}</figcaption></figure>`;
 }
